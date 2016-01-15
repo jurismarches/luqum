@@ -55,8 +55,7 @@ class TestParser(TestCase):
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
 
-
-    @skip("problem with associativity, changing AND precedence")    
+    @skip("problem with associativity, changing AND precedence")
     def test_minus(self):
         tree = (
             AndOperation(
@@ -111,7 +110,7 @@ class TestParser(TestCase):
                                OrOperation(
                                    Word('foo'),
                                    Word('bar')))),
-                        Word('baz')))))
+                       Word('baz')))))
         parsed = parser.parse('test OR (subject:(foo OR bar) AND baz)')
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
@@ -119,7 +118,7 @@ class TestParser(TestCase):
     def test_combinations(self):
         # self.assertEqual(parser.parse("subject:test desc:(house OR car)").pval, "")
         tree = (
-            AndOperation(                
+            AndOperation(
                 SearchField(
                     "subject",
                     Word("test")),

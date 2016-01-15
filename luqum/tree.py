@@ -102,6 +102,7 @@ class BaseApprox(Item):
     """Base for approximations
     """
 
+
 class Fuzzy(BaseApprox):
     """Fuzzy search on word
     """

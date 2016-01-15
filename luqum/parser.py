@@ -4,9 +4,10 @@
 # TODO : add ranges, add boosting, add reserved chars and escaping,
 # see : https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html
 # https://lucene.apache.org/core/3_6_0/queryparsersyntax.html
+import re
 
 import ply.lex as lex
-import re
+import ply.yacc as yacc
 
 from .tree import *
 
@@ -37,8 +38,8 @@ t_MINUS = r'(-|NOT)'
 t_AND_OP = r'AND'
 t_OR_OP = r'OR'
 t_COLUMN = r':'
-t_LPAREN  = r'\('
-t_RPAREN  = r'\)'
+t_LPAREN = r'\('
+t_RPAREN = r'\)'
 
 
 # precedence rules
@@ -96,9 +97,6 @@ def t_error(t):
 lexer = lex.lex()
 
 
-import ply.yacc as yacc
-
-
 def p_expression_or(p):
     'expression : expression OR_OP expression'
     p[0] = OrOperation(p[1], p[3])
@@ -114,13 +112,16 @@ def p_expression_plus(p):
     '''unary_expression : PLUS unary_expression'''
     p[0] = Plus(p[2])
 
+
 def p_expression_minus(p):
     '''unary_expression : MINUS unary_expression'''
     p[0] = Minus(p[2])
 
+
 def p_expression_unary(p):
     '''expression : unary_expression'''
     p[0] = p[1]
+
 
 def p_grouping(p):
     'unary_expression : LPAREN expression RPAREN'
@@ -132,6 +133,7 @@ def p_field_search(p):
     if isinstance(p[3], Group):
         p[3] = group_to_fieldgroup(p[3])
     p[0] = SearchField(p[1].value, p[3])
+
 
 def p_quoting(p):
     'unary_expression : PHRASE'
