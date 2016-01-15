@@ -71,6 +71,8 @@ class TestParser(TestCase):
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
 
+    # FIXME : test plus
+
     def test_phrase(self):
         tree = (
             AndOperation(
@@ -136,3 +138,5 @@ class TestParser(TestCase):
 
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
+
+    # FIXME test split_op
