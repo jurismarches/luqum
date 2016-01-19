@@ -5,7 +5,7 @@ __pycache__/
 
 # PLY
 luqum/parsetab.py
-luqum/parse.out
+luqum/parser.out
 
 # C extensions
 *.so

@@ -1,4 +1,4 @@
-from unittest import TestCase, skip
+from unittest import TestCase
 
 from .parser import lexer, parser
 from .tree import *
@@ -55,22 +55,32 @@ class TestParser(TestCase):
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
 
-    @skip("problem with associativity, changing AND precedence")
     def test_minus(self):
         tree = (
             AndOperation(
-                Minus(
-                    Word("test")),
                 AndOperation(
                     Minus(
-                        Word("foo")),
+                        Word("test")),
                     Minus(
-                        Word("bar")))))
+                        Word("foo"))),
+                Minus(
+                    Word("bar"))))
         parsed = parser.parse("-test AND -foo AND NOT bar")
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
 
-    # FIXME : test plus
+    def test_plus(self):
+        tree = (
+            AndOperation(
+                AndOperation(
+                    Plus(
+                        Word("test")),
+                    Word("foo")),
+                Plus(
+                    Word("bar"))))
+        parsed = parser.parse("+test AND foo AND +bar")
+        self.assertEqual(str(parsed), str(tree))
+        self.assertEqual(parsed, tree)
 
     def test_phrase(self):
         tree = (
@@ -137,5 +147,3 @@ class TestParser(TestCase):
 
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
-
-    # FIXME test split_op

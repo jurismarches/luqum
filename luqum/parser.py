@@ -44,14 +44,14 @@ t_RPAREN = r'\)'
 
 # precedence rules
 precedence = (
-    ('nonassoc', 'TERM'),
     ('left', 'OR_OP',),
     ('left', 'AND_OP'),
-    ('right', 'MINUS',),
-    ('right', 'PLUS',),
-    ('left', 'APPROX'),
+    ('nonassoc', 'MINUS',),
+    ('nonassoc', 'PLUS',),
+    ('nonassoc', 'APPROX'),
     ('nonassoc', 'LPAREN', 'RPAREN'),
     ('nonassoc', 'PHRASE'),
+    ('nonassoc', 'TERM'),
 )
 
 # term and phrase
@@ -105,7 +105,7 @@ def p_expression_or(p):
 def p_expression_and(p):
     '''expression : expression AND_OP expression
                            | expression expression'''
-    p[0] = AndOperation(p[1], p[len(p) - 1])
+    p[0] = AndOperation(p[1], p[len(p) - 1], explicit=len(p) > 3)
 
 
 def p_expression_plus(p):

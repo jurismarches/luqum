@@ -1,6 +1,8 @@
 """Elements that will constitute the parse tree of a query
 """
 
+_MARKER = object()
+
 
 class Item:
     """Base class for all items that compose the parse tree.
@@ -8,22 +10,25 @@ class Item:
     An item is a part of a request.
     """
 
+    _equality_attrs = []
+
     @property
     def children(self):
         """As base of a tree structure, an item may have children"""
         # empty by default
         return []
 
-    def split_op(self):
-        """Split the request part on operations
-        """
-        for c in self.children:
-            yield from c.split_op()
+    def __repr__(self):
+        children = ", ".join(repr(c) for c in self.children)
+        return "%s(%s)" % (self.__class__.__name__, children)
 
     def __eq__(self, other):
         """a basic equal operation
         """
-        return (self.__class__ == other.__class__ and self.__dict__ == other.__dict__)
+        return (self.__class__ == other.__class__ and
+                all(getattr(self, a, _MARKER) == getattr(other, a, _MARKER)
+                    for a in self._equality_attrs) and
+                all(c == d for c, d in zip(self.children, other.children)))
 
 
 class SearchField(Item):
@@ -31,6 +36,8 @@ class SearchField(Item):
 
     eg: *desc* in *desc:(this OR that)
     """
+    _equality_attrs = ['name']
+
     def __init__(self, name, expr):
         self.name = name
         self.expr = expr
@@ -56,9 +63,6 @@ class BaseGroup(Item):
     def children(self):
         yield self.expr
 
-    def __repr__(self):
-        return "%s(%s)" % (self.__class__.__name__, str(self))
-
 
 class Group(BaseGroup):
     """Group sub expressions
@@ -77,6 +81,8 @@ def group_to_fieldgroup(g):
 class Term(Item):
     """Base for terms
     """
+
+    _equality_attrs = ['value']
 
     def __init__(self, value):
         self.value = value
@@ -101,6 +107,7 @@ class Phrase(Term):
 class BaseApprox(Item):
     """Base for approximations
     """
+    _equality_attrs = ['degree']
 
 
 class Fuzzy(BaseApprox):
@@ -145,11 +152,6 @@ class Operation(Item):
         yield self.a
         yield self.b
 
-    def split_op(self):
-        return self.op
-        yield self.a
-        yield self.b
-
 
 class OrOperation(Operation):
     op = 'OR'
@@ -157,6 +159,12 @@ class OrOperation(Operation):
 
 class AndOperation(Operation):
     op = 'AND'
+
+    def __init__(self, a, b, explicit=True):
+        """explicit value tells if AND was explicitely written or it was a blank space
+        """
+        super(AndOperation, self).__init__(a, b)
+        self.explicit = explicit
 
 
 class Unary(Item):
