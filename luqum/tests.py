@@ -2,6 +2,7 @@ from unittest import TestCase
 
 from .parser import lexer, parser
 from .tree import *
+from .pretty import Prettifier, prettify
 
 
 class TestLexer(TestCase):
@@ -147,3 +148,93 @@ class TestParser(TestCase):
 
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
+
+
+class TestPrettify(TestCase):
+
+    big_tree = AndOperation(
+        Group(OrOperation(Word("baaaaaaaaaar"), Word("baaaaaaaaaaaaaz"))), Word("fooooooooooo"))
+    fat_tree = AndOperation(
+        SearchField(
+            "subject",
+            FieldGroup(
+                OrOperation(
+                    Word("fiiiiiiiiiiz"),
+                    AndOperation(Word("baaaaaaaaaar"), Word("baaaaaaaaaaaaaz"))))),
+        AndOperation(Word("fooooooooooo"), Word("wiiiiiiiiiz")))
+
+    def test_one_liner(self):
+        tree = AndOperation(Group(OrOperation(Word("bar"), Word("baz"))), Word("foo"))
+        self.assertEqual(prettify(tree), "( bar OR baz ) AND foo")
+
+    def test_small(self):
+        prettify = Prettifier(indent=8, max_len=20)
+        self.assertEqual(
+            "\n" + prettify(self.big_tree), """
+(
+        baaaaaaaaaar
+        OR
+        baaaaaaaaaaaaaz
+)
+AND
+fooooooooooo""")
+        self.assertEqual(
+            "\n" + prettify(self.fat_tree), """
+subject: (
+        fiiiiiiiiiiz
+        OR
+                baaaaaaaaaar
+                AND
+                baaaaaaaaaaaaaz
+)
+AND
+fooooooooooo
+AND
+wiiiiiiiiiz""")
+
+    def test_small_inline_ops(self):
+        prettify = Prettifier(indent=8, max_len=20, inline_ops=True)
+        self.assertEqual("\n" + prettify(self.big_tree), """
+(
+        baaaaaaaaaar OR
+        baaaaaaaaaaaaaz ) AND
+fooooooooooo""")
+        self.assertEqual("\n" + prettify(self.fat_tree), """
+subject: (
+        fiiiiiiiiiiz OR
+                baaaaaaaaaar AND
+                baaaaaaaaaaaaaz ) AND
+fooooooooooo AND
+wiiiiiiiiiz""")
+
+    def test_normal(self):
+        prettify = Prettifier(indent=4, max_len=50)
+        self.assertEqual("\n" + prettify(self.big_tree), """
+(
+    baaaaaaaaaar OR baaaaaaaaaaaaaz
+)
+AND
+fooooooooooo""")
+        self.assertEqual("\n" + prettify(self.fat_tree), """
+subject: (
+    fiiiiiiiiiiz
+    OR
+        baaaaaaaaaar AND baaaaaaaaaaaaaz
+)
+AND
+fooooooooooo
+AND
+wiiiiiiiiiz""")
+
+    def test_normal_inline_ops(self):
+        prettify = Prettifier(indent=4, max_len=50, inline_ops=True)
+        self.assertEqual("\n" + prettify(self.big_tree), """
+(
+    baaaaaaaaaar OR baaaaaaaaaaaaaz ) AND
+fooooooooooo""")
+        self.assertEqual("\n" + prettify(self.fat_tree), """
+subject: (
+    fiiiiiiiiiiz OR
+        baaaaaaaaaar AND baaaaaaaaaaaaaz ) AND
+fooooooooooo AND
+wiiiiiiiiiz""")
