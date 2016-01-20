@@ -1,2 +1,2 @@
 tests:
-	nosetests --with-coverage --cover-package=chopper
+	nosetests --with-coverage --cover-package=luqum
