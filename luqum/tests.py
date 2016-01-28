@@ -172,6 +172,40 @@ class TestParser(TestCase):
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
 
+    def test_reserved_ok(self):
+        """Test reserved word do not hurt in certain positions
+        """
+        tree = SearchField("foo", Word("TO"))
+        parsed = parser.parse('foo:TO')
+        self.assertEqual(str(tree), str(parsed))
+        self.assertEqual(tree, parsed)
+        tree = SearchField("foo", Word("TO*"))
+        parsed = parser.parse('foo:TO*')
+        self.assertEqual(str(tree), str(parsed))
+        self.assertEqual(tree, parsed)
+        tree = SearchField("foo", Word("NOT*"))
+        parsed = parser.parse('foo:NOT*')
+        self.assertEqual(str(tree), str(parsed))
+        self.assertEqual(tree, parsed)
+        tree = SearchField("foo", Phrase('"TO AND OR"'))
+        parsed = parser.parse('foo:"TO AND OR"')
+        self.assertEqual(str(tree), str(parsed))
+        self.assertEqual(tree, parsed)
+
+    def test_reserved_ko(self):
+        """Test reserved word hurt as they hurt lucene
+        """
+        with self.assertRaises(ParseError):
+            parser.parse('foo:NOT')
+        with self.assertRaises(ParseError):
+            parser.parse('foo:AND')
+        with self.assertRaises(ParseError):
+            parser.parse('foo:OR')
+        with self.assertRaises(ParseError):
+            parser.parse('OR')
+        with self.assertRaises(ParseError):
+            parser.parse('AND')
+
 
 class TestPrettify(TestCase):
 

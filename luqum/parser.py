@@ -12,6 +12,12 @@ import ply.yacc as yacc
 from .tree import *
 
 
+class ParseError(ValueError):
+    """Exception while parsing a lucene statement
+    """
+    pass
+
+
 reserved = {
   'AND': 'AND_OP',
   'OR': 'OR_OP',
@@ -175,7 +181,7 @@ def p_to_as_term(p):
 # Error rule for syntax errors
 # TODO : should report better
 def p_error(p):
-    print("Syntax error in input at %r!" % [p])
+    raise ParseError("Syntax error in input at %r!" % [p])
 
 
 parser = yacc.yacc()
