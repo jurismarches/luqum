@@ -74,18 +74,50 @@ class FieldGroup(BaseGroup):
     """
 
 
-def group_to_fieldgroup(g):
+def group_to_fieldgroup(g):  # FIXME: no use !
     return FieldGroup(g.expr)
+
+
+class Range(Item):
+    """A Range
+    """
+
+    LOW_CHAR = {True: '[', False: '{'}
+    HIGH_CHAR = {True: ']', False: '}'}
+
+    def __init__(self, low, high, include_low, include_high):
+        self.low = low
+        self.high = high
+        self.include_low = include_low
+        self.include_high = include_high
+
+    @property
+    def children(self):
+        return [self.low, self.high]
+
+    def __str__(self):
+        return "%s%s TO %s%s" % (
+            self.LOW_CHAR[self.include_low],
+            self.low,
+            self.high,
+            self.HIGH_CHAR[self.include_high])
 
 
 class Term(Item):
     """Base for terms
     """
+    WILDCARD = "*"
 
     _equality_attrs = ['value']
 
     def __init__(self, value):
         self.value = value
+
+    def is_wildcard(self):
+        return self.value == self.WILDCARD
+
+    def has_wildcard(self):
+        return self.WILDCARD in self.value
 
     def __str__(self):
         return self.value

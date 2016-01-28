@@ -1,7 +1,7 @@
 """The Lucene Query DSL parser
 """
 
-# TODO : add ranges, add boosting, add reserved chars and escaping,
+# TODO : add boosting, add reserved chars and escaping, regex
 # see : https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html
 # https://lucene.apache.org/core/3_6_0/queryparsersyntax.html
 import re
@@ -16,7 +16,7 @@ reserved = {
   'AND': 'AND_OP',
   'OR': 'OR_OP',
   'NOT': 'MINUS',
-}
+  'TO': 'TO'}
 
 
 # tokens of our grammar
@@ -29,7 +29,8 @@ tokens = [
     'COLUMN',
     'LPAREN',
     'RPAREN',
-] + list(reserved.values())
+    'LBRACKET',
+    'RBRACKET'] + list(reserved.values())
 
 
 # text of some simple tokens
@@ -40,6 +41,8 @@ t_OR_OP = r'OR'
 t_COLUMN = r':'
 t_LPAREN = r'\('
 t_RPAREN = r'\)'
+t_LBRACKET = r'(\[|\{)'
+t_RBRACKET = r'(\]|\})'
 
 
 # precedence rules
@@ -50,12 +53,13 @@ precedence = (
     ('nonassoc', 'PLUS',),
     ('nonassoc', 'APPROX'),
     ('nonassoc', 'LPAREN', 'RPAREN'),
+    ('nonassoc', 'LBRACKET', 'TO', 'RBRACKET'),
     ('nonassoc', 'PHRASE'),
     ('nonassoc', 'TERM'),
 )
 
 # term and phrase
-TERM_RE = r'(?P<term>\w+)'
+TERM_RE = r'(?P<term>[\w\*]+)'
 PHRASE_RE = r'(?P<phrase>"[^"]+")'
 APPROX_RE = r'~(?P<degree>[0-9.]+)?'
 
@@ -128,6 +132,13 @@ def p_grouping(p):
     p[0] = Group(p[2])  # Will p_field_search will transform as FieldGroup if necessary
 
 
+def p_range(p):
+    'unary_expression : LBRACKET TERM TO TERM RBRACKET'
+    include_low = p[1] == "["
+    include_high = p[5] == "]"
+    p[0] = Range(p[2], p[4], include_low, include_high)
+
+
 def p_field_search(p):
     'expression : TERM COLUMN unary_expression'
     if isinstance(p[3], Group):
@@ -155,7 +166,14 @@ def p_fuzzy(p):
     p[0] = Fuzzy(p[1], p[2])
 
 
-# Error rule for syntax errors FIXME
+# handling a special case, TO is reserved only in range
+def p_to_as_term(p):
+    '''unary_expression : TO'''
+    p[0] = Word(p[1])
+
+
+# Error rule for syntax errors
+# TODO : should report better
 def p_error(p):
     print("Syntax error in input at %r!" % [p])
 

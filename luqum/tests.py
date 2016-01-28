@@ -10,7 +10,7 @@ class TestLexer(TestCase):
     """
     def test_basic(self):
 
-        lexer.input('subject:test desc:(house OR car) AND "big garage"~2 dirt~0.3')
+        lexer.input('subject:test desc:(house OR car) AND "big garage"~2 dirt~0.3 OR foo:{a TO z*]')
         self.assertEqual(lexer.token().value, Word("subject"))
         self.assertEqual(lexer.token().type, "COLUMN")
         self.assertEqual(lexer.token().value, Word("test"))
@@ -30,11 +30,21 @@ class TestLexer(TestCase):
         t = lexer.token()
         self.assertEqual(t.type, "APPROX")
         self.assertEqual(t.value, "0.3")
+        self.assertEqual(lexer.token().type, "OR_OP")
+        self.assertEqual(lexer.token().value, Word("foo"))
+        self.assertEqual(lexer.token().type, "COLUMN")
+        self.assertEqual(lexer.token().type, "LBRACKET")
+        self.assertEqual(lexer.token().value, Word("a"))
+        self.assertEqual(lexer.token().type, "TO")
+        self.assertEqual(lexer.token().value, Word("z*"))
+        self.assertEqual(lexer.token().type, "RBRACKET")
         self.assertEqual(lexer.token(), None)
 
 
 class TestParser(TestCase):
     """Test base parser
+
+    .. note:: we compare str(tree) before comparing tree, because it's more easy to debug
     """
 
     def test_simplest(self):
@@ -123,6 +133,19 @@ class TestParser(TestCase):
                                    Word('bar')))),
                        Word('baz')))))
         parsed = parser.parse('test OR (subject:(foo OR bar) AND baz)')
+        self.assertEqual(str(parsed), str(tree))
+        self.assertEqual(parsed, tree)
+
+    def test_range(self):
+        tree = (
+            AndOperation(
+                SearchField(
+                    "foo",
+                    Range(Word("10"), Word("100"), True, True)),
+                SearchField(
+                    "bar",
+                    Range(Word("a*"), Word("*"), True, False))))
+        parsed = parser.parse('foo:[10 TO 100] AND bar:[a* TO *}')
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
 
