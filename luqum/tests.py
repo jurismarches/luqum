@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from .parser import lexer, parser
+from .parser import lexer, parser, ParseError
 from .tree import *
 from .pretty import Prettifier, prettify
 
