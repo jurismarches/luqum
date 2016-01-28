@@ -133,7 +133,11 @@ class Word(Term):
 class Phrase(Term):
     """A phrase term, that is a sequence of words enclose in quotes
     """
-    pass
+
+    def __init__(self, value):
+        super(Phrase, self).__init__(value)
+        assert self.value.endswith('"') and self.value.startswith('"'), (
+               "Phrase value must contain the quotes")
 
 
 class BaseApprox(Item):
