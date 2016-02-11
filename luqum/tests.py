@@ -11,7 +11,8 @@ class TestLexer(TestCase):
     """
     def test_basic(self):
 
-        lexer.input('subject:test desc:(house OR car) AND "big garage"~2 dirt~0.3 OR foo:{a TO z*]')
+        lexer.input(
+            'subject:test desc:(house OR car)^3 AND "big garage"~2 dirt~0.3 OR foo:{a TO z*]')
         self.assertEqual(lexer.token().value, Word("subject"))
         self.assertEqual(lexer.token().type, "COLUMN")
         self.assertEqual(lexer.token().value, Word("test"))
@@ -22,6 +23,9 @@ class TestLexer(TestCase):
         self.assertEqual(lexer.token().type, "OR_OP")
         self.assertEqual(lexer.token().value, Word("car"))
         self.assertEqual(lexer.token().type, "RPAREN")
+        t = lexer.token()
+        self.assertEqual(t.type, "BOOST")
+        self.assertEqual(t.value, "3")
         self.assertEqual(lexer.token().type, "AND_OP")
         self.assertEqual(lexer.token().value, Phrase('"big garage"'))
         t = lexer.token()
@@ -117,6 +121,22 @@ class TestParser(TestCase):
                         Word('fou'),
                         Decimal("0.5")))))
         parsed = parser.parse('"foo bar"~3 baz~0.3 fou~')
+        self.assertEqual(str(parsed), str(tree))
+        self.assertEqual(parsed, tree)
+
+    def test_boost(self):
+        tree = (
+            AndOperation(
+                Boost(
+                    Phrase('"foo bar"'),
+                    Decimal("3.0")),
+                Boost(
+                    Group(
+                        AndOperation(
+                            Word('baz'),
+                            Word('bar'))),
+                    Decimal("2.1"))))
+        parsed = parser.parse('"foo bar"^3 (baz AND bar)^2.1')
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
 

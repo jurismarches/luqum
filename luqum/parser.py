@@ -1,7 +1,7 @@
 """The Lucene Query DSL parser
 """
 
-# TODO : add boosting, add reserved chars and escaping, regex
+# TODO : add reserved chars and escaping, regex
 # see : https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html
 # https://lucene.apache.org/core/3_6_0/queryparsersyntax.html
 import re
@@ -30,6 +30,7 @@ tokens = [
     'TERM',
     'PHRASE',
     'APPROX',
+    'BOOST',
     'SEPARATOR',
     'PLUS',
     'COLUMN',
@@ -58,6 +59,7 @@ precedence = (
     ('nonassoc', 'MINUS',),
     ('nonassoc', 'PLUS',),
     ('nonassoc', 'APPROX'),
+    ('nonassoc', 'BOOST'),
     ('nonassoc', 'LPAREN', 'RPAREN'),
     ('nonassoc', 'LBRACKET', 'TO', 'RBRACKET'),
     ('nonassoc', 'PHRASE'),
@@ -68,6 +70,7 @@ precedence = (
 TERM_RE = r'(?P<term>[\w\*]+)'
 PHRASE_RE = r'(?P<phrase>"[^"]+")'
 APPROX_RE = r'~(?P<degree>[0-9.]+)?'
+BOOST_RE = r'\^(?P<force>[0-9.]+)?'
 
 
 def t_SEPARATOR(t):
@@ -95,6 +98,13 @@ def t_PHRASE(t):
 def t_APPROX(t):
     m = re.match(APPROX_RE, t.value)
     t.value = m.group("degree")
+    return t
+
+
+@lex.TOKEN(BOOST_RE)
+def t_BOOST(t):
+    m = re.match(BOOST_RE, t.value)
+    t.value = m.group("force")
     return t
 
 
@@ -160,6 +170,11 @@ def p_quoting(p):
 def p_proximity(p):
     '''unary_expression : PHRASE APPROX'''
     p[0] = Proximity(p[1], p[2])
+
+
+def p_boosting(p):
+    '''expression : expression BOOST'''
+    p[0] = Boost(p[1], p[2])
 
 
 def p_terms(p):

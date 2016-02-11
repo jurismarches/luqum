@@ -173,6 +173,17 @@ class Proximity(BaseApprox):
         return "%s~" % self.term + ("%d" % self.degree if self.degree is not None else "")
 
 
+class Boost(Item):
+    """A term for boosting a value or a group there of
+    """
+    def __init__(self, expr, force):
+        self.expr = expr
+        self.force = Decimal(force).normalize()
+
+    def __str__(self):
+        return "%s^%s" % (self.expr, self.force)
+
+
 class Operation(Item):
     """Parent class for binary operations are binary operation used to join expressions,
     like OR and AND
