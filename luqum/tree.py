@@ -1,5 +1,6 @@
 """Elements that will constitute the parse tree of a query
 """
+from decimal import Decimal
 
 _MARKER = object()
 
@@ -153,10 +154,10 @@ class Fuzzy(BaseApprox):
         self.term = term
         if degree is None:
             degree = 0.5
-        self.degree = float(degree)
+        self.degree = Decimal(degree).normalize()
 
     def __str__(self):
-        return "%s~%f" % (self.term, self.degree)
+        return "%s~%s" % (self.term, self.degree)
 
 
 class Proximity(BaseApprox):

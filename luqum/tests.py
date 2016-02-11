@@ -1,3 +1,4 @@
+from decimal import Decimal
 from unittest import TestCase
 
 from .parser import lexer, parser, ParseError
@@ -111,10 +112,10 @@ class TestParser(TestCase):
                 AndOperation(
                     Fuzzy(
                         Word('baz'),
-                        0.3),
+                        Decimal("0.3")),
                     Fuzzy(
                         Word('fou'),
-                        0.5))))
+                        Decimal("0.5")))))
         parsed = parser.parse('"foo bar"~3 baz~0.3 fou~')
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
