@@ -6,6 +6,17 @@ from .tree import *
 from .pretty import Prettifier, prettify
 
 
+class TestTree(TestCase):
+
+    def test_term_wildcard_true(self):
+        self.assertTrue(Term("ba*").has_wildcard())
+        self.assertTrue(Term("b*r").has_wildcard())
+        self.assertTrue(Term("*ar").has_wildcard())
+
+    def test_term_wildcard_false(self):
+        self.assertFalse(Term("bar").has_wildcard())
+
+
 class TestLexer(TestCase):
     """Test lexer
     """
@@ -114,13 +125,17 @@ class TestParser(TestCase):
                     Phrase('"foo bar"'),
                     3),
                 AndOperation(
-                    Fuzzy(
-                        Word('baz'),
-                        Decimal("0.3")),
-                    Fuzzy(
-                        Word('fou'),
-                        Decimal("0.5")))))
-        parsed = parser.parse('"foo bar"~3 baz~0.3 fou~')
+                    Proximity(
+                        Phrase('"foo baz"'),
+                        1),
+                    AndOperation(
+                        Fuzzy(
+                            Word('baz'),
+                            Decimal("0.3")),
+                        Fuzzy(
+                            Word('fou'),
+                            Decimal("0.5"))))))
+        parsed = parser.parse('"foo bar"~3 "foo baz"~ baz~0.3 fou~')
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
 
