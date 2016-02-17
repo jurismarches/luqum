@@ -86,7 +86,7 @@ class Range(Item):
     LOW_CHAR = {True: '[', False: '{'}
     HIGH_CHAR = {True: ']', False: '}'}
 
-    def __init__(self, low, high, include_low, include_high):
+    def __init__(self, low, high, include_low=True, include_high=True):
         self.low = low
         self.high = high
         self.include_low = include_low
