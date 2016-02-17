@@ -48,7 +48,7 @@ class SearchField(Item):
 
     @property
     def children(self):
-        yield self.expr
+        return [self.expr]
 
 
 class BaseGroup(Item):
@@ -62,7 +62,7 @@ class BaseGroup(Item):
 
     @property
     def children(self):
-        yield self.expr
+        return [self.expr]
 
 
 class Group(BaseGroup):
@@ -180,6 +180,10 @@ class Boost(Item):
         self.expr = expr
         self.force = Decimal(force).normalize()
 
+    @property
+    def children(self):
+        return [self.expr]
+
     def __str__(self):
         return "%s^%s" % (self.expr, self.force)
 
@@ -197,8 +201,7 @@ class Operation(Item):
 
     @property
     def children(self):
-        yield self.a
-        yield self.b
+        return [self.a, self.b]
 
 
 class OrOperation(Operation):
@@ -227,7 +230,7 @@ class Unary(Item):
 
     @property
     def children(self):
-        yield self.a
+        return [self.a]
 
 
 class Plus(Unary):
