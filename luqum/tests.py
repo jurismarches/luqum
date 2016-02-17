@@ -1,9 +1,10 @@
 from decimal import Decimal
 from unittest import TestCase
 
+from .check import LuceneCheck
 from .parser import lexer, parser, ParseError
-from .tree import *
 from .pretty import Prettifier, prettify
+from .tree import *
 
 
 class TestTree(TestCase):
@@ -331,3 +332,105 @@ subject: (
         baaaaaaaaaar AND baaaaaaaaaaaaaz ) AND
 fooooooooooo AND
 wiiiiiiiiiz""")
+
+
+class TestCheck(TestCase):
+
+    def test_check_ok(self):
+        query = (
+            AndOperation(
+                SearchField(
+                    "f",
+                    FieldGroup(
+                        AndOperation(
+                            Boost(Proximity(Phrase('"foo bar"'), 4), "4.2"),
+                            Minus(Range("100", "200"))))),
+                Group(
+                    OrOperation(
+                        Fuzzy(Word("baz"), ".8"),
+                        Plus(Word("fizz"))))))
+        check = LuceneCheck()
+        self.assertTrue(check(query))
+        self.assertEqual(check.errors(query), [])
+
+    def test_bad_fieldgroup(self):
+        check = LuceneCheck()
+        query = FieldGroup(Word("foo"))
+        self.assertFalse(check(query))
+        self.assertEqual(len(check.errors(query)), 1)
+        self.assertIn("FieldGroup misuse", check.errors(query)[0])
+
+        query = OrOperation(
+            FieldGroup(Word("bar")),
+            Word("foo"))
+        self.assertFalse(check(query))
+        self.assertEqual(len(check.errors(query)), 1)
+        self.assertIn("FieldGroup misuse", check.errors(query)[0])
+
+    def test_bad_group(self):
+        check = LuceneCheck()
+        query = SearchField("f", Group(Word("foo")))
+        self.assertFalse(check(query))
+        self.assertEqual(len(check.errors(query)), 2)  # one for bad expr, one for misuse
+        self.assertIn("Group misuse", "".join(check.errors(query)))
+
+    def test_zealous_or_not(self):
+        query = (
+            OrOperation(
+                Minus(Word("foo")),
+                Word("bar")))
+        check_zealous = LuceneCheck(zeal=1)
+        self.assertFalse(check_zealous(query))
+        self.assertIn("inconsistent", check_zealous.errors(query)[0])
+        check_easy_going = LuceneCheck()
+        self.assertTrue(check_easy_going(query))
+
+    def test_bad_field_name(self):
+        check = LuceneCheck()
+        query = SearchField("foo*", Word("bar"))
+        self.assertFalse(check(query))
+        self.assertEqual(len(check.errors(query)), 1)
+        self.assertIn("not a valid field name", check.errors(query)[0])
+
+    def test_bad_field_expr(self):
+        check = LuceneCheck()
+        query = SearchField("foo", Minus(Word("bar")))
+        self.assertFalse(check(query))
+        self.assertEqual(len(check.errors(query)), 1)
+        self.assertIn("not valid", check.errors(query)[0])
+
+    def test_word_space(self):
+        check = LuceneCheck()
+        query = Word("foo bar")
+        self.assertFalse(check(query))
+        self.assertEqual(len(check.errors(query)), 1)
+        self.assertIn("space", check.errors(query)[0])
+
+    def test_fuzzy_negative_degree(self):
+        check = LuceneCheck()
+        query = Fuzzy(Word("foo"), "-4.1")
+        self.assertFalse(check(query))
+        self.assertEqual(len(check.errors(query)), 1)
+        self.assertIn("invalid degree", check.errors(query)[0])
+
+    def test_fuzzy_non_word(self):
+        check = LuceneCheck()
+        query = Fuzzy(Phrase('"foo bar"'), "2")
+        self.assertFalse(check(query))
+        self.assertEqual(len(check.errors(query)), 1)
+        self.assertIn("single term", check.errors(query)[0])
+
+    def test_proximity_non_phrase(self):
+        check = LuceneCheck()
+        query = Proximity(Word("foo"), "2")
+        self.assertFalse(check(query))
+        self.assertEqual(len(check.errors(query)), 1)
+        self.assertIn("phrase", check.errors(query)[0])
+
+    def test_unknown_item_type(self):
+        check = LuceneCheck()
+        query = AndOperation("foo", 2)
+        self.assertFalse(check(query))
+        self.assertEqual(len(check.errors(query)), 2)
+        self.assertIn("Unknown item type", check.errors(query)[0])
+        self.assertIn("Unknown item type", check.errors(query)[1])
