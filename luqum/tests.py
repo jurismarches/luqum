@@ -428,6 +428,18 @@ class TestCheck(TestCase):
         self.assertEqual(len(check.errors(query)), 1)
         self.assertIn("space", check.errors(query)[0])
 
+    def test_invalid_characters_in_word_value(self):
+        query = Word("foo/bar")
+        # Passes if zeal == 0
+        check = LuceneCheck()
+        self.assertTrue(check(query))
+        self.assertEqual(len(check.errors(query)), 0)
+        # But not if zeal == 1
+        check = LuceneCheck(zeal=1)
+        self.assertFalse(check(query))
+        self.assertEqual(len(check.errors(query)), 1)
+        self.assertIn("Invalid characters", check.errors(query)[0])
+
     def test_fuzzy_negative_degree(self):
         check = LuceneCheck()
         query = Fuzzy(Word("foo"), "-4.1")
