@@ -57,6 +57,20 @@ class TestLexer(TestCase):
         self.assertEqual(lexer.token().type, "RBRACKET")
         self.assertEqual(lexer.token(), None)
 
+    def test_accept_flavours(self):
+        lexer.input('somedate:[now/d-1d+7H TO now/d+7H]')
+
+        self.assertEqual(lexer.token().value, Word('somedate'))
+
+        self.assertEqual(lexer.token().type, "COLUMN")
+        self.assertEqual(lexer.token().type, "LBRACKET")
+
+        self.assertEqual(lexer.token().value, Word("now/d-1d+7H"))
+        self.assertEqual(lexer.token().type, "TO")
+        self.assertEqual(lexer.token().value, Word("now/d+7H"))
+
+        self.assertEqual(lexer.token().type, "RBRACKET")
+
 
 class TestParser(TestCase):
     """Test base parser
@@ -183,6 +197,14 @@ class TestParser(TestCase):
                     "bar",
                     Range(Word("a*"), Word("*"), True, False))))
         parsed = parser.parse('foo:[10 TO 100] AND bar:[a* TO *}')
+        self.assertEqual(str(parsed), str(tree))
+        self.assertEqual(parsed, tree)
+
+    def test_flavours(self):
+        tree = SearchField(
+            "somedate",
+            Range(Word("now/d-1d+7H"), Word("now/d+7H"), True, True))
+        parsed = parser.parse('somedate:[now/d-1d+7H TO now/d+7H]')
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
 

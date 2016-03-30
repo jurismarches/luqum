@@ -67,7 +67,7 @@ precedence = (
 )
 
 # term and phrase
-TERM_RE = r'(?P<term>[\w\*]+)'
+TERM_RE = r'(?P<term>[\w\*][\w+/*-]*)'
 PHRASE_RE = r'(?P<phrase>"[^"]+")'
 APPROX_RE = r'~(?P<degree>[0-9.]+)?'
 BOOST_RE = r'\^(?P<force>[0-9.]+)?'
