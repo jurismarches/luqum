@@ -66,9 +66,17 @@ precedence = (
     ('nonassoc', 'TERM'),
 )
 
-# term and phrase
-TERM_RE = r'(?P<term>[\w\*][\w+/*-]*)'
+# term
+# the case of : which is used in date is problematic because it is also a delimiter
+# lets catch those expressions appart
+# Note : we must use positive look behind, because regexp engine is eager,
+# and it's only arrived at : that it will try this rule
+TIME_RE = r'(?<=\d{2}):\d{2}(:\d{2})?'
+# this is a wide catching expression, to also include date math
+TERM_RE = r'(?P<term>[\w\*]([\w+/*-.|\\]|{time_re})*)'.format(time_re=TIME_RE)
+# phrase
 PHRASE_RE = r'(?P<phrase>"[^"]+")'
+# modifiers after term or phrase
 APPROX_RE = r'~(?P<degree>[0-9.]+)?'
 BOOST_RE = r'\^(?P<force>[0-9.]+)?'
 
@@ -77,10 +85,11 @@ def t_SEPARATOR(t):
     r'\s+'
     pass  # discard separators
 
-
 @lex.TOKEN(TERM_RE)
 def t_TERM(t):
+    # check if it is not a reserved term (an operation)
     t.type = reserved.get(t.value, 'TERM')
+    # it's not, make it a Word
     if t.type == 'TERM':
         m = re.match(TERM_RE, t.value)
         t.value = Word(m.group("term"))
@@ -149,14 +158,14 @@ def p_grouping(p):
 
 
 def p_range(p):
-    'unary_expression : LBRACKET TERM TO TERM RBRACKET'
+    '''unary_expression : LBRACKET TERM TO TERM RBRACKET'''
     include_low = p[1] == "["
     include_high = p[5] == "]"
     p[0] = Range(p[2], p[4], include_low, include_high)
 
 
 def p_field_search(p):
-    'expression : TERM COLUMN unary_expression'
+    '''expression : TERM COLUMN unary_expression'''
     if isinstance(p[3], Group):
         p[3] = group_to_fieldgroup(p[3])
     p[0] = SearchField(p[1].value, p[3])
@@ -196,7 +205,8 @@ def p_to_as_term(p):
 # Error rule for syntax errors
 # TODO : should report better
 def p_error(p):
-    raise ParseError("Syntax error in input at %r!" % [p])
+    # import pdb; pdb.set_trace()
+    raise ParseError("Syntax error in input at %r!" % p)
 
 
 parser = yacc.yacc()

@@ -251,6 +251,41 @@ class TestParser(TestCase):
         self.assertEqual(str(tree), str(parsed))
         self.assertEqual(tree, parsed)
 
+    def test_date_in_field(self):
+        tree = SearchField("foo", Word("2015-12-19"))
+        parsed = parser.parse('foo:2015-12-19')
+        self.assertEqual(str(tree), str(parsed))
+        self.assertEqual(tree, parsed)
+        tree = SearchField("foo", Word("2015-12-19T22:30"))
+        parsed = parser.parse('foo:2015-12-19T22:30')
+        self.assertEqual(str(tree), str(parsed))
+        self.assertEqual(tree, parsed)
+        tree = SearchField("foo", Word("2015-12-19T22:30:45"))
+        parsed = parser.parse('foo:2015-12-19T22:30:45')
+        self.assertEqual(str(tree), str(parsed))
+        self.assertEqual(tree, parsed)
+        tree = SearchField("foo", Word("2015-12-19T22:30:45.234Z"))
+        parsed = parser.parse('foo:2015-12-19T22:30:45.234Z')
+        self.assertEqual(str(tree), str(parsed))
+        self.assertEqual(tree, parsed)
+
+    def test_datemath_in_field(self):
+        tree = SearchField("foo", Word(r"2015-12-19||+2\d"))
+        parsed = parser.parse(r'foo:2015-12-19||+2\d')
+        self.assertEqual(str(tree), str(parsed))
+        self.assertEqual(tree, parsed)
+        tree = SearchField("foo", Word(r"now+2h+20m\h"))
+        parsed = parser.parse(r'foo:now+2h+20m\h')
+        self.assertEqual(str(tree), str(parsed))
+        self.assertEqual(tree, parsed)
+
+    def test_date_in_range(self):
+        # juste one funky expression
+        tree = SearchField("foo", Range(Word(r"2015-12-19||+2\d"), Word(r"now+3d+12h\h")))
+        parsed = parser.parse(r'foo:[2015-12-19||+2\d TO now+3d+12h\h]')
+        self.assertEqual(str(tree), str(parsed))
+        self.assertEqual(tree, parsed)
+
     def test_reserved_ko(self):
         """Test reserved word hurt as they hurt lucene
         """
