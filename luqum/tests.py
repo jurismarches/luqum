@@ -57,6 +57,20 @@ class TestLexer(TestCase):
         self.assertEqual(lexer.token().type, "RBRACKET")
         self.assertEqual(lexer.token(), None)
 
+    def test_accept_flavours(self):
+        lexer.input('somedate:[now/d-1d+7H TO now/d+7H]')
+
+        self.assertEqual(lexer.token().value, Word('somedate'))
+
+        self.assertEqual(lexer.token().type, "COLUMN")
+        self.assertEqual(lexer.token().type, "LBRACKET")
+
+        self.assertEqual(lexer.token().value, Word("now/d-1d+7H"))
+        self.assertEqual(lexer.token().type, "TO")
+        self.assertEqual(lexer.token().value, Word("now/d+7H"))
+
+        self.assertEqual(lexer.token().type, "RBRACKET")
+
 
 class TestParser(TestCase):
     """Test base parser
@@ -186,6 +200,14 @@ class TestParser(TestCase):
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
 
+    def test_flavours(self):
+        tree = SearchField(
+            "somedate",
+            Range(Word("now/d-1d+7H"), Word("now/d+7H"), True, True))
+        parsed = parser.parse('somedate:[now/d-1d+7H TO now/d+7H]')
+        self.assertEqual(str(parsed), str(tree))
+        self.assertEqual(parsed, tree)
+
     def test_combinations(self):
         # self.assertEqual(parser.parse("subject:test desc:(house OR car)").pval, "")
         tree = (
@@ -226,6 +248,41 @@ class TestParser(TestCase):
         self.assertEqual(tree, parsed)
         tree = SearchField("foo", Phrase('"TO AND OR"'))
         parsed = parser.parse('foo:"TO AND OR"')
+        self.assertEqual(str(tree), str(parsed))
+        self.assertEqual(tree, parsed)
+
+    def test_date_in_field(self):
+        tree = SearchField("foo", Word("2015-12-19"))
+        parsed = parser.parse('foo:2015-12-19')
+        self.assertEqual(str(tree), str(parsed))
+        self.assertEqual(tree, parsed)
+        tree = SearchField("foo", Word("2015-12-19T22:30"))
+        parsed = parser.parse('foo:2015-12-19T22:30')
+        self.assertEqual(str(tree), str(parsed))
+        self.assertEqual(tree, parsed)
+        tree = SearchField("foo", Word("2015-12-19T22:30:45"))
+        parsed = parser.parse('foo:2015-12-19T22:30:45')
+        self.assertEqual(str(tree), str(parsed))
+        self.assertEqual(tree, parsed)
+        tree = SearchField("foo", Word("2015-12-19T22:30:45.234Z"))
+        parsed = parser.parse('foo:2015-12-19T22:30:45.234Z')
+        self.assertEqual(str(tree), str(parsed))
+        self.assertEqual(tree, parsed)
+
+    def test_datemath_in_field(self):
+        tree = SearchField("foo", Word(r"2015-12-19||+2\d"))
+        parsed = parser.parse(r'foo:2015-12-19||+2\d')
+        self.assertEqual(str(tree), str(parsed))
+        self.assertEqual(tree, parsed)
+        tree = SearchField("foo", Word(r"now+2h+20m\h"))
+        parsed = parser.parse(r'foo:now+2h+20m\h')
+        self.assertEqual(str(tree), str(parsed))
+        self.assertEqual(tree, parsed)
+
+    def test_date_in_range(self):
+        # juste one funky expression
+        tree = SearchField("foo", Range(Word(r"2015-12-19||+2\d"), Word(r"now+3d+12h\h")))
+        parsed = parser.parse(r'foo:[2015-12-19||+2\d TO now+3d+12h\h]')
         self.assertEqual(str(tree), str(parsed))
         self.assertEqual(tree, parsed)
 
@@ -405,6 +462,18 @@ class TestCheck(TestCase):
         self.assertFalse(check(query))
         self.assertEqual(len(check.errors(query)), 1)
         self.assertIn("space", check.errors(query)[0])
+
+    def test_invalid_characters_in_word_value(self):
+        query = Word("foo/bar")
+        # Passes if zeal == 0
+        check = LuceneCheck()
+        self.assertTrue(check(query))
+        self.assertEqual(len(check.errors(query)), 0)
+        # But not if zeal == 1
+        check = LuceneCheck(zeal=1)
+        self.assertFalse(check(query))
+        self.assertEqual(len(check.errors(query)), 1)
+        self.assertIn("Invalid characters", check.errors(query)[0])
 
     def test_fuzzy_negative_degree(self):
         check = LuceneCheck()

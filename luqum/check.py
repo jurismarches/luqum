@@ -28,8 +28,9 @@ def _check_children(f):
 class LuceneCheck:
     """Check if a query is consistent
     """
-    field_name_re = re.compile("^\w+$")
-    space_re = re.compile("\s")
+    field_name_re = re.compile(r"^\w+$")
+    space_re = re.compile(r"\s")
+    invalid_term_chars_re = re.compile(r"[+/-]")
 
     SIMPLE_EXPR_FIELDS = (
         tree.Boost, tree.Proximity, tree.Fuzzy, tree.Word, tree.Phrase)
@@ -70,6 +71,8 @@ class LuceneCheck:
     def check_word(self, item, parents):
         if self.space_re.search(item.value):
             yield "A single term value can't hold a space %s" % item
+        if self.zeal and self.invalid_term_chars_re.search(item.value):
+            yield "Invalid characters in term value: %s" % item.value
 
     def check_fuzzy(self, item, parents):
         if sign(item.degree) < 0:
