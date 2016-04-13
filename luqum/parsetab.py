@@ -5,9 +5,9 @@ _tabversion = '3.8'
 
 _lr_method = 'LALR'
 
-_lr_signature = '209F00363C38D3382662325E75C820EC'
+_lr_signature = '4F9C3F49C228574422878E0012213053'
     
-_lr_action_items = {'TERM':([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,22,23,24,25,26,28,],[2,2,-13,-10,17,-15,17,2,-6,21,2,2,2,-12,-14,17,-11,-13,-4,-5,2,2,2,-9,-7,27,-8,]),'PLUS':([0,1,2,3,4,5,6,7,8,10,11,12,13,14,15,16,17,18,19,20,22,23,24,25,28,],[4,4,-13,-10,4,-15,4,4,-6,4,4,4,-12,-14,4,-11,-13,-4,-5,4,4,4,-9,-7,-8,]),'$end':([1,2,3,5,8,10,13,14,16,17,18,19,22,23,24,25,28,],[0,-13,-10,-15,-6,-3,-12,-14,-11,-13,-4,-5,-1,-2,-9,-7,-8,]),'RBRACKET':([27,],[28,]),'TO':([0,1,2,3,4,5,6,7,8,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,28,],[5,5,-13,-10,5,-15,5,5,-6,5,5,5,-12,-14,5,-11,-13,-4,-5,5,26,5,5,-9,-7,-8,]),'AND_OP':([1,2,3,5,8,10,13,14,16,17,18,19,20,22,23,24,25,28,],[12,-13,-10,-15,-6,12,-12,-14,-11,-13,-4,-5,12,12,-2,-9,-7,-8,]),'RPAREN':([2,3,5,8,10,13,14,16,17,18,19,20,22,23,24,25,28,],[-13,-10,-15,-6,-3,-12,-14,-11,-13,-4,-5,25,-1,-2,-9,-7,-8,]),'COLUMN':([2,],[15,]),'PHRASE':([0,1,2,3,4,5,6,7,8,10,11,12,13,14,15,16,17,18,19,20,22,23,24,25,28,],[3,3,-13,-10,3,-15,3,3,-6,3,3,3,-12,-14,3,-11,-13,-4,-5,3,3,3,-9,-7,-8,]),'APPROX':([2,3,17,],[14,16,14,]),'MINUS':([0,1,2,3,4,5,6,7,8,10,11,12,13,14,15,16,17,18,19,20,22,23,24,25,28,],[6,6,-13,-10,6,-15,6,6,-6,6,6,6,-12,-14,6,-11,-13,-4,-5,6,6,6,-9,-7,-8,]),'LPAREN':([0,1,2,3,4,5,6,7,8,10,11,12,13,14,15,16,17,18,19,20,22,23,24,25,28,],[7,7,-13,-10,7,-15,7,7,-6,7,7,7,-12,-14,7,-11,-13,-4,-5,7,7,7,-9,-7,-8,]),'OR_OP':([1,2,3,5,8,10,13,14,16,17,18,19,20,22,23,24,25,28,],[11,-13,-10,-15,-6,11,-12,-14,-11,-13,-4,-5,11,-1,-2,-9,-7,-8,]),'BOOST':([1,2,3,5,8,10,13,14,16,17,18,19,20,22,23,24,25,28,],[13,-13,-10,-15,-6,13,-12,-14,-11,-13,-4,-5,13,13,13,-9,-7,-8,]),'LBRACKET':([0,1,2,3,4,5,6,7,8,10,11,12,13,14,15,16,17,18,19,20,22,23,24,25,28,],[9,9,-13,-10,9,-15,9,9,-6,9,9,9,-12,-14,9,-11,-13,-4,-5,9,9,9,-9,-7,-8,]),}
+_lr_action_items = {'LBRACKET':([0,2,3,4,5,6,7,8,9,11,12,13,14,15,16,17,18,19,20,21,23,24,25,26,28,],[1,1,-13,1,1,-6,-15,-10,1,1,1,-14,1,1,-12,1,-13,-4,-11,-5,-7,-9,1,1,-8,]),'TERM':([0,1,2,3,4,5,6,7,8,9,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,28,],[3,10,3,-13,3,18,-6,-15,-10,18,3,18,-14,3,3,-12,3,-13,-4,-11,-5,27,-7,-9,3,3,-8,]),'RBRACKET':([27,],[28,]),'LPAREN':([0,2,3,4,5,6,7,8,9,11,12,13,14,15,16,17,18,19,20,21,23,24,25,26,28,],[2,2,-13,2,2,-6,-15,-10,2,2,2,-14,2,2,-12,2,-13,-4,-11,-5,-7,-9,2,2,-8,]),'AND_OP':([3,4,6,7,8,11,13,16,17,18,19,20,21,23,24,25,26,28,],[-13,15,-6,-15,-10,15,-14,-12,15,-13,-4,-11,-5,-7,-9,15,-2,-8,]),'BOOST':([3,4,6,7,8,11,13,16,17,18,19,20,21,23,24,25,26,28,],[-13,16,-6,-15,-10,16,-14,-12,16,-13,-4,-11,-5,-7,-9,16,16,-8,]),'PHRASE':([0,2,3,4,5,6,7,8,9,11,12,13,14,15,16,17,18,19,20,21,23,24,25,26,28,],[8,8,-13,8,8,-6,-15,-10,8,8,8,-14,8,8,-12,8,-13,-4,-11,-5,-7,-9,8,8,-8,]),'COLUMN':([3,],[12,]),'OR_OP':([3,4,6,7,8,11,13,16,17,18,19,20,21,23,24,25,26,28,],[-13,14,-6,-15,-10,14,-14,-12,14,-13,-4,-11,-5,-7,-9,-1,-2,-8,]),'$end':([3,4,6,7,8,13,16,17,18,19,20,21,23,24,25,26,28,],[-13,0,-6,-15,-10,-14,-12,-3,-13,-4,-11,-5,-7,-9,-1,-2,-8,]),'RPAREN':([3,6,7,8,11,13,16,17,18,19,20,21,23,24,25,26,28,],[-13,-6,-15,-10,23,-14,-12,-3,-13,-4,-11,-5,-7,-9,-1,-2,-8,]),'PLUS':([0,2,3,4,5,6,7,8,9,11,12,13,14,15,16,17,18,19,20,21,23,24,25,26,28,],[5,5,-13,5,5,-6,-15,-10,5,5,5,-14,5,5,-12,5,-13,-4,-11,-5,-7,-9,5,5,-8,]),'TO':([0,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,23,24,25,26,28,],[7,7,-13,7,7,-6,-15,-10,7,22,7,7,-14,7,7,-12,7,-13,-4,-11,-5,-7,-9,7,7,-8,]),'APPROX':([3,8,18,],[13,20,13,]),'MINUS':([0,2,3,4,5,6,7,8,9,11,12,13,14,15,16,17,18,19,20,21,23,24,25,26,28,],[9,9,-13,9,9,-6,-15,-10,9,9,9,-14,9,9,-12,9,-13,-4,-11,-5,-7,-9,9,9,-8,]),}
 
 _lr_action = {}
 for _k, _v in _lr_action_items.items():
@@ -16,7 +16,7 @@ for _k, _v in _lr_action_items.items():
       _lr_action[_x][_k] = _y
 del _lr_action_items
 
-_lr_goto_items = {'expression':([0,1,7,10,11,12,20,22,23,],[1,10,20,10,22,23,10,10,10,]),'unary_expression':([0,1,4,6,7,10,11,12,15,20,22,23,],[8,8,18,19,8,8,8,8,24,8,8,8,]),}
+_lr_goto_items = {'unary_expression':([0,2,4,5,9,11,12,14,15,17,25,26,],[6,6,6,19,21,6,24,6,6,6,6,6,]),'expression':([0,2,4,11,14,15,17,25,26,],[4,11,17,17,25,26,17,17,17,]),}
 
 _lr_goto = {}
 for _k, _v in _lr_goto_items.items():
@@ -26,19 +26,19 @@ for _k, _v in _lr_goto_items.items():
 del _lr_goto_items
 _lr_productions = [
   ("S' -> expression","S'",1,None,None,None),
-  ('expression -> expression OR_OP expression','expression',3,'p_expression_or','parser.py',121),
-  ('expression -> expression AND_OP expression','expression',3,'p_expression_and','parser.py',126),
-  ('expression -> expression expression','expression',2,'p_expression_and','parser.py',127),
-  ('unary_expression -> PLUS unary_expression','unary_expression',2,'p_expression_plus','parser.py',132),
-  ('unary_expression -> MINUS unary_expression','unary_expression',2,'p_expression_minus','parser.py',137),
-  ('expression -> unary_expression','expression',1,'p_expression_unary','parser.py',142),
-  ('unary_expression -> LPAREN expression RPAREN','unary_expression',3,'p_grouping','parser.py',147),
-  ('unary_expression -> LBRACKET TERM TO TERM RBRACKET','unary_expression',5,'p_range','parser.py',152),
-  ('expression -> TERM COLUMN unary_expression','expression',3,'p_field_search','parser.py',159),
-  ('unary_expression -> PHRASE','unary_expression',1,'p_quoting','parser.py',166),
-  ('unary_expression -> PHRASE APPROX','unary_expression',2,'p_proximity','parser.py',171),
-  ('expression -> expression BOOST','expression',2,'p_boosting','parser.py',176),
-  ('unary_expression -> TERM','unary_expression',1,'p_terms','parser.py',181),
-  ('unary_expression -> TERM APPROX','unary_expression',2,'p_fuzzy','parser.py',186),
-  ('unary_expression -> TO','unary_expression',1,'p_to_as_term','parser.py',192),
+  ('expression -> expression OR_OP expression','expression',3,'p_expression_or','parser.py',130),
+  ('expression -> expression AND_OP expression','expression',3,'p_expression_and','parser.py',135),
+  ('expression -> expression expression','expression',2,'p_expression_and','parser.py',136),
+  ('unary_expression -> PLUS unary_expression','unary_expression',2,'p_expression_plus','parser.py',141),
+  ('unary_expression -> MINUS unary_expression','unary_expression',2,'p_expression_minus','parser.py',146),
+  ('expression -> unary_expression','expression',1,'p_expression_unary','parser.py',151),
+  ('unary_expression -> LPAREN expression RPAREN','unary_expression',3,'p_grouping','parser.py',156),
+  ('unary_expression -> LBRACKET TERM TO TERM RBRACKET','unary_expression',5,'p_range','parser.py',161),
+  ('expression -> TERM COLUMN unary_expression','expression',3,'p_field_search','parser.py',168),
+  ('unary_expression -> PHRASE','unary_expression',1,'p_quoting','parser.py',175),
+  ('unary_expression -> PHRASE APPROX','unary_expression',2,'p_proximity','parser.py',180),
+  ('expression -> expression BOOST','expression',2,'p_boosting','parser.py',185),
+  ('unary_expression -> TERM','unary_expression',1,'p_terms','parser.py',190),
+  ('unary_expression -> TERM APPROX','unary_expression',2,'p_fuzzy','parser.py',195),
+  ('unary_expression -> TO','unary_expression',1,'p_to_as_term','parser.py',201),
 ]
