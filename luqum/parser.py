@@ -73,9 +73,9 @@ precedence = (
 # and it's only arrived at : that it will try this rule
 TIME_RE = r'(?<=\d{2}):\d{2}(:\d{2})?'
 # this is a wide catching expression, to also include date math
-TERM_RE = r'(?P<term>[\w\*]([\w+/*-.|\\]|{time_re})*)'.format(time_re=TIME_RE)
+TERM_RE = r'(?P<term>[\w\*\?]([\w+/\?*-.|\\]|{time_re})*)'.format(time_re=TIME_RE)
 # phrase
-PHRASE_RE = r'(?P<phrase>"[^"]+")'
+PHRASE_RE = r'(?P<phrase>"[^"]*")'
 # modifiers after term or phrase
 APPROX_RE = r'~(?P<degree>[0-9.]+)?'
 BOOST_RE = r'\^(?P<force>[0-9.]+)?'
