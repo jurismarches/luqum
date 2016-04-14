@@ -158,7 +158,7 @@ def p_grouping(p):
 
 
 def p_range(p):
-    '''unary_expression : LBRACKET TERM TO TERM RBRACKET'''
+    '''unary_expression : LBRACKET phrase_or_term TO phrase_or_term RBRACKET'''
     include_low = p[1] == "["
     include_high = p[5] == "]"
     p[0] = Range(p[2], p[4], include_low, include_high)
@@ -200,6 +200,12 @@ def p_fuzzy(p):
 def p_to_as_term(p):
     '''unary_expression : TO'''
     p[0] = Word(p[1])
+
+
+def p_phrase_or_term(p):
+    '''phrase_or_term : TERM
+                      | PHRASE'''
+    p[0] = p[1]
 
 
 # Error rule for syntax errors
