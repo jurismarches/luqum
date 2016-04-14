@@ -133,7 +133,7 @@ def p_expression_or(p):
 
 def p_expression_and(p):
     '''expression : expression AND_OP expression
-                           | expression expression'''
+                  | expression expression'''
     p[0] = AndOperation(p[1], p[len(p) - 1], explicit=len(p) > 3)
 
 
@@ -165,7 +165,7 @@ def p_range(p):
 
 
 def p_field_search(p):
-    '''expression : TERM COLUMN unary_expression'''
+    '''unary_expression : TERM COLUMN unary_expression'''
     if isinstance(p[3], Group):
         p[3] = group_to_fieldgroup(p[3])
     p[0] = SearchField(p[1].value, p[3])
