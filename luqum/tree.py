@@ -20,7 +20,14 @@ class Item:
         return []
 
     def __repr__(self):
-        children = ", ".join(repr(c) for c in self.children)
+        # /!\
+        # Calling c.__repr__ rather than repr(c) to avoid recursion trouble...
+        # Using the builtin seems to trigger the max recursion sooner, can't
+        # figure out why...
+        # We have the same problem with other __methods__, like __eq__ below or
+        # __str__.
+        # /!\
+        children = ", ".join(c.__repr__() for c in self.children)
         return "%s(%s)" % (self.__class__.__name__, children)
 
     def __eq__(self, other):
@@ -29,7 +36,7 @@ class Item:
         return (self.__class__ == other.__class__ and
                 all(getattr(self, a, _MARKER) == getattr(other, a, _MARKER)
                     for a in self._equality_attrs) and
-                all(c == d for c, d in zip(self.children, other.children)))
+                all(c.__eq__(d) for c, d in zip(self.children, other.children)))
 
 
 class SearchField(Item):
@@ -44,7 +51,7 @@ class SearchField(Item):
         self.expr = expr
 
     def __str__(self):
-        return str(self.name) + ":" + str(self.expr)
+        return self.name + ":" + self.expr.__str__()
 
     @property
     def children(self):
@@ -58,7 +65,7 @@ class BaseGroup(Item):
         self.expr = expr
 
     def __str__(self):
-        return "(%s)" % str(self.expr)
+        return "(%s)" % self.expr.__str__()
 
     @property
     def children(self):
@@ -99,8 +106,8 @@ class Range(Item):
     def __str__(self):
         return "%s%s TO %s%s" % (
             self.LOW_CHAR[self.include_low],
-            self.low,
-            self.high,
+            self.low.__str__(),
+            self.high.__str__(),
             self.HIGH_CHAR[self.include_high])
 
 
@@ -124,7 +131,7 @@ class Term(Item):
         return self.value
 
     def __repr__(self):
-        return "%s(%s)" % (self.__class__.__name__, str(self))
+        return "%s(%s)" % (self.__class__.__name__, self.value)
 
 
 class Word(Term):
@@ -185,7 +192,7 @@ class Boost(Item):
         return [self.expr]
 
     def __str__(self):
-        return "%s^%s" % (self.expr, self.force)
+        return "%s^%s" % (self.expr.__str__(), self.force)
 
 
 class Operation(Item):
@@ -197,7 +204,7 @@ class Operation(Item):
         self.b = b
 
     def __str__(self):
-        return "%s %s %s" % (self.a, self.op, self.b)
+        return "%s %s %s" % (self.a.__str__(), self.op, self.b.__str__())
 
     @property
     def children(self):
