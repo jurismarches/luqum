@@ -215,4 +215,5 @@ def p_error(p):
     raise ParseError("Syntax error in input at %r!" % p)
 
 
-parser = yacc.yacc()
+# ???
+parser = yacc.yacc(debug=0, write_tables=0)
