@@ -3,7 +3,6 @@
 Include base classes to implement a visitor pattern.
 
 """
-from . import tree
 
 
 def camel_to_lower(name):
