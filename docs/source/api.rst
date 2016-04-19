@@ -22,6 +22,12 @@ luqum.tree
 Utilities
 ==========
 
+luqum.utils
+------------
+
+.. automodule:: luqum.utils
+   :members:
+
 luqum.pretty
 --------------
 

@@ -26,6 +26,21 @@ In the previous request we can modify ``"foo bar"`` for ``"lazy dog"``::
 That was a bit tedious. Of course, normally you will use recursion and visitor pattern
 to do such things.
 
+Luqum does provide some helpers for this::
+
+    >>> from luqum.utils import LuceneTreeTransformer
+    >>> class MyTransformer(LuceneTreeTransformer):
+    ...     def visit_search_field(self, node, parents):
+    ...         if node.expr.value == '"lazy dog"':
+    ...             node.expr.value = '"back to foo bar"'
+    ...         return node
+    ...
+    >>> transformer = MyTransformer()
+    >>> new_tree = transformer.visit(tree)
+    >>> print(str(new_tree))
+    (title:"back to foo bar" AND body:"quick fox") OR title:fox
+
+
 Luqum also comes with a query pretty printer::
 
   >>> from luqum.pretty import prettify

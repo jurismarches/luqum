@@ -38,7 +38,7 @@ class LuceneTreeVisitor:
             self, method_name, getattr(self, self.generic_visitor_method_name))
 
     def visit(self, node, parents=[]):
-        """ Basic, recursive traversal of the tree.. """
+        """ Basic, recursive traversal of the tree. """
         for cls in node.__class__.mro():
             method = self._get_node_visitor_method(cls)
             yield from method(node, parents)
@@ -62,7 +62,7 @@ class LuceneTreeTransformer(LuceneTreeVisitor):
     visitor methods to replace or remove the old node. If the return value of
     the visitor method is ``None``, the node will be removed from its location,
     otherwise it is replaced with the return value. The return value may be the
-    original node, in whuch case no replacement takes place.
+    original node, in which case no replacement takes place.
     """
     def replace_node(self, old_node, new_node, parent):
         for k, v in parent.__dict__.items():
