@@ -1,4 +1,4 @@
-"""Various utilities for dealing wiith syntax trees.
+"""Various utilities for dealing with syntax trees.
 
 Include base classes to implement a visitor pattern.
 
@@ -16,7 +16,7 @@ class LuceneTreeVisitor:
     Tree Visitor base class, inspired by python's :class:`ast.NodeVisitor`.
 
     This class is meant to be subclassed, with the subclass implementing
-    visitor methods for each Node type it is intereseted in.
+    visitor methods for each Node type it is interested in.
 
     By default, those visitor method should be named ``'visit_'`` + class
     name of the node, converted to lower_case (ie: visit_search_node for a
@@ -25,8 +25,8 @@ class LuceneTreeVisitor:
     You can tweak this behaviour by overriding the `visitor_method_prefix` &
     `generic_visitor_method_name` class attributes.
 
-    If the goeal is to modify the initial tree, use a `LucenTreeTranformer`
-    instead.
+    If the goal is to modify the initial tree,
+    use :py:class:`LuceneTreeTranformer` instead.
     """
     visitor_method_prefix = 'visit_'
     generic_visitor_method_name = 'generic_visit'

@@ -27,6 +27,7 @@ luqum.utils
 
 .. automodule:: luqum.utils
    :members:
+   :member-order: bysource
 
 luqum.pretty
 --------------

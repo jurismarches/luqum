@@ -555,4 +555,3 @@ class TreeTransformerTestCase(TestCase):
             (AndOperation(
                 Word("lol"),
                 Word("lol"))), new_tree)
-

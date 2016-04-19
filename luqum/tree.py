@@ -245,11 +245,12 @@ class Boost(Item):
 
 
 class Operation(Item):
-    """Parent class for binary operations are binary operation used to join expressions,
+    """
+    Parent class for binary operations are binary operation used to join expressions,
     like OR and AND
 
-    :param a: right hand expression
-    :param b: left hand expression
+    :param a: left hand expression
+    :param b: right hand expression
     """
     def __init__(self, a, b):
         self.a = a
@@ -260,6 +261,8 @@ class Operation(Item):
 
     @property
     def children(self):
+        """children are left and right expressions
+        """
         return [self.a, self.b]
 
 
