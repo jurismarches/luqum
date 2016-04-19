@@ -17,6 +17,12 @@ class TestTree(TestCase):
     def test_term_wildcard_false(self):
         self.assertFalse(Term("bar").has_wildcard())
 
+    def test_term_is_only_a_wildcard(self):
+        self.assertTrue(Term('*').is_wildcard())
+        self.assertFalse(Term('*o').is_wildcard())
+        self.assertFalse(Term('b*').is_wildcard())
+        self.assertFalse(Term('b*o').is_wildcard())
+
 
 class TestLexer(TestCase):
     """Test lexer
