@@ -14,6 +14,20 @@ class Item:
     An item is a part of a request.
     """
 
+    # /!\ Note on Item (and subclasses) __magic__ methods: /!\
+    #
+    # Since we're dealing with recursive structures, we must avoid using
+    # the builtin helper methods when dealing with nested objects in
+    # __magic__ methods.
+    #
+    # As the helper usually calls the relevant method, we end up with two
+    # function calls instead of one, and end up hitting python's max recursion
+    # limit twice as fast!
+    #
+    # This is why we're calling c.__repr__ instead of repr(c) in the __repr__
+    # method. Same thing applies for all magic methods (__str__, __eq__, and any
+    # other we might add in the future).
+
     _equality_attrs = []
 
     @property
@@ -23,13 +37,6 @@ class Item:
         return []
 
     def __repr__(self):
-        # /!\
-        # Calling c.__repr__ rather than repr(c) to avoid recursion trouble...
-        # Using the builtin seems to trigger the max recursion sooner, can't
-        # figure out why...
-        # We have the same problem with other __methods__, like __eq__ below or
-        # __str__.
-        # /!\
         children = ", ".join(c.__repr__() for c in self.children)
         return "%s(%s)" % (self.__class__.__name__, children)
 
