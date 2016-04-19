@@ -31,6 +31,8 @@ import os
 # ones.
 extensions = [
     'sphinx.ext.intersphinx',
+    'sphinx.ext.autodoc',
+    'alabaster',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -117,6 +119,12 @@ html_theme = 'alabaster'
 # further.  For a list of options available for each theme, see the
 # documentation.
 #html_theme_options = {}
+html_theme_options = {
+    'logo': 'luqum-logo.png',
+    'description': 'LUcene QUery Manipulator in python',
+    'github_user': 'jurismarches',
+    'github_repo': 'luqum',
+    'github_banner': True}
 
 # Add any paths that contain custom themes here, relative to this directory.
 #html_theme_path = []
@@ -158,6 +166,13 @@ html_static_path = ['_static']
 
 # Custom sidebar templates, maps document names to template names.
 #html_sidebars = {}
+html_sidebars = {'**': [
+    'about.html',
+    'navigation.html',
+    'relations.html',
+    'searchbox.html',
+    'donate.html']}
+
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.

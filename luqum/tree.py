@@ -1,4 +1,7 @@
-"""Elements that will constitute the parse tree of a query
+"""Elements that will constitute the parse tree of a query.
+
+You may use these items to build a tree representing a query,
+or get a tree as the result of parsing a query string.
 """
 from decimal import Decimal
 
@@ -42,7 +45,10 @@ class Item:
 class SearchField(Item):
     """Indicate wich field the search expression operates on
 
-    eg: *desc* in *desc:(this OR that)
+    eg: *desc* in ``desc:(this OR that)``
+
+    :param str name: name of the field
+    :param expr: the searched expression
     """
     _equality_attrs = ['name']
 
@@ -55,11 +61,14 @@ class SearchField(Item):
 
     @property
     def children(self):
+        """the only child is the expression"""
         return [self.expr]
 
 
 class BaseGroup(Item):
     """Base class for group of expressions or field values
+
+    :param expr: the expression inside parenthesis
     """
     def __init__(self, expr):
         self.expr = expr
@@ -69,6 +78,7 @@ class BaseGroup(Item):
 
     @property
     def children(self):
+        """the only child is the expression"""
         return [self.expr]
 
 
@@ -88,6 +98,11 @@ def group_to_fieldgroup(g):  # FIXME: no use !
 
 class Range(Item):
     """A Range
+
+    :param low: lower bound
+    :param high: higher bound
+    :param bool include_low: wether lower bound is included
+    :param bool include_high: wether higher bound is included
     """
 
     LOW_CHAR = {True: '[', False: '{'}
@@ -101,6 +116,7 @@ class Range(Item):
 
     @property
     def children(self):
+        """children are lower and higher bound expressions"""
         return [self.low, self.high]
 
     def __str__(self):
@@ -113,6 +129,8 @@ class Range(Item):
 
 class Term(Item):
     """Base for terms
+
+    :param str value: the value
     """
     WILDCARD = "*"
 
@@ -122,9 +140,13 @@ class Term(Item):
         self.value = value
 
     def is_wildcard(self):
+        """:return bool: True if value is the wildcard ``*``
+        """
         return self.value == self.WILDCARD
 
     def has_wildcard(self):
+        """:return bool: True if value contains a wildcard ``*``
+        """
         return self.WILDCARD in self.value
 
     def __str__(self):
@@ -135,11 +157,17 @@ class Term(Item):
 
 
 class Word(Term):
+    """A single word term
+
+    :param str value: the value
+    """
     pass
 
 
 class Phrase(Term):
     """A phrase term, that is a sequence of words enclose in quotes
+
+    :param str value: the value, including the quotes. Eg. ``'"my phrase"'``
     """
 
     def __init__(self, value):
@@ -149,13 +177,16 @@ class Phrase(Term):
 
 
 class BaseApprox(Item):
-    """Base for approximations
+    """Base for approximations, that is fuzziness and proximity
     """
     _equality_attrs = ['degree']
 
 
 class Fuzzy(BaseApprox):
     """Fuzzy search on word
+
+    :param Word term: the approximated term
+    :param degree: the degree which will be converted to :py:class:`decimal.Decimal`.
     """
     def __init__(self, term, degree=None):
         self.term = term
@@ -169,6 +200,9 @@ class Fuzzy(BaseApprox):
 
 class Proximity(BaseApprox):
     """Proximity search on phrase
+
+    :param Phrase term: the approximated phrase
+    :param degree: the degree which will be converted to :py:func:`int`.
     """
     def __init__(self, term, degree=None):
         self.term = term
@@ -182,6 +216,9 @@ class Proximity(BaseApprox):
 
 class Boost(Item):
     """A term for boosting a value or a group there of
+
+    :param expr: the boosted expression
+    :param force: boosting force, will be converted to :py:class:`decimal.Decimal`
     """
     def __init__(self, expr, force):
         self.expr = expr
@@ -189,6 +226,8 @@ class Boost(Item):
 
     @property
     def children(self):
+        """The only child is the boosted expression
+        """
         return [self.expr]
 
     def __str__(self):
@@ -198,6 +237,9 @@ class Boost(Item):
 class Operation(Item):
     """Parent class for binary operations are binary operation used to join expressions,
     like OR and AND
+
+    :param a: right hand expression
+    :param b: left hand expression
     """
     def __init__(self, a, b):
         self.a = a
@@ -212,10 +254,14 @@ class Operation(Item):
 
 
 class OrOperation(Operation):
+    """OR expression
+    """
     op = 'OR'
 
 
 class AndOperation(Operation):
+    """AND expression
+    """
     op = 'AND'
 
     def __init__(self, a, b, explicit=True):
@@ -227,6 +273,8 @@ class AndOperation(Operation):
 
 class Unary(Item):
     """Parent class for unary operations
+
+    :param a: the expression the operator applies on
     """
 
     def __init__(self, a):
@@ -241,7 +289,7 @@ class Unary(Item):
 
 
 class Plus(Unary):
-    """plus operation
+    """plus, unary operation
     """
     op = "+"
 

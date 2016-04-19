@@ -1,3 +1,5 @@
+"""This module provides a pretty printer for lucene query tree.
+"""
 from .tree import Operation, BaseGroup, SearchField
 
 
@@ -9,16 +11,25 @@ class _StickMarker:
         return 0
 
 
+# a marker to avoid a new line between two elements
 _STICK_MARKER = _StickMarker()
-"""
-"""
 
 
 class Prettifier(object):
-    """Class to generate a pretty printer for a parsed tree
+    """Class to generate a pretty printer.
     """
 
     def __init__(self, indent=4, max_len=80, inline_ops=False):
+        """
+        The pretty printer factory.
+
+        :param int indent: number of space for indentation
+        :param int max_len: maximum line length in number of characters.
+            Prettyfier will do its best to keep inside those margin,
+            but as it can only split on operators, it may not be possible.
+        :param bool inline_ops: if False (default) operators are printed on a new line
+          if True, operators are printed at the end of the line.
+        """
         self.indent = indent
         self.prefix = " " * self.indent
         self.max_len = max_len
@@ -109,6 +120,10 @@ class Prettifier(object):
         return prefix + join_char.join(l for c in elements for l in c.split("\n"))
 
     def __call__(self, tree):
+        """Pretty print the query represented by tree
+
+        :param tree: a query tree using elements from :py:mod:`luqum.tree`
+        """
         chains = list(self._get_chains(tree))
         chain_with_counts, total = self._count_chars(chains)
         return self._concatenates(chain_with_counts, total)

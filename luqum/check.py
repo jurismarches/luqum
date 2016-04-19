@@ -27,6 +27,11 @@ def _check_children(f):
 
 class LuceneCheck:
     """Check if a query is consistent
+
+    This is intended to use with query constructed as tree,
+    as well as those parsed by the parser, which is more tolerant.
+
+    :param int zeal: if zeal > 0 do extra check of some pitfalls, depending on zeal level
     """
     field_name_re = re.compile(r"^\w+$")
     space_re = re.compile(r"\s")
@@ -38,9 +43,6 @@ class LuceneCheck:
     FIELD_EXPR_FIELDS = tuple(list(SIMPLE_EXPR_FIELDS) + [tree.FieldGroup])
 
     def __init__(self, zeal=0):
-        """
-        :param int zeal: if zeal > 0 do extra check of some pitfalls, depending on zeal level
-        """
         self.zeal = zeal
 
     def _check_field_name(self, fname):
