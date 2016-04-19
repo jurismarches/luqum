@@ -4,6 +4,7 @@ from unittest import TestCase
 from ..check import LuceneCheck
 from ..parser import lexer, parser, ParseError
 from ..pretty import Prettifier, prettify
+from ..utils import LuceneTreeVisitor, LuceneTreeTransformer
 from ..tree import *
 
 
@@ -509,3 +510,49 @@ class TestCheck(TestCase):
         self.assertEqual(len(check.errors(query)), 2)
         self.assertIn("Unknown item type", check.errors(query)[0])
         self.assertIn("Unknown item type", check.errors(query)[1])
+
+
+class TreeVisitorTestCase(TestCase):
+
+    class BasicVisitor(LuceneTreeVisitor):
+        """ Dummy visitor, simply yielding a list of nodes. """
+        def generic_visit(self, node, parents):
+            yield node
+
+    def test_basic_traversal(self):
+        tree = (
+            AndOperation(
+                Word("foo"),
+                Word("bar")))
+
+        visitor = self.BasicVisitor()
+        nodes = list(visitor.visit(tree))
+
+        self.assertListEqual(
+            [AndOperation(Word('foo'), Word('bar')), Word('foo'), Word('bar')],
+            nodes)
+
+
+class TreeTransformerTestCase(TestCase):
+
+    class BasicTransformer(LuceneTreeTransformer):
+        """
+        Dummy transformer that simply turn any Word node's value into "lol"
+        """
+        def visit_word(self, node, parent):
+            return Word('lol')
+
+    def test_basic_traversal(self):
+        tree = (
+            AndOperation(
+                Word("foo"),
+                Word("bar")))
+
+        transformer = self.BasicTransformer()
+        new_tree = transformer.visit(tree)
+
+        self.assertEqual(
+            (AndOperation(
+                Word("lol"),
+                Word("lol"))), new_tree)
+
