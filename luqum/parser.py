@@ -73,9 +73,9 @@ precedence = (
 # and it's only arrived at : that it will try this rule
 TIME_RE = r'(?<=\d{2}):\d{2}(:\d{2})?'
 # this is a wide catching expression, to also include date math
-TERM_RE = r'(?P<term>[\w\*]([\w+/*-.|\\]|{time_re})*)'.format(time_re=TIME_RE)
+TERM_RE = r'(?P<term>[\w\*\?]([\w+/\?*-.|\\]|{time_re})*)'.format(time_re=TIME_RE)
 # phrase
-PHRASE_RE = r'(?P<phrase>"[^"]+")'
+PHRASE_RE = r'(?P<phrase>"[^"]*")'
 # modifiers after term or phrase
 APPROX_RE = r'~(?P<degree>[0-9.]+)?'
 BOOST_RE = r'\^(?P<force>[0-9.]+)?'
@@ -133,7 +133,7 @@ def p_expression_or(p):
 
 def p_expression_and(p):
     '''expression : expression AND_OP expression
-                           | expression expression'''
+                  | expression expression'''
     p[0] = AndOperation(p[1], p[len(p) - 1], explicit=len(p) > 3)
 
 
@@ -158,14 +158,14 @@ def p_grouping(p):
 
 
 def p_range(p):
-    '''unary_expression : LBRACKET TERM TO TERM RBRACKET'''
+    '''unary_expression : LBRACKET phrase_or_term TO phrase_or_term RBRACKET'''
     include_low = p[1] == "["
     include_high = p[5] == "]"
     p[0] = Range(p[2], p[4], include_low, include_high)
 
 
 def p_field_search(p):
-    '''expression : TERM COLUMN unary_expression'''
+    '''unary_expression : TERM COLUMN unary_expression'''
     if isinstance(p[3], Group):
         p[3] = group_to_fieldgroup(p[3])
     p[0] = SearchField(p[1].value, p[3])
@@ -202,6 +202,12 @@ def p_to_as_term(p):
     p[0] = Word(p[1])
 
 
+def p_phrase_or_term(p):
+    '''phrase_or_term : TERM
+                      | PHRASE'''
+    p[0] = p[1]
+
+
 # Error rule for syntax errors
 # TODO : should report better
 def p_error(p):
@@ -209,4 +215,5 @@ def p_error(p):
     raise ParseError("Syntax error in input at %r!" % p)
 
 
-parser = yacc.yacc()
+# ???
+parser = yacc.yacc(debug=0, write_tables=0)
