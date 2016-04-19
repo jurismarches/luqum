@@ -59,6 +59,9 @@ class SearchField(Item):
     def __str__(self):
         return self.name + ":" + self.expr.__str__()
 
+    def __repr__(self):
+        return "SearchField(%r, %s)" % (self.name, self.expr.__repr__())
+
     @property
     def children(self):
         """the only child is the expression"""
@@ -153,7 +156,7 @@ class Term(Item):
         return self.value
 
     def __repr__(self):
-        return "%s(%s)" % (self.__class__.__name__, self.value)
+        return "%s(%r)" % (self.__class__.__name__, self.value)
 
 
 class Word(Term):

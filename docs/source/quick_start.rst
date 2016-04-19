@@ -9,7 +9,7 @@ To parse a query you need to import the parser, and give it a string to parse::
 You'll get an object wich is a tree, made of the elements composing the query::
 
     >>> print(repr(tree))
-    OrOperation(Group(AndOperation(SearchField(Phrase("foo bar")), SearchField(Phrase("quick fox")))), SearchField(Word(fox)))
+    OrOperation(Group(AndOperation(SearchField('title', Phrase('"foo bar"')), SearchField('body', Phrase('"quick fox"')))), SearchField('title', Word('fox')))
 
 
 You can convert it back to a query using the standard ``str`` method from python::
