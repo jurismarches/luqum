@@ -24,6 +24,25 @@ class TestTree(TestCase):
         self.assertFalse(Term('b*').is_wildcard())
         self.assertFalse(Term('b*o').is_wildcard())
 
+    def test_equality_approx(self):
+        """
+        Regression test for a bug on approx equalities.
+        Testing other tokens might be a good idea...
+        """
+        a1 = Proximity(term='foo', degree=5)
+        a2 = Proximity(term='bar', degree=5)
+        a3 = Proximity(term='foo', degree=5)
+
+        self.assertNotEqual(a1, a2)
+        self.assertEqual(a1, a3)
+
+        f1 = Fuzzy(term='foo', degree=5)
+        f2 = Fuzzy(term='bar', degree=5)
+        f3 = Fuzzy(term='foo', degree=5)
+
+        self.assertNotEqual(f1, f2)
+        self.assertEqual(f1, f3)
+
 
 class TestLexer(TestCase):
     """Test lexer

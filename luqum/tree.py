@@ -189,7 +189,10 @@ class Phrase(Term):
 class BaseApprox(Item):
     """Base for approximations, that is fuzziness and proximity
     """
-    _equality_attrs = ['degree']
+    _equality_attrs = ['term', 'degree']
+
+    def __repr__(self):
+        return "%s(%s, %s)" % (self.__class__, self.term.__repr__(), self.degree)
 
 
 class Fuzzy(BaseApprox):
