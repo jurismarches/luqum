@@ -1,6 +1,6 @@
 """This module provides a pretty printer for lucene query tree.
 """
-from .tree import Operation, BaseGroup, SearchField
+from .tree import BaseOperation, BaseGroup, SearchField
 
 
 class _StickMarker:
@@ -41,8 +41,8 @@ class Prettifier(object):
         An inner list represent a level of indentation
         A string is information from the level
         """
-        if isinstance(element, Operation):
-            if not isinstance(parent, Operation) or element.op == parent.op:
+        if isinstance(element, BaseOperation):
+            if not isinstance(parent, BaseOperation) or element.op == parent.op:
                 # same level, this is just associativity
                 yield from self._get_chains(element.a, element)
                 if self.inline_ops:

@@ -109,10 +109,18 @@ class TestParser(TestCase):
             AndOperation(
                 Word("foo"),
                 Word("bar")))
+        parsed = parser.parse("foo AND bar")
+        self.assertEqual(str(parsed), str(tree))
+        self.assertEqual(parsed, tree)
+
+    def test_implicit_operations(self):
+        tree = (
+            UnknownOperation(
+                Word("foo"),
+                Word("bar")))
         parsed = parser.parse("foo bar")
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
-        self.assertEqual(parser.parse("foo AND bar"), tree)
 
     def test_simple_field(self):
         tree = (
@@ -161,15 +169,15 @@ class TestParser(TestCase):
 
     def test_approx(self):
         tree = (
-            AndOperation(
+            UnknownOperation(
                 Proximity(
                     Phrase('"foo bar"'),
                     3),
-                AndOperation(
+                UnknownOperation(
                     Proximity(
                         Phrase('"foo baz"'),
                         1),
-                    AndOperation(
+                    UnknownOperation(
                         Fuzzy(
                             Word('baz'),
                             Decimal("0.3")),
@@ -182,7 +190,7 @@ class TestParser(TestCase):
 
     def test_boost(self):
         tree = (
-            AndOperation(
+            UnknownOperation(
                 Boost(
                     Phrase('"foo bar"'),
                     Decimal("3.0")),
@@ -237,7 +245,7 @@ class TestParser(TestCase):
     def test_combinations(self):
         # self.assertEqual(parser.parse("subject:test desc:(house OR car)").pval, "")
         tree = (
-            AndOperation(
+            UnknownOperation(
                 SearchField(
                     "subject",
                     Word("test")),

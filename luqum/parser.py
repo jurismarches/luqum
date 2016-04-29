@@ -132,9 +132,13 @@ def p_expression_or(p):
 
 
 def p_expression_and(p):
-    '''expression : expression AND_OP expression
-                  | expression expression'''
+    '''expression : expression AND_OP expression'''
     p[0] = AndOperation(p[1], p[len(p) - 1], explicit=len(p) > 3)
+
+
+def p_expression_implicit(p):
+    '''expression : expression expression'''
+    p[0] = UnknownOperation(p[1], p[2])
 
 
 def p_expression_plus(p):

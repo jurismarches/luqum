@@ -247,7 +247,7 @@ class Boost(Item):
         return "%s^%s" % (self.expr.__str__(), self.force)
 
 
-class Operation(Item):
+class BaseOperation(Item):
     """
     Parent class for binary operations are binary operation used to join expressions,
     like OR and AND
@@ -269,13 +269,30 @@ class Operation(Item):
         return [self.a, self.b]
 
 
-class OrOperation(Operation):
+class UnknownOperation(BaseOperation):
+    """Unknown Boolean operator.
+
+    .. warning::
+        This is used to represent implicit operations (ie: term:foo term:bar),
+        as we cannot know for sure which operator should be used.
+
+        Lucene seem to use whatever operator was used before reaching that one,
+        defaulting to AND, but we cannot know anything about this at parsing
+        time...
+    """
+    op = ''
+
+    def __str__(self):
+        return "%s %s" % (self.a.__str__(), self.b.__str__())
+
+
+class OrOperation(BaseOperation):
     """OR expression
     """
     op = 'OR'
 
 
-class AndOperation(Operation):
+class AndOperation(BaseOperation):
     """AND expression
     """
     op = 'AND'
