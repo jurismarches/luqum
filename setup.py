@@ -32,6 +32,3 @@ setup(
     ],
     test_suite='luqum.tests'
 )
-
-# generate parser_tab
-import luqum.parser
