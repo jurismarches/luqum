@@ -108,6 +108,7 @@ class LuceneCheck:
             if isinstance(parents[-1], tree.OrOperation):
                 yield ("Prohibit or Not really means 'AND NOT' " +
                        "wich is inconsistent with OR operation in %s" % parents[-1])
+
     @_check_children
     def check_not(self, item, parents):
         return self._check_not_operator(item, parents)
