@@ -314,7 +314,7 @@ class Unary(Item):
         self.a = a
 
     def __str__(self):
-        return "%s%s" % (self.op, self.a)
+        return "%s%s" % (self.op, self.a.__str__())
 
     @property
     def children(self):
@@ -327,7 +327,11 @@ class Plus(Unary):
     op = "+"
 
 
-class Minus(Unary):
+class Not(Unary):
+    op = 'NOT '
+
+
+class Prohibit(Unary):
     """The negation
     """
     op = "-"

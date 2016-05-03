@@ -21,7 +21,7 @@ class ParseError(ValueError):
 reserved = {
   'AND': 'AND_OP',
   'OR': 'OR_OP',
-  'NOT': 'MINUS',
+  'NOT': 'NOT',
   'TO': 'TO'}
 
 
@@ -31,6 +31,7 @@ tokens = (
      'PHRASE',
      'APPROX',
      'BOOST',
+     'MINUS',
      'SEPARATOR',
      'PLUS',
      'COLUMN',
@@ -44,7 +45,8 @@ tokens = (
 
 # text of some simple tokens
 t_PLUS = r'\+'
-t_MINUS = r'(-|NOT)'
+t_MINUS = r'\-'
+t_NOT = 'NOT'
 t_AND_OP = r'AND'
 t_OR_OP = r'OR'
 t_COLUMN = r':'
@@ -101,7 +103,7 @@ def t_TERM(t):
     t.type = reserved.get(t.value, 'TERM')
     # it's not, make it a Word
     if t.type == 'TERM':
-        m = re.match(TERM_RE, t.value)
+        m = re.match(TERM_RE, t.value, re.VERBOSE)
         t.value = Word(m.group("term"))
     return t
 
@@ -158,7 +160,12 @@ def p_expression_plus(p):
 
 def p_expression_minus(p):
     '''unary_expression : MINUS unary_expression'''
-    p[0] = Minus(p[2])
+    p[0] = Prohibit(p[2])
+
+
+def p_expression_not(p):
+    '''unary_expression : NOT unary_expression'''
+    p[0] = Not(p[2])
 
 
 def p_expression_unary(p):

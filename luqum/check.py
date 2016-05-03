@@ -102,12 +102,19 @@ class LuceneCheck:
     def check_plus(self, item, parents):
         return iter([])
 
-    @_check_children
-    def check_minus(self, item, parents):
+    def _check_not_operator(self, item, parents):
+        """Common checker for NOT and - operators"""
         if self.zeal:
             if isinstance(parents[-1], tree.OrOperation):
-                yield ("Minus or Not really means 'AND NOT' " +
+                yield ("Prohibit or Not really means 'AND NOT' " +
                        "wich is inconsistent with OR operation in %s" % parents[-1])
+    @_check_children
+    def check_not(self, item, parents):
+        return self._check_not_operator(item, parents)
+
+    @_check_children
+    def check_prohibit(self, item, parents):
+        return self._check_not_operator(item, parents)
 
     def check(self, item, parents=[]):
         # dispatching check to anothe method

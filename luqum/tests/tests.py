@@ -135,11 +135,11 @@ class TestParser(TestCase):
         tree = (
             AndOperation(
                 AndOperation(
-                    Minus(
+                    Prohibit(
                         Word("test")),
-                    Minus(
+                    Prohibit(
                         Word("foo"))),
-                Minus(
+                Not(
                     Word("bar"))))
         parsed = parser.parse("-test AND -foo AND NOT bar")
         self.assertEqual(str(parsed), str(tree))
@@ -256,7 +256,7 @@ class TestParser(TestCase):
                             OrOperation(
                                 Word("house"),
                                 Word("car")))),
-                    Minus(
+                    Not(
                         Proximity(
                             Phrase('"approximatly this"'),
                             3)))))
@@ -435,7 +435,7 @@ class TestCheck(TestCase):
                     FieldGroup(
                         AndOperation(
                             Boost(Proximity(Phrase('"foo bar"'), 4), "4.2"),
-                            Minus(Range("100", "200"))))),
+                            Prohibit(Range("100", "200"))))),
                 Group(
                     OrOperation(
                         Fuzzy(Word("baz"), ".8"),
@@ -468,7 +468,7 @@ class TestCheck(TestCase):
     def test_zealous_or_not(self):
         query = (
             OrOperation(
-                Minus(Word("foo")),
+                Prohibit(Word("foo")),
                 Word("bar")))
         check_zealous = LuceneCheck(zeal=1)
         self.assertFalse(check_zealous(query))
@@ -485,7 +485,7 @@ class TestCheck(TestCase):
 
     def test_bad_field_expr(self):
         check = LuceneCheck()
-        query = SearchField("foo", Minus(Word("bar")))
+        query = SearchField("foo", Prohibit(Word("bar")))
         self.assertFalse(check(query))
         self.assertEqual(len(check.errors(query)), 1)
         self.assertIn("not valid", check.errors(query)[0])
