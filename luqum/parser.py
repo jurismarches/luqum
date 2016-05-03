@@ -74,8 +74,16 @@ precedence = (
 # Note : we must use positive look behind, because regexp engine is eager,
 # and it's only arrived at : that it will try this rule
 TIME_RE = r'(?<=\d{2}):\d{2}(:\d{2})?'
-# this is a wide catching expression, to also include date math
-TERM_RE = r'(?P<term>[\w\*\?]([\w+/\?*-.|\\]|{time_re})*)'.format(time_re=TIME_RE)
+# this is a wide catching expression, to also include date math.
+# Inspired by the original lucene parser:
+# https://github.com/apache/lucene-solr/blob/master/lucene/queryparser/src/java/org/apache/lucene/queryparser/surround/parser/QueryParser.jj#L189
+# We do allow the wildcards operators ('*' and '?') as our parser doesn't deal with them.
+TERM_RE = r'''
+  (?P<term>  # group term
+       [^\s:^,"'+~\-\(\)\[\]\{{\}}]         # first char is not a space neither some char which have meanings
+                                            # note: escape of "-" and doubling of "{{" (because we use format)
+       ([^\s:^~\(\)\[\]\{{\}}]|{time_re})*  # following chars or a time expression
+)'''.format(time_re=TIME_RE)
 # phrase
 PHRASE_RE = r'(?P<phrase>"[^"]*")'
 # modifiers after term or phrase
