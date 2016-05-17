@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Elements that will constitute the parse tree of a query.
 
 You may use these items to build a tree representing a query,
@@ -8,7 +9,7 @@ from decimal import Decimal
 _MARKER = object()
 
 
-class Item:
+class Item(object):
     """Base class for all items that compose the parse tree.
 
     An item is a part of a request.

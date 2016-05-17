@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Various utilities for dealing with syntax trees.
 
 Include base classes to implement a visitor pattern.

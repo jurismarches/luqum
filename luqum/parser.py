@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """The Lucene Query DSL parser based on PLY
 """
 

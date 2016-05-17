@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """This module provides a pretty printer for lucene query tree.
 """
 from .tree import BaseOperation, BaseGroup, SearchField
