@@ -547,6 +547,17 @@ class TreeVisitorTestCase(TestCase):
         def generic_visit(self, node, parents):
             yield node
 
+    class MROVisitor(LuceneTreeVisitor):
+
+        def visit_or_operation(self, node, parents=[]):
+            return ["{} OR {}".format(*node.children)]
+
+        def visit_base_operation(self, node, parents=[]):
+            return ["{} BASE_OP {}".format(*node.children)]
+
+        def visit_word(self, node, parents=[]):
+            return [node.value]
+
     def test_basic_traversal(self):
         tree = (
             AndOperation(
@@ -559,6 +570,17 @@ class TreeVisitorTestCase(TestCase):
         self.assertListEqual(
             [AndOperation(Word('foo'), Word('bar')), Word('foo'), Word('bar')],
             nodes)
+
+    def test_mro(self):
+        visitor = self.MROVisitor()
+
+        tree = OrOperation(Word('a'), Word('b'))
+        result = visitor.visit(tree)
+        self.assertEquals(list(result), ['a OR b', 'a', 'b'])
+
+        tree = AndOperation(Word('a'), Word('b'))
+        result = visitor.visit(tree)
+        self.assertEquals(list(result), ['a BASE_OP b', 'a', 'b'])
 
 
 class TreeTransformerTestCase(TestCase):

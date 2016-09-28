@@ -32,19 +32,25 @@ class LuceneTreeVisitor:
     visitor_method_prefix = 'visit_'
     generic_visitor_method_name = 'generic_visit'
 
-    def _get_node_visitor_method(self, cls):
-        method_name = self.visitor_method_prefix + camel_to_lower(cls.__name__)
-        return getattr(
-            self, method_name, getattr(self, self.generic_visitor_method_name))
+    def _get_method(self, node):
+        for cls in node.__class__.mro():
+            try:
+                method_name = "{}{}".format(
+                    self.visitor_method_prefix,
+                    camel_to_lower(cls.__name__)
+                )
+                return getattr(self, method_name)
+            except AttributeError:
+                continue
+        else:
+            return getattr(self, self.generic_visitor_method_name)
 
     def visit(self, node, parents=[]):
         """ Basic, recursive traversal of the tree. """
-        for cls in node.__class__.mro():
-            method = self._get_node_visitor_method(cls)
-            yield from method(node, parents)
-            for child in node.children:
-                yield from self.visit(child, parents + [node])
-            break
+        method = self._get_method(node)
+        yield from method(node, parents)
+        for child in node.children:
+            yield from self.visit(child, parents + [node])
 
     def generic_visit(self, node, parents=[]):
         """
@@ -70,7 +76,7 @@ class LuceneTreeTransformer(LuceneTreeVisitor):
                 parent.__dict__[k] = new_node
                 break
 
-    def generic_visit(self, node, parent):
+    def generic_visit(self, node, parent=[]):
         return node
 
     def visit(self, node, parents=[]):
@@ -78,14 +84,12 @@ class LuceneTreeTransformer(LuceneTreeVisitor):
         Recursively traverses the tree and replace nodes with the appropriate
         visitor methid's return values.
         """
-        for cls in node.__class__.mro():
-            method = self._get_node_visitor_method(cls)
-            new_node = method(node, parents)
-            if parents:
-                self.replace_node(node, new_node, parents[-1])
-            else:
-                node = new_node
-            for child in node.children:
-                self.visit(child, parents + [node])
-            break
+        method = self._get_method(node)
+        new_node = method(node, parents)
+        if parents:
+            self.replace_node(node, new_node, parents[-1])
+        else:
+            node = new_node
+        for child in node.children:
+            self.visit(child, parents + [node])
         return node
