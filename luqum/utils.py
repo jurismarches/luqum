@@ -4,6 +4,11 @@
 Include base classes to implement a visitor pattern.
 
 """
+import re
+
+from luqum.elasticsearch.tree import EWord, EMust, EShould, EMustNot, EPhrase, \
+    ERange, AbstractEItem, AbstractEOperation
+from luqum.tree import SearchField, Fuzzy
 
 
 def camel_to_lower(name):
@@ -93,3 +98,55 @@ class LuceneTreeTransformer(LuceneTreeVisitor):
         for child in node.children:
             self.visit(child, parents + [node])
         return node
+
+
+class LuceneTreeVisitorV2:
+    """
+    V2 of the LuceneTreeVisitor allowing to evaluate the AST
+
+    This class is meant to be subclassed, with the subclass implementing
+    visitor methods for each Node type it is interested in.
+
+    By default, those visitor method should be named ``'visit_'`` + class
+    name of the node, converted to lower_case (ie: visit_search_node for a
+    SearchNode class).
+
+    You can tweak this behaviour by overriding the `visitor_method_prefix` &
+    `generic_visitor_method_name` class attributes.
+
+    If the goal is to modify the initial tree,
+    use :py:class:`LuceneTreeTranformer` instead.
+    """
+    visitor_method_prefix = 'visit_'
+    generic_visitor_method_name = 'generic_visit'
+
+    def _get_method(self, node):
+        for cls in node.__class__.mro():
+            try:
+                method_name = "{}{}".format(
+                    self.visitor_method_prefix,
+                    camel_to_lower(cls.__name__)
+                )
+                return getattr(self, method_name)
+            except AttributeError:
+                continue
+        else:
+            return getattr(self, self.generic_visitor_method_name)
+
+    def visit(self, node, parents=None):
+        """ Basic, recursive traversal of the tree. """
+        if parents is None:
+            parents = []
+
+        method = self._get_method(node)
+        return method(node, parents)
+
+    def generic_visit(self, node, parents=None):
+        """
+        Default visitor function, called if nothing matches the current node.
+        """
+        raise AttributeError(
+            "No visitor found for this type of node: {}".format(
+                node.__class__
+            )
+        )
