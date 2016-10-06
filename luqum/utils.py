@@ -4,11 +4,6 @@
 Include base classes to implement a visitor pattern.
 
 """
-import re
-
-from luqum.elasticsearch.tree import EWord, EMust, EShould, EMustNot, EPhrase, \
-    ERange, AbstractEItem, AbstractEOperation
-from luqum.tree import SearchField, Fuzzy
 
 
 def camel_to_lower(name):
