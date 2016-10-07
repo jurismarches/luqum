@@ -50,13 +50,16 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         eword.field = self.defaut_field
         return eword
 
+    def _set_search_field_in_all_children(self, node, field_name):
+        if isinstance(node, AbstractEItem):
+            node.field = field_name
+        else:
+            for item in node.items:
+                self._set_search_field_in_all_children(item, field_name)
+
     def visit_search_field(self, node, parents):
         enode = self.visit(node.children[0], parents + [node])
-        if isinstance(enode, AbstractEItem):
-            enode.field = node.name
-        elif isinstance(enode, AbstractEOperation):
-            for item in enode.items:
-                item.field = node.name
+        self._set_search_field_in_all_children(enode, node.name)
         return enode
 
     def visit_not(self, node, parents):

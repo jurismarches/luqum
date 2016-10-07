@@ -361,3 +361,36 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
         ]}}
         self.assertDictEqual(result, expected)
 
+    def test_real_situation_7(self):
+        tree = parser.parse(
+            "pays:FR AND "
+            "type:AO AND "
+            "thes:(("
+            "SI_FM_GC_RC_Relation_client_commerciale_courrier OR "
+            "SI_FM_GC_Gestion_Projet_Documents OR "
+            "SI_FM_GC_RC_Mailing_prospection_Enquete_Taxe_apprentissage OR "
+            "SI_FM_GC_RC_Site_web OR "
+            "SI_FM_GC_RH OR SI_FM_GC_RH_Paye OR "
+            "SI_FM_GC_RH_Temps) OR NOT C91_Etranger)"
+        )
+        result = self.transformer.visit(tree).json
+        expected = {'bool': {'must': [
+            {'term': {'pays': {'value': 'FR'}}},
+            {'term': {'type': {'value': 'AO'}}},
+            {'bool': {'should': [
+                {'bool': {'should': [
+                    {'term': {'thes': {'value': 'SI_FM_GC_RC_Relation_client_commerciale_courrier'}}},
+                    {'term': {'thes': {'value': 'SI_FM_GC_Gestion_Projet_Documents'}}},
+                    {'term': {'thes': {'value': 'SI_FM_GC_RC_Mailing_prospection_Enquete_Taxe_apprentissage'}}},
+                    {'term': {'thes': {'value': 'SI_FM_GC_RC_Site_web'}}},
+                    {'term': {'thes': {'value': 'SI_FM_GC_RH'}}},
+                    {'term': {'thes': {'value': 'SI_FM_GC_RH_Paye'}}},
+                    {'term': {'thes': {'value': 'SI_FM_GC_RH_Temps'}}}
+                ]}},
+                {'bool': {'must_not': [
+                    {'term': {'thes': {'value': 'C91_Etranger'}}}
+                ]}}
+            ]}}
+        ]}}
+
+        self.assertDictEqual(result, expected)
