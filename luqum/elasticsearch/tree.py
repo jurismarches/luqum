@@ -54,6 +54,12 @@ class EWord(AbstractEItem):
         super().__init__()
         self.value = value
 
+    @property
+    def json(self):
+        if self.value == '*':
+            return {"exists": {"field": self.field}}
+        return super().json
+
 
 class EPhrase(AbstractEItem):
 
@@ -78,22 +84,18 @@ class ERange(AbstractEItem):
 
     def __init__(self, lt=None, lte=None, gt=None, gte=None):
         super().__init__(method='range')
-        if lt:
+        if lt and lt != '*':
             self.lt = lt
             self.ADDITIONAL_KEYS_TO_ADD += ('lt', )
-        elif lte:
+        elif lte and lte != '*':
             self.lte = lte
             self.ADDITIONAL_KEYS_TO_ADD += ('lte', )
-        else:
-            raise ValueError
-        if gt:
+        if gt and gt != '*':
             self.gt = gt
             self.ADDITIONAL_KEYS_TO_ADD += ('gt', )
-        elif gte:
+        elif gte and gte != '*':
             self.gte = gte
             self.ADDITIONAL_KEYS_TO_ADD += ('gte', )
-        else:
-            raise ValueError
 
 
 class AbstractEOperation(JsonSerializableMixin):
