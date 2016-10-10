@@ -19,7 +19,7 @@ class AbstractEItem(JsonSerializableMixin):
     ADDITIONAL_KEYS_TO_ADD = ()
 
     def __init__(self, method='term', field='text'):
-        self.method = method
+        self._method = method
         self.field = field
 
     @property
@@ -40,9 +40,15 @@ class AbstractEItem(JsonSerializableMixin):
     def fuzziness(self):
         return self._fuzzy
 
+    @property
+    def method(self):
+        if any(char in getattr(self, 'value', '') for char in ['*', '?']):
+            return 'wildcard'
+        return self._method
+
     @fuzziness.setter
     def fuzziness(self, fuzzy):
-        self.method = 'fuzzy'
+        self._method = 'fuzzy'
         self._fuzzy = fuzzy
 
 

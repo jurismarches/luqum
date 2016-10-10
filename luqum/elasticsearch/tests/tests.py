@@ -196,6 +196,12 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
         expected = {"term": {"text": {"value": 'spam', "boost": 1.00}}}
         self.assertDictEqual(result, expected)
 
+    def test_should_transform_wildcard_in_word(self):
+        tree = Word("spam*")
+        result = self.transformer.visit(tree).json
+        expected = {"wildcard": {"text": {"value": 'spam*'}}}
+        self.assertDictEqual(result, expected)
+
     def test_should_transform_boost_in_search_field(self):
         tree = SearchField("spam", Boost(Word("egg"), 1))
         result = self.transformer.visit(tree).json
