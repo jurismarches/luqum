@@ -2,6 +2,15 @@ import abc
 import re
 
 
+NO_ANALYZE = [
+    "type", "statut", "pays", "pays_acheteur", "pays_acheteur_display", "refW",
+    "pays_execution", "dept", "region", "dept_acheteur",
+    "dept_acheteur_display", "dept_execution", "flux", "sourceU", "url",
+    "refA", "thes", "modele", "ii", "iqi", "idc", "critere_special", "auteur",
+    "doublons", "doublons_de", "resultats", "resultat_de", "rectifie_par",
+    "rectifie", "profils_en_cours", "profils_exclus", "profils_historiques"
+]
+
 class JsonSerializableMixin:
 
     @property
@@ -32,8 +41,10 @@ class AbstractEItem(JsonSerializableMixin):
         for key in keys:
             value = getattr(self, key)
             if value is not None:
-                inner_json[key] = value
-
+                if key == 'value' and self.method == 'match':
+                    inner_json['query'] = value
+                else:
+                    inner_json[key] = value
         return json
 
     @property
@@ -44,6 +55,8 @@ class AbstractEItem(JsonSerializableMixin):
     def method(self):
         if any(char in getattr(self, 'value', '') for char in ['*', '?']):
             return 'wildcard'
+        elif self.field not in NO_ANALYZE and self._method == 'term':
+            return 'match'
         return self._method
 
     @fuzziness.setter
