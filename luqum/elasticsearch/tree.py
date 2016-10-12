@@ -2,15 +2,6 @@ import abc
 import re
 
 
-NO_ANALYZE = [
-    "type", "statut", "pays", "pays_acheteur", "pays_acheteur_display", "refW",
-    "pays_execution", "dept", "region", "dept_acheteur",
-    "dept_acheteur_display", "dept_execution", "flux", "sourceU", "url",
-    "refA", "thes", "modele", "ii", "iqi", "idc", "critere_special", "auteur",
-    "doublons", "doublons_de", "resultats", "resultat_de", "rectifie_par",
-    "rectifie", "profils_en_cours", "profils_exclus", "profils_historiques"
-]
-
 class JsonSerializableMixin:
 
     @property
@@ -27,9 +18,10 @@ class AbstractEItem(JsonSerializableMixin):
     _KEYS_TO_ADD = ('boost', 'fuzziness', )
     ADDITIONAL_KEYS_TO_ADD = ()
 
-    def __init__(self, method='term', field='text'):
+    def __init__(self, no_analyze, method='term', field='text'):
         self._method = method
         self.field = field
+        self._no_analyze = no_analyze
 
     @property
     def json(self):
@@ -55,7 +47,7 @@ class AbstractEItem(JsonSerializableMixin):
     def method(self):
         if any(char in getattr(self, 'value', '') for char in ['*', '?']):
             return 'wildcard'
-        elif self.field not in NO_ANALYZE and self._method == 'term':
+        elif self.field not in self._no_analyze and self._method == 'term':
             return 'match'
         return self._method
 
@@ -69,8 +61,8 @@ class EWord(AbstractEItem):
 
     ADDITIONAL_KEYS_TO_ADD = ('value', )
 
-    def __init__(self, value):
-        super().__init__()
+    def __init__(self, value, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.value = value
 
     @property
@@ -85,8 +77,8 @@ class EPhrase(AbstractEItem):
     ADDITIONAL_KEYS_TO_ADD = ('query',)
     _proximity = None
 
-    def __init__(self, phrase):
-        super().__init__(method='match_phrase')
+    def __init__(self, phrase, *args, **kwargs):
+        super().__init__(method='match_phrase', *args, **kwargs)
         self.query = re.search(r'"(?P<value>.+)"', phrase).group("value")
 
     @property
@@ -101,8 +93,8 @@ class EPhrase(AbstractEItem):
 
 class ERange(AbstractEItem):
 
-    def __init__(self, lt=None, lte=None, gt=None, gte=None):
-        super().__init__(method='range')
+    def __init__(self, lt=None, lte=None, gt=None, gte=None, *args, **kwargs):
+        super().__init__(method='range', *args, **kwargs)
         if lt and lt != '*':
             self.lt = lt
             self.ADDITIONAL_KEYS_TO_ADD += ('lt', )
@@ -137,3 +129,15 @@ class EMust(AbstractEOperation):
 
 class EMustNot(AbstractEOperation):
     operation = 'must_not'
+
+
+class ElasticSearchItemFactory:
+
+    def __init__(self, no_analyze):
+        self._no_analyze = no_analyze
+
+    def build(self, cls, *args, **kwargs):
+        if issubclass(cls, AbstractEItem):
+            return cls(no_analyze=self._no_analyze, *args, **kwargs)
+        else:
+            return cls(*args, **kwargs)

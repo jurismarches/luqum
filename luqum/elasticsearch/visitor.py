@@ -1,6 +1,6 @@
+from luqum.elasticsearch.tree import ElasticSearchItemFactory
 from .tree import (
-    EMust, EMustNot, EShould, EWord, AbstractEItem, AbstractEOperation,
-    EPhrase, ERange)
+    EMust, EMustNot, EShould, EWord, AbstractEItem, EPhrase, ERange)
 from ..utils import LuceneTreeVisitorV2
 
 
@@ -12,9 +12,19 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
     SHOULD = 'should'
     MUST = 'must'
 
-    def __init__(self, default_operator=SHOULD, default_field='text'):
+    def __init__(self, default_operator=SHOULD, default_field='text',
+                 not_analyzed_fields=None):
+
+        if not_analyzed_fields:
+            self._not_analyzed_fields = not_analyzed_fields
+        else:
+            self._not_analyzed_fields = []
+
         self.default_operator = default_operator
-        self.defaut_field = default_field
+        self.default_field = default_field
+        self.es_item_factory = ElasticSearchItemFactory(
+            no_analyze=self._not_analyzed_fields
+        )
 
     def simplify_if_same(self, children, current_node):
         """
@@ -32,12 +42,14 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
                 yield child
 
     def _must_operation(self, node, parents):
-        items = [self.visit(n, parents + [node]) for n in self.simplify_if_same(node.children, node)]
-        return EMust(items)
+        items = [self.visit(n, parents + [node])
+                 for n in self.simplify_if_same(node.children, node)]
+        return self.es_item_factory.build(EMust, items)
 
     def _should_operation(self, node, parents):
-        items = [self.visit(n, parents + [node]) for n in self.simplify_if_same(node.children, node)]
-        return EShould(items)
+        items = [self.visit(n, parents + [node])
+                 for n in self.simplify_if_same(node.children, node)]
+        return self.es_item_factory.build(EShould, items)
 
     def visit_and_operation(self, *args, **kwargs):
         return self._must_operation(*args, **kwargs)
@@ -46,9 +58,11 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         return self._should_operation(*args, **kwargs)
 
     def visit_word(self, node, parents):
-        eword = EWord(value=node.value)
-        eword.field = self.defaut_field
-        return eword
+        return self.es_item_factory.build(
+            EWord,
+            value=node.value,
+            field=self.default_field
+        )
 
     def _set_search_field_in_all_children(self, node, field_name):
         if isinstance(node, AbstractEItem):
@@ -63,8 +77,9 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         return enode
 
     def visit_not(self, node, parents):
-        items = [self.visit(n, parents + [node]) for n in self.simplify_if_same(node.children, node)]
-        return EMustNot(items)
+        items = [self.visit(n, parents + [node])
+                 for n in self.simplify_if_same(node.children, node)]
+        return self.es_item_factory.build(EMustNot, items)
 
     def visit_prohibit(self, *args, **kwargs):
         return self.visit_not(*args, **kwargs)
@@ -94,16 +109,18 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         return ephrase
 
     def visit_phrase(self, node, parents):
-        ephrase = EPhrase(phrase=node.value)
-        ephrase.field = self.defaut_field
-        return ephrase
+        return self.es_item_factory.build(
+            EPhrase,
+            phrase=node.value,
+            field=self.default_field
+        )
 
     def visit_range(self, node, parents):
         kwargs = {
             'gte' if node.include_low else 'gt': node.low.value,
             'lte' if node.include_high else 'lt': node.high.value,
         }
-        return ERange(**kwargs)
+        return self.es_item_factory.build(ERange, **kwargs)
 
     def visit_group(self, node, parents):
         return self.visit(node.expr, parents + [node])
