@@ -322,16 +322,12 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
 
         NO_ANALYZE = [
             "type", "statut", "pays", "pays_acheteur", "pays_acheteur_display",
-            "refW",
-            "pays_execution", "dept", "region", "dept_acheteur",
+            "refW", "pays_execution", "dept", "region", "dept_acheteur",
             "dept_acheteur_display", "dept_execution", "flux", "sourceU",
-            "url",
-            "refA", "thes", "modele", "ii", "iqi", "idc", "critere_special",
-            "auteur",
-            "doublons", "doublons_de", "resultats", "resultat_de",
-            "rectifie_par",
-            "rectifie", "profils_en_cours", "profils_exclus",
-            "profils_historiques"
+            "url", "refA", "thes", "modele", "ii", "iqi", "idc",
+            "critere_special", "auteur", "doublons", "doublons_de",
+            "resultats", "resultat_de", "rectifie_par", "rectifie",
+            "profils_en_cours", "profils_exclus", "profils_historiques"
         ]
 
         self.transformer = ElasticsearchQueryBuilder(

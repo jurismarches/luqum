@@ -35,6 +35,10 @@ class AbstractEItem(JsonSerializableMixin):
             if value is not None:
                 if key == 'value' and self.method == 'match':
                     inner_json['query'] = value
+                elif key == 'value' and self.method == 'query_string':
+                    inner_json['query'] = value
+                    inner_json['analyze_wildcard'] = True
+                    inner_json['default_field'] = self.field
                 else:
                     inner_json[key] = value
         return json
@@ -45,8 +49,10 @@ class AbstractEItem(JsonSerializableMixin):
 
     @property
     def method(self):
-        if any(char in getattr(self, 'value', '') for char in ['*', '?']):
+        if self.field in self._no_analyze and any(char in getattr(self, 'value', '') for char in ['*', '?']):
             return 'wildcard'
+        elif self.field not in self._no_analyze and any(char in getattr(self, 'value', '') for char in ['*', '?']):
+            return 'query_string'
         elif self.field not in self._no_analyze and self._method == 'term':
             return 'match'
         return self._method
