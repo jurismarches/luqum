@@ -1,4 +1,5 @@
 from luqum.elasticsearch.tree import ElasticSearchItemFactory
+from luqum.tree import OrOperation, AndOperation
 from .tree import (
     EMust, EMustNot, EShould, EWord, AbstractEItem, EPhrase, ERange)
 from ..utils import LuceneTreeVisitorV2
@@ -41,12 +42,20 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
             else:
                 yield child
 
+    def raise_if_children_not_same(self, node):
+        if any(not isinstance(child, type(node))
+               for child in node.children
+               if type(child) in (OrOperation, AndOperation)):
+            raise ValueError("OR and AND on the same level")
+
     def _must_operation(self, node, parents):
+        self.raise_if_children_not_same(node)
         items = [self.visit(n, parents + [node])
                  for n in self.simplify_if_same(node.children, node)]
         return self.es_item_factory.build(EMust, items)
 
     def _should_operation(self, node, parents):
+        self.raise_if_children_not_same(node)
         items = [self.visit(n, parents + [node])
                  for n in self.simplify_if_same(node.children, node)]
         return self.es_item_factory.build(EShould, items)

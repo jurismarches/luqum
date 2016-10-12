@@ -41,6 +41,11 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
         ]}}
         self.assertDictEqual(result, expected)
 
+    def test_should_raise_when_or_and_and_on_same_level(self):
+        tree = OrOperation(Word('spam'), AndOperation(Word('eggs'), Word('monty')))
+        with self.assertRaises(ValueError):
+            self.transformer.visit(tree).json
+
     def test_should_transform_prohibit(self):
         tree = Prohibit(Word("spam"))
         result = self.transformer.visit(tree).json
@@ -184,18 +189,9 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
                 )
             )
         )
-        result = self.transformer.visit(tree).json
-        expected = {'bool': {'must': [
-            {"term": {"text": {"value": 'spam'}}},
-            {'bool': {'should': [
-                {"term": {"text": {"value": 'eggs'}}},
-                {'bool': {'must': [
-                    {"term": {"text": {"value": 'monthy'}}},
-                    {"term": {"text": {"value": 'python'}}}
-                ]}}
-                ]}}
-            ]}}
-        self.assertDictEqual(result, expected)
+
+        with self.assertRaises(ValueError):
+            self.transformer.visit(tree).json
 
     def test_should_transform_boost_in_word(self):
         tree = Boost(Word("spam"), 1)
