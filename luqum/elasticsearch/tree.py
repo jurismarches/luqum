@@ -41,6 +41,10 @@ class AbstractEItem(JsonSerializableMixin):
                     inner_json['default_field'] = self.field
                 else:
                     inner_json[key] = value
+
+        if self.method == 'query_string':
+            json[self.method] = json[self.method].pop(self.field)
+
         return json
 
     @property
