@@ -39,6 +39,7 @@ class AbstractEItem(JsonSerializableMixin):
                     inner_json['query'] = value
                     inner_json['analyze_wildcard'] = True
                     inner_json['default_field'] = self.field
+                    inner_json['allow_leading_wildcard'] = True
                 else:
                     inner_json[key] = value
 
