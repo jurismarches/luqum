@@ -35,6 +35,7 @@ class AbstractEItem(JsonSerializableMixin):
             if value is not None:
                 if key == 'value' and self.method == 'match':
                     inner_json['query'] = value
+                    inner_json['type'] = 'phrase'
                 elif key == 'value' and self.method == 'query_string':
                     inner_json['query'] = value
                     inner_json['analyze_wildcard'] = True
