@@ -47,9 +47,14 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
             self.transformer.visit(tree).json
 
     def test_should_raise_when_or_and_not_on_same_level(self):
-        tree = OrOperation(Word('spam'), Prohibit(Word('eggs')))
+        transformer = ElasticsearchQueryBuilder(
+            default_field="text",
+            not_analyzed_fields=['not_analyzed_field', 'text'],
+            default_operator=ElasticsearchQueryBuilder.MUST
+        )
+        tree = OrOperation(Word('spam'), UnknownOperation(Word('test'), Prohibit(Word('eggs'))))
         with self.assertRaises(ValueError):
-            self.transformer.visit(tree).json
+            transformer.visit(tree).json
 
     def test_should_transform_prohibit(self):
         tree = Prohibit(Word("spam"))
@@ -337,7 +342,9 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
 
         self.transformer = ElasticsearchQueryBuilder(
             default_field="text",
-            not_analyzed_fields=NO_ANALYZE)
+            not_analyzed_fields=NO_ANALYZE,
+            default_operator=ElasticsearchQueryBuilder.MUST,
+        )
 
     def test_real_situation_1(self):
         tree = parser.parse("spam:eggs")
@@ -427,3 +434,10 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
         ]}}
 
         self.assertDictEqual(result, expected)
+
+    def test_real_situation_8(self):
+        tree = parser.parse(
+            'objet:(accessibilite OR diagnosti* OR adap OR "ad ap" -(travaux OR amiante OR "hors voirie"))'
+        )
+        with self.assertRaises(ValueError):
+            self.transformer.visit(tree).json
