@@ -66,18 +66,6 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
                    self.default_operator == ElasticsearchQueryBuilder.SHOULD):
                     raise OrAndAndOnSameLevel(str(child))
 
-        not_same_operator = any(
-            not isinstance(child, type(node))
-            for child in node.children
-            if type(child) in (OrOperation, AndOperation)
-        )
-        if (not_same_operator or
-            (isinstance(node, OrOperation) and
-             any(isinstance(child, UnknownOperation) for child in
-                 node.children) and
-             self.default_operator == ElasticsearchQueryBuilder.MUST)):
-            raise OrAndAndOnSameLevel(str(node))
-
     def _must_operation(self, node, parents):
         self.raise_if_children_not_same(node)
         items = [self.visit(n, parents + [node])
