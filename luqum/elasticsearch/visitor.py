@@ -1,8 +1,12 @@
 from luqum.elasticsearch.tree import ElasticSearchItemFactory
-from luqum.tree import OrOperation, AndOperation, Prohibit, UnknownOperation
+from luqum.tree import OrOperation, AndOperation, UnknownOperation
 from .tree import (
     EMust, EMustNot, EShould, EWord, AbstractEItem, EPhrase, ERange)
 from ..utils import LuceneTreeVisitorV2
+
+
+class OrAndAndOnSameLevel(Exception):
+    pass
 
 
 class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
@@ -43,14 +47,36 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
                 yield child
 
     def raise_if_children_not_same(self, node):
-        if any(not isinstance(child, type(node))
-               for child in node.children
-               if type(child) in (OrOperation, AndOperation)):
-            raise ValueError("OR and AND on the same level")
-        if (isinstance(node, OrOperation) and
-           any(isinstance(child, UnknownOperation) for child in node.children) and
-           self.default_operator == ElasticsearchQueryBuilder.MUST):
-            raise ValueError("OR and AND on the same level")
+
+        if (isinstance(node, OrOperation) or
+           isinstance(node, UnknownOperation) and
+           self.default_operator == self.SHOULD):
+            for child in node.children:
+                if (isinstance(child, AndOperation) or
+                   isinstance(child, UnknownOperation) and
+                   self.default_operator == ElasticsearchQueryBuilder.MUST):
+                    raise OrAndAndOnSameLevel(str(child))
+
+        if (isinstance(node, AndOperation) or
+           isinstance(node, UnknownOperation) and
+           self.default_operator == self.MUST):
+            for child in node.children:
+                if (isinstance(child, OrOperation) or
+                   isinstance(child, UnknownOperation) and
+                   self.default_operator == ElasticsearchQueryBuilder.SHOULD):
+                    raise OrAndAndOnSameLevel(str(child))
+
+        not_same_operator = any(
+            not isinstance(child, type(node))
+            for child in node.children
+            if type(child) in (OrOperation, AndOperation)
+        )
+        if (not_same_operator or
+            (isinstance(node, OrOperation) and
+             any(isinstance(child, UnknownOperation) for child in
+                 node.children) and
+             self.default_operator == ElasticsearchQueryBuilder.MUST)):
+            raise OrAndAndOnSameLevel(str(node))
 
     def _must_operation(self, node, parents):
         self.raise_if_children_not_same(node)

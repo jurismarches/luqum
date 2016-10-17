@@ -1,5 +1,6 @@
 from unittest import TestCase
 
+from luqum.elasticsearch.visitor import OrAndAndOnSameLevel
 from luqum.parser import parser
 from luqum.tree import (
     AndOperation, Word, Prohibit, OrOperation, Not, Phrase, SearchField,
@@ -43,7 +44,7 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
 
     def test_should_raise_when_or_and_and_on_same_level(self):
         tree = OrOperation(Word('spam'), AndOperation(Word('eggs'), Word('monty')))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(OrAndAndOnSameLevel):
             self.transformer.visit(tree).json
 
     def test_should_raise_when_or_and_not_on_same_level(self):
@@ -53,7 +54,7 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
             default_operator=ElasticsearchQueryBuilder.MUST
         )
         tree = OrOperation(Word('spam'), UnknownOperation(Word('test'), Prohibit(Word('eggs'))))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(OrAndAndOnSameLevel):
             transformer.visit(tree).json
 
     def test_should_transform_prohibit(self):
@@ -200,7 +201,7 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
             )
         )
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(OrAndAndOnSameLevel):
             self.transformer.visit(tree).json
 
     def test_should_transform_boost_in_word(self):
@@ -439,5 +440,5 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
         tree = parser.parse(
             'objet:(accessibilite OR diagnosti* OR adap OR "ad ap" -(travaux OR amiante OR "hors voirie"))'
         )
-        with self.assertRaises(ValueError):
+        with self.assertRaises(OrAndAndOnSameLevel):
             self.transformer.visit(tree).json
