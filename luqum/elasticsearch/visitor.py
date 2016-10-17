@@ -46,6 +46,15 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
             else:
                 yield child
 
+    def _extract_request_position(self, node):
+        delta = 8
+        node_str = str(node)
+        second_child = str(node.children[1])
+        position = node_str.find(second_child)
+        start = position - delta if position - delta >= 0 else 0
+        end = position + delta
+        return node_str[start:end]
+
     def raise_if_children_not_same(self, node):
 
         if (isinstance(node, OrOperation) or
@@ -55,7 +64,7 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
                 if (isinstance(child, AndOperation) or
                    isinstance(child, UnknownOperation) and
                    self.default_operator == ElasticsearchQueryBuilder.MUST):
-                    raise OrAndAndOnSameLevel(str(child))
+                    raise OrAndAndOnSameLevel(self._extract_request_position(child))
 
         if (isinstance(node, AndOperation) or
            isinstance(node, UnknownOperation) and
@@ -64,7 +73,7 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
                 if (isinstance(child, OrOperation) or
                    isinstance(child, UnknownOperation) and
                    self.default_operator == ElasticsearchQueryBuilder.SHOULD):
-                    raise OrAndAndOnSameLevel(str(child))
+                    raise OrAndAndOnSameLevel(self._extract_request_position(child))
 
     def _must_operation(self, node, parents):
         self.raise_if_children_not_same(node)
