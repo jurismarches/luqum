@@ -1,6 +1,7 @@
 from unittest import TestCase
 
-from luqum.elasticsearch.visitor import OrAndAndOnSameLevel
+from luqum.elasticsearch.visitor import OrAndAndOnSameLevel, \
+    NestedSearchFieldException
 from luqum.parser import parser
 from luqum.tree import (
     AndOperation, Word, Prohibit, OrOperation, Not, Phrase, SearchField,
@@ -15,6 +16,11 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
         self.transformer = ElasticsearchQueryBuilder(
             default_field="text",
             not_analyzed_fields=['not_analyzed_field', 'text'])
+
+    def test_should_raise_when_nested_search_field(self):
+        tree = SearchField('spam', OrOperation(Word('egg'), SearchField('monty', Word('python'))))
+        with self.assertRaises(NestedSearchFieldException):
+            result = self.transformer.visit(tree).json
 
     def test_should_transform_and(self):
         tree = AndOperation(Word('spam'), Word('eggs'))

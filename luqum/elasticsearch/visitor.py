@@ -1,11 +1,15 @@
 from luqum.elasticsearch.tree import ElasticSearchItemFactory
-from luqum.tree import OrOperation, AndOperation, UnknownOperation
+from luqum.tree import OrOperation, AndOperation, UnknownOperation, SearchField
 from .tree import (
     EMust, EMustNot, EShould, EWord, AbstractEItem, EPhrase, ERange)
 from ..utils import LuceneTreeVisitorV2
 
 
 class OrAndAndOnSameLevel(Exception):
+    pass
+
+
+class NestedSearchFieldException(Exception):
     pass
 
 
@@ -75,6 +79,13 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
                    self.default_operator == ElasticsearchQueryBuilder.SHOULD):
                     raise OrAndAndOnSameLevel(self._extract_request_position(child))
 
+    def _raise_if_nested_search_field(self, node):
+        for child in node.children:
+            if isinstance(child, SearchField):
+                raise NestedSearchFieldException(str(child))
+            else:
+                self._raise_if_nested_search_field(child)
+
     def _must_operation(self, node, parents):
         self.raise_if_children_not_same(node)
         items = [self.visit(n, parents + [node])
@@ -108,6 +119,7 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
                 self._set_search_field_in_all_children(item, field_name)
 
     def visit_search_field(self, node, parents):
+        self._raise_if_nested_search_field(node)
         enode = self.visit(node.children[0], parents + [node])
         self._set_search_field_in_all_children(enode, node.name)
         return enode
