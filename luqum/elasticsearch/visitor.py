@@ -1,5 +1,6 @@
 from luqum.elasticsearch.tree import ElasticSearchItemFactory
-from luqum.tree import OrOperation, AndOperation, UnknownOperation, SearchField
+from luqum.tree import (
+    OrOperation, AndOperation, UnknownOperation, SearchField, Word)
 from .tree import (
     EMust, EMustNot, EShould, EWord, AbstractEItem, EPhrase, ERange)
 from ..utils import LuceneTreeVisitorV2
@@ -50,34 +51,70 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
             else:
                 yield child
 
-    def _extract_request_position(self, node):
-        delta = 8
-        node_str = str(node)
-        second_child = str(node.children[1])
-        position = node_str.find(second_child)
-        start = position - delta if position - delta >= 0 else 0
+    def _get_operator_extract(self, binary_operation, delta=8):
+        """
+        Return an extract around the operator
+        :param binary_operation: operator to extract
+        :param delta: nb of characters to extract before and after the operator
+        :return: str
+
+        >>> operation = OrOperation(Word('Python'), Word('Monty'))
+        >>> builder = ElasticsearchQueryBuilder()
+        >>> builder._get_operator_extract(operation, 3)
+        'hon OR Mon'
+        """
+        node_str = str(binary_operation)
+        first_child_str = str(binary_operation.children[0])
+        second_child_str = str(binary_operation.children[1])
+        middle_length = len(node_str) - len(first_child_str) - len(second_child_str)
+        position = node_str.find(second_child_str)
+        start = position - middle_length - delta if position - middle_length - delta >= 0 else 0
         end = position + delta
         return node_str[start:end]
 
-    def raise_if_children_not_same(self, node):
+    def _is_must(self, operation):
+        """
+        Returns True if the node is a AndOperation or an UnknownOperation when
+        the default operator is MUST
+        :param node: to check
+        :return: Boolean
 
-        if (isinstance(node, OrOperation) or
-           isinstance(node, UnknownOperation) and
-           self.default_operator == self.SHOULD):
-            for child in node.children:
-                if (isinstance(child, AndOperation) or
-                   isinstance(child, UnknownOperation) and
-                   self.default_operator == ElasticsearchQueryBuilder.MUST):
-                    raise OrAndAndOnSameLevel(self._extract_request_position(child))
+        >>> builder = ElasticsearchQueryBuilder(\
+                default_operator=ElasticsearchQueryBuilder.MUST)
+        >>> builder._is_must(AndOperation(Word('Monty'), Word('Python')))
+        True
+        """
+        return (
+            isinstance(operation, AndOperation) or
+            isinstance(operation, UnknownOperation) and
+            self.default_operator == ElasticsearchQueryBuilder.MUST
+        )
 
-        if (isinstance(node, AndOperation) or
-           isinstance(node, UnknownOperation) and
-           self.default_operator == self.MUST):
-            for child in node.children:
-                if (isinstance(child, OrOperation) or
-                   isinstance(child, UnknownOperation) and
-                   self.default_operator == ElasticsearchQueryBuilder.SHOULD):
-                    raise OrAndAndOnSameLevel(self._extract_request_position(child))
+    def _is_should(self, operation):
+        """
+        Returns True if the node is a OrOperation or an UnknownOperation when
+        the default operator is SHOULD
+        >>> builder = ElasticsearchQueryBuilder(\
+                default_operator=ElasticsearchQueryBuilder.MUST)
+        >>> builder._is_should(OrOperation(Word('Monty'), Word('Python')))
+        True
+        """
+        return (
+            isinstance(operation, OrOperation) or
+            isinstance(operation, UnknownOperation) and
+            self.default_operator == ElasticsearchQueryBuilder.SHOULD
+        )
+
+    def _raise_if_children_not_same(self, parent, children):
+
+        for child in children:
+            if (self._is_should(parent) and self._is_must(child) or
+               self._is_must(parent) and self._is_should(child)):
+                raise OrAndAndOnSameLevel(
+                    self._get_operator_extract(child)
+                )
+            else:
+                yield child
 
     def _raise_if_nested_search_field(self, node):
         for child in node.children:
@@ -86,17 +123,17 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
             else:
                 self._raise_if_nested_search_field(child)
 
-    def _must_operation(self, node, parents):
-        self.raise_if_children_not_same(node)
-        items = [self.visit(n, parents + [node])
-                 for n in self.simplify_if_same(node.children, node)]
-        return self.es_item_factory.build(EMust, items)
+    def _binary_operation(self, cls, node, parents):
+        children = self.simplify_if_same(node.children, node)
+        children = self._raise_if_children_not_same(node, children)
+        items = [self.visit(child, parents + [node]) for child in children]
+        return self.es_item_factory.build(cls, items)
 
-    def _should_operation(self, node, parents):
-        self.raise_if_children_not_same(node)
-        items = [self.visit(n, parents + [node])
-                 for n in self.simplify_if_same(node.children, node)]
-        return self.es_item_factory.build(EShould, items)
+    def _must_operation(self, *args, **kwargs):
+        return self._binary_operation(EMust, *args, **kwargs)
+
+    def _should_operation(self, *args, **kwargs):
+        return self._binary_operation(EShould, *args, **kwargs)
 
     def visit_and_operation(self, *args, **kwargs):
         return self._must_operation(*args, **kwargs)

@@ -49,7 +49,18 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
         self.assertDictEqual(result, expected)
 
     def test_should_raise_when_or_and_and_on_same_level(self):
-        tree = OrOperation(Word('spam'), AndOperation(Word('eggs'), Word('monty')))
+        tree = OrOperation(
+            Word('spam'),
+            AndOperation(Word('eggs'), Word('monty'))
+        )
+        with self.assertRaises(OrAndAndOnSameLevel):
+            self.transformer.visit(tree).json
+
+    def test_should_raise_when_or_and_and_on_same_level2(self):
+        tree = UnknownOperation(
+            Word('spam'),
+            AndOperation(Word('eggs'), Word('monty'))
+        )
         with self.assertRaises(OrAndAndOnSameLevel):
             self.transformer.visit(tree).json
 
@@ -59,7 +70,40 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
             not_analyzed_fields=['not_analyzed_field', 'text'],
             default_operator=ElasticsearchQueryBuilder.MUST
         )
-        tree = OrOperation(Word('spam'), UnknownOperation(Word('test'), Prohibit(Word('eggs'))))
+        tree = OrOperation(
+            Word('spam'),
+            UnknownOperation(Word('test'), Prohibit(Word('eggs')))
+        )
+        with self.assertRaises(OrAndAndOnSameLevel):
+            transformer.visit(tree).json
+
+    def test_should_raise_when_or_and_not_on_same_level2(self):
+        transformer = ElasticsearchQueryBuilder(
+            default_field="text",
+            not_analyzed_fields=['not_analyzed_field', 'text'],
+            default_operator=ElasticsearchQueryBuilder.MUST
+        )
+        tree = UnknownOperation(
+            Word('spam'),
+            OrOperation(Word('test'), Prohibit(Word('eggs')))
+        )
+        with self.assertRaises(OrAndAndOnSameLevel):
+            transformer.visit(tree).json
+
+    def test_should_raise_when_or_and_not_on_same_level3(self):
+        transformer = ElasticsearchQueryBuilder(
+            default_field="text",
+            not_analyzed_fields=['not_analyzed_field', 'text'],
+            default_operator=ElasticsearchQueryBuilder.MUST
+        )
+        tree = UnknownOperation(
+            Group(Word('preparation*')),
+            UnknownOperation(
+                Word('CFG'),
+                OrOperation(Word('test'), Word('fuck'))
+            )
+        )
+
         with self.assertRaises(OrAndAndOnSameLevel):
             transformer.visit(tree).json
 
