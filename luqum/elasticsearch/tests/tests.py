@@ -492,3 +492,13 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
         )
         with self.assertRaises(OrAndAndOnSameLevel):
             self.transformer.visit(tree).json
+
+    def test_real_situation_9(self):
+        """
+        new line and carrier field should be replace by a normal space
+        """
+
+        tree = parser.parse('spam:"monthy\r\n python"')
+        result = self.transformer.visit(tree).json
+        expected = {'match_phrase': {'spam': {'query': 'monthy python'}}}
+        self.assertDictEqual(result, expected)

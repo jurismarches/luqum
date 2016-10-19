@@ -92,7 +92,14 @@ class EPhrase(AbstractEItem):
 
     def __init__(self, phrase, *args, **kwargs):
         super().__init__(method='match_phrase', *args, **kwargs)
-        self.query = re.search(r'"(?P<value>.+)"', phrase).group("value")
+        phrase = self._replace_CR_and_LF_by_a_whitespace(phrase)
+        self.query = self._remove_double_quotes(phrase)
+
+    def _replace_CR_and_LF_by_a_whitespace(self, phrase):
+        return re.sub(r'\s+', ' ', phrase)
+
+    def _remove_double_quotes(self, phrase):
+        return re.search(r'"(?P<value>.+)"', phrase).group("value")
 
     @property
     def slop(self):
