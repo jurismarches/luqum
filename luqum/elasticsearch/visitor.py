@@ -191,7 +191,7 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
     def visit_word(self, node, parents):
         return self.es_item_factory.build(
             EWord,
-            value=node.value,
+            q=node.value,
             field=self.default_field
         )
 
