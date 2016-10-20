@@ -95,9 +95,9 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         :param node: to check
         :return: Boolean
 
-        >>> builder = ElasticsearchQueryBuilder(\
-                default_operator=ElasticsearchQueryBuilder.MUST)
-        >>> builder._is_must(AndOperation(Word('Monty'), Word('Python')))
+        >>> ElasticsearchQueryBuilder(
+        ...     default_operator=ElasticsearchQueryBuilder.MUST
+        ... )._is_must(AndOperation(Word('Monty'), Word('Python')))
         True
         """
         return (
@@ -110,9 +110,9 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         """
         Returns True if the node is a OrOperation or an UnknownOperation when
         the default operator is SHOULD
-        >>> builder = ElasticsearchQueryBuilder(\
-                default_operator=ElasticsearchQueryBuilder.MUST)
-        >>> builder._is_should(OrOperation(Word('Monty'), Word('Python')))
+        >>> ElasticsearchQueryBuilder(
+        ...     default_operator=ElasticsearchQueryBuilder.MUST
+        ... )._is_should(OrOperation(Word('Monty'), Word('Python')))
         True
         """
         return (
@@ -126,13 +126,13 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         Raise if a OR (should) is in a AND (must) without being in parenthesis
 
         >>> builder = ElasticsearchQueryBuilder()
-        >>> node = OrOperation(Word('yo'), OrOperation(Word('lo'), Word('py')))
-        >>> list(builder._yield_nested_children(node, node.children))
+        >>> op = OrOperation(Word('yo'), OrOperation(Word('lo'), Word('py')))
+        >>> list(builder._yield_nested_children(op, op.children))
         [Word('yo'), OrOperation(Word('lo'), Word('py'))]
 
 
-        >>> node = OrOperation(Word('yo'), AndOperation(Word('lo'), Word('py')))
-        >>> list(builder._yield_nested_children(node, node.children))
+        >>> op = OrOperation(Word('yo'), AndOperation(Word('lo'), Word('py')))
+        >>> list(builder._yield_nested_children(op, op.children))
         Traceback (most recent call last):
             ...
         luqum.elasticsearch.visitor.OrAndAndOnSameLevel: lo AND py
@@ -153,13 +153,17 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         :param node:
 
         >>> builder = ElasticsearchQueryBuilder()
-        >>> node = SearchField('spam', OrOperation(Word('spam'), \
-        SearchField('monthy', Word('python'))))
+        >>> node = SearchField(
+        ...     'spam',
+        ...     OrOperation(
+        ...         Word('spam'),
+        ...         SearchField('monthy', Word('python'))
+        ...     ),
+        ... )
         >>> builder._raise_if_nested_search_field(node)
         Traceback (most recent call last):
             ...
         luqum.elasticsearch.visitor.NestedSearchFieldException: monthy:python
-
 
         >>> node = SearchField('spam', OrOperation(Word('spam'), Word('pyth')))
         >>> builder._raise_if_nested_search_field(node)
