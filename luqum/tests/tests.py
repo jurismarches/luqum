@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
-from decimal import Decimal
 from unittest import TestCase
 
 from ..check import LuceneCheck
 from ..parser import lexer, parser, ParseError
 from ..pretty import Prettifier, prettify
-from ..utils import LuceneTreeVisitor, LuceneTreeTransformer
 from ..tree import *
+from ..utils import LuceneTreeVisitor, LuceneTreeTransformer
 
 
 class TestTree(TestCase):

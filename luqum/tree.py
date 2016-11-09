@@ -193,7 +193,7 @@ class BaseApprox(Item):
     _equality_attrs = ['term', 'degree']
 
     def __repr__(self):
-        return "%s(%s, %s)" % (self.__class__, self.term.__repr__(), self.degree)
+        return "%s(%s, %s)" % (self.__class__.__name__, self.term.__repr__(), self.degree)
 
 
 class Fuzzy(BaseApprox):

@@ -18,6 +18,7 @@ setup(
     url='https://github.com/jurismarches/luqum',
     packages=[
         'luqum',
+        'luqum.elasticsearch'
     ],
     install_requires=[
         'ply>=3.8',
