@@ -1,6 +1,7 @@
 from luqum.elasticsearch.tree import ElasticSearchItemFactory
 from luqum.tree import (
-    OrOperation, AndOperation, UnknownOperation, SearchField, Word)
+    OrOperation, AndOperation, UnknownOperation, SearchField)
+from luqum.tree import Word  # noqa: F401
 from .tree import (
     EMust, EMustNot, EShould, EWord, AbstractEItem, EPhrase, ERange)
 from ..utils import LuceneTreeVisitorV2
@@ -149,7 +150,7 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
 
     def _raise_if_nested_search_field(self, node):
         """
-        Fi two SearchField are nested, then raise NestedSearchFieldException
+        If two SearchField are nested, then raise NestedSearchFieldException
         :param node:
 
         >>> builder = ElasticsearchQueryBuilder()
