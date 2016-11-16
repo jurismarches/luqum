@@ -175,19 +175,24 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
                 self._set_search_field_in_all_children(item, field_name)
 
     def _is_nested(self, node):
-        nested_items = []
+        if isinstance(node, SearchField) and '.' in node.name:
+            return True
+
         for child in node.children:
             if isinstance(child, SearchField):
-                nested_items.append(True)
-            else:
-                nested_items.append(self._is_nested(child))
-        return any(nested_items)
+                return True
+            elif self._is_nested(child):
+                return True
+
+        return False
 
     def visit_search_field(self, node, parents):
         enode = self.visit(node.children[0], parents + [node])
         if self._is_nested(node):
+            # nested path is the string before point
+            nested_path = node.name.split('.')[0]
             enode = self.es_item_factory.build(
-                ENested, nested_path=node.name, items=enode)
+                ENested, nested_path=nested_path, items=enode)
             self._set_search_field_in_all_children(enode.items, node.name)
         else:
             self._set_search_field_in_all_children(enode, node.name)

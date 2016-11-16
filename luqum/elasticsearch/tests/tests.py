@@ -508,7 +508,7 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
         expected = {'match_phrase': {'spam': {'query': 'monthy python'}}}
         self.assertDictEqual(result, expected)
 
-    def test_query_with_nested_field_without_point(self):
+    def test_query_nested_field_without_point(self):
         """
         Can query a nested field
         """
@@ -527,7 +527,26 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
         }
         self.assertDictEqual(result, expected)
 
-    def test_query_with_nested_fields_without_point(self):
+    def test_query_nested_field_with_point(self):
+        """
+        Can query a nested field
+        """
+
+        tree = parser.parse('author.firstname:"François"')
+        result = self.transformer.visit(tree).json
+        expected = {
+            "nested": {
+                "path": "author",
+                "query": {
+                    "match_phrase": {
+                        "author.firstname": {"query": "François"}
+                    }
+                }
+            }
+        }
+        self.assertDictEqual(result, expected)
+
+    def test_query_nested_fields_without_point(self):
         """
         Can query a nested field
         """
@@ -555,6 +574,46 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
                         ]
                     }
                 }
+            }
+        }
+        self.assertDictEqual(result, expected)
+
+    def test_query_nested_fields_with_point(self):
+        """
+        Can query a nested field
+        """
+
+        tree = parser.parse(
+            'author.firstname:"François" AND author.lastname:"Dupont"')
+        result = self.transformer.visit(tree).json
+        expected = {
+            "bool": {
+                "must": [
+                    {
+                        "nested": {
+                            "query": {
+                                "match_phrase": {
+                                    "author.firstname": {
+                                        "query": "François"
+                                    }
+                                }
+                            },
+                            "path": "author"
+                        }
+                    },
+                    {
+                        "nested": {
+                            "query": {
+                                "match_phrase": {
+                                    "author.lastname": {
+                                        "query": "Dupont"
+                                    }
+                                }
+                            },
+                            "path": "author"
+                        }
+                    }
+                ]
             }
         }
         self.assertDictEqual(result, expected)
