@@ -29,8 +29,8 @@ class AbstractEItem(JsonSerializableMixin):
 
     def __init__(self, no_analyze=None, method='term', default_field='text'):
         self._method = method
-        self.default_field = default_field
-        self.fields = []
+        self._default_field = default_field
+        self._fields = []
         self._no_analyze = no_analyze if no_analyze else []
 
     @property
@@ -64,10 +64,13 @@ class AbstractEItem(JsonSerializableMixin):
 
     @property
     def field(self):
-        if self.fields:
-            return '.'.join(self.fields)
+        if self._fields:
+            return '.'.join(self._fields)
         else:
-            return self.default_field
+            return self._default_field
+
+    def add_field(self, field):
+        self._fields.insert(0, field)
 
     @property
     def fuzziness(self):
@@ -141,7 +144,7 @@ class EPhrase(AbstractEItem):
         self.query = self._remove_double_quotes(phrase)
 
     def __repr__(self):
-        return "%s(%s)" % (self.__class__.__name__, self.query)
+        return "%s(%s=%s)" % (self.__class__.__name__, self.field, self.query)
 
     def _replace_CR_and_LF_by_a_whitespace(self, phrase):
         return re.sub(r'\s+', ' ', phrase)
@@ -211,20 +214,27 @@ class ENested(AbstractEOperation):
     """
     Build ENested element
 
-    Take care of remove ENested children
+    Take care to remove ENested children
     """
 
     def __init__(self, nested_path, nested_fields, items, *args, **kwargs):
 
-        self.nested_path = nested_path
+        self._nested_path = [nested_path]
         self.items = self._exclude_nested_children(items)
 
         # nested path must be nested in ES
         if nested_path not in nested_fields:
             raise NestedSearchFieldException(str(self.items))
 
+    @property
+    def nested_path(self):
+        return '.'.join(self._nested_path)
+
+    def add_nested_path(self, nested_path):
+        self._nested_path.insert(0, nested_path)
+
     def __repr__(self):
-        return "%s(%s)" % (self.__class__.__name__, self.items)
+        return "%s(%s, %s)" % (self.__class__.__name__, self.nested_path, self.items)
 
     def _exclude_nested_children(self, subtree):
         """
@@ -246,12 +256,16 @@ class ENested(AbstractEOperation):
         ...     nested_path='a', nested_fields=['a'], items=tree)
         >>> TestCase().assertEqual(
         ...     nested_node.__repr__(),
-        ...     'ENested(EMust(EPhrase(François), EPhrase(Dupont)))'
+        ...     'ENested(a, EMust(EPhrase(text=François), EPhrase(text=Dupont)))'
         ... )
         """
         if isinstance(subtree, ENested):
             # Exclude ENested
-            return self._exclude_nested_children(subtree.items)
+
+            if subtree.nested_path == self.nested_path:
+                return self._exclude_nested_children(subtree.items)
+            else:
+                return subtree
         elif isinstance(subtree, AbstractEOperation):
             # Exclude ENested in children
             subtree.items = [

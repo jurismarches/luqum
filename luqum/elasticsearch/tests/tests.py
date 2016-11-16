@@ -407,7 +407,7 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
             "profils_en_cours", "profils_exclus", "profils_historiques"
         ]
 
-        NESTED_FIELDS = ['author']
+        NESTED_FIELDS = ['author', 'book', 'format']
 
         self.transformer = ElasticsearchQueryBuilder(
             default_field="text",
@@ -560,38 +560,6 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
         }
         self.assertDictEqual(result, expected)
 
-    def test_query_nested_fields_without_point(self):
-        """
-        Can query a nested field
-        """
-
-        tree = parser.parse(
-            'author:(firstname:"François" AND lastname:"Dupont")')
-        result = self.transformer.visit(tree).json
-        expected = {
-            "nested": {
-                "path": "author",
-                "query": {
-                    "bool": {
-                        "must": [
-                            {
-                                "match_phrase": {
-                                    "author.firstname": {"query": "François"}
-                                }
-                            },
-                            {
-                                "match_phrase": {
-                                    "author.lastname": {"query": "Dupont"}
-                                }
-
-                            }
-                        ]
-                    }
-                }
-            }
-        }
-        self.assertDictEqual(result, expected)
-
     def test_query_nested_fields_with_point(self):
         """
         Can query a nested field
@@ -628,6 +596,129 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
                         }
                     }
                 ]
+            }
+        }
+        self.assertDictEqual(result, expected)
+
+    def test_multi_level_query_nested_fields_with_point(self):
+        """
+        Can query a nested field
+        """
+
+        tree = parser.parse(
+            'author.book.format.type:"pdf"')
+        result = self.transformer.visit(tree).json
+        expected = {
+            "nested": {
+                "query": {
+                    "nested": {
+                        "query": {
+                            "nested": {
+                                "query": {
+                                    "match_phrase": {
+                                        "author.book.format.type": {
+                                            "query": "pdf"
+                                        }
+                                    }
+                                },
+                                "path": "author.book.format"
+                            }
+                        },
+                        "path": "author.book"
+                    }
+                },
+                "path": "author"
+            }
+        }
+        self.assertDictEqual(result, expected)
+
+    def test_query_nested_fields_without_point(self):
+        """
+        Can query a nested field
+        """
+
+        tree = parser.parse(
+            'author:(firstname:"François" AND lastname:"Dupont")')
+        result = self.transformer.visit(tree).json
+        expected = {
+            "nested": {
+                "path": "author",
+                "query": {
+                    "bool": {
+                        "must": [
+                            {
+                                "match_phrase": {
+                                    "author.firstname": {"query": "François"}
+                                }
+                            },
+                            {
+                                "match_phrase": {
+                                    "author.lastname": {"query": "Dupont"}
+                                }
+
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+        self.assertDictEqual(result, expected)
+
+    def test_simple_multi_level_query_nested_fields_without_point(self):
+        """
+        Can query a nested field
+        """
+
+        tree = parser.parse(
+            'author:(book:(title:"printemps"))')
+        result = self.transformer.visit(tree).json
+        expected = {
+            "nested": {
+                "path": "author",
+                "query": {
+                    "nested": {
+                        "path":  "author.book",
+                        "query":  {
+                            "match_phrase": {
+                                "author.book.title": {
+                                    "query": "printemps"
+                                }
+                            }
+                        }
+                    }
+                },
+            }
+        }
+        self.assertDictEqual(result, expected)
+
+    def test_multi_level_query_nested_fields_without_point(self):
+        """
+        Can query a nested field
+        """
+
+        tree = parser.parse(
+            'author:(book:(format:(type:"pdf")))')
+        result = self.transformer.visit(tree).json
+        expected = {
+            "nested": {
+                "path": "author",
+                "query": {
+                    "nested": {
+                        "path":  "author.book",
+                        "query":  {
+                            "nested": {
+                                "path":  "author.book.format",
+                                "query":  {
+                                    "match_phrase": {
+                                        "author.book.format.type": {
+                                            "query": "pdf"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
             }
         }
         self.assertDictEqual(result, expected)

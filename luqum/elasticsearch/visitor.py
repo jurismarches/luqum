@@ -163,16 +163,20 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
             default_field=self.default_field
         )
 
-    def _set_search_field_in_all_children(self, enode, field_name):
+    def _set_fields_in_all_children(self, enode, field_name):
         """
         Recursive method to set the field name even in nested enode.
         For instance in this case: field:(spam OR eggs OR (monthy AND python))
         """
         if isinstance(enode, AbstractEItem):
-            enode.fields.insert(0, field_name)
+            enode.add_field(field_name)
+        elif isinstance(enode, ENested):
+            nested_path_to_add = field_name.split('.' + enode.nested_path)[0]
+            enode.add_nested_path(nested_path_to_add)
+            self._set_fields_in_all_children(enode.items, field_name)
         else:
             for item in enode.items:
-                self._set_search_field_in_all_children(item, field_name)
+                self._set_fields_in_all_children(item, field_name)
 
     def _is_nested(self, node):
         if isinstance(node, SearchField) and '.' in node.name:
@@ -186,16 +190,31 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
 
         return False
 
+    def _create_nested(self, node_name, items):
+
+        nested_path = node_name
+        if '.' in node_name:
+            # reverse the list
+            nesteds_path = node_name.split('.')[::-1]
+            # the last is the search field not a path
+            nested_path = nesteds_path.pop(1)
+
+        enode = self.es_item_factory.build(
+            ENested, nested_path=nested_path, items=items)
+
+        if nested_path != node_name and len(nesteds_path) > 1:
+            node_name = '.'.join(nesteds_path)
+            return self._create_nested(node_name, enode)
+
+        return enode
+
     def visit_search_field(self, node, parents):
         enode = self.visit(node.children[0], parents + [node])
         if self._is_nested(node):
-            # nested path is the string before point
-            nested_path = node.name.split('.')[0]
-            enode = self.es_item_factory.build(
-                ENested, nested_path=nested_path, items=enode)
-            self._set_search_field_in_all_children(enode.items, node.name)
+            enode = self._create_nested(node_name=node.name, items=enode)
+            self._set_fields_in_all_children(enode.items, node.name)
         else:
-            self._set_search_field_in_all_children(enode, node.name)
+            self._set_fields_in_all_children(enode, node.name)
 
         return enode
 
