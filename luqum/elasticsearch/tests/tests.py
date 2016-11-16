@@ -14,7 +14,8 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
     def setUp(self):
         self.transformer = ElasticsearchQueryBuilder(
             default_field="text",
-            not_analyzed_fields=['not_analyzed_field', 'text'])
+            not_analyzed_fields=['not_analyzed_field', 'text', 'author.tag'],
+            nested_fields=['author'])
 
     def test_should_raise_when_nested_search_field(self):
         tree = SearchField(
@@ -376,6 +377,19 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
             {'match': {'spam': {'query': 'monty', 'type': 'phrase', 'zero_terms_query': 'all'}}},
             {'match': {'spam': {'query': 'python', 'type': 'phrase', 'zero_terms_query': 'all'}}},
         ]}}
+        self.assertDictEqual(result, expected)
+
+    def test_no_analyze_should_follow_nested(self):
+        tree = SearchField(
+            "author",
+            FieldGroup(AndOperation(
+                SearchField("name", Word("Tolkien")),
+                SearchField("tag", Word("fantasy")))))
+        expected = {'nested': {'path': 'author', 'query': {'bool': {'must': [
+            {'match': {'author.name':
+                {'type': 'phrase', 'query': 'Tolkien', 'zero_terms_query': 'all'}}},
+            {'term': {'author.tag': {'value': 'fantasy'}}}]}}}}
+        result = self.transformer.visit(tree).json
         self.assertDictEqual(result, expected)
 
 
