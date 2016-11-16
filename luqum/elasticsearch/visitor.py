@@ -3,24 +3,10 @@ from luqum.tree import (
     OrOperation, AndOperation, UnknownOperation, SearchField)
 from luqum.tree import Word  # noqa: F401
 from .tree import (
-    EMust, EMustNot, EShould, EWord, AbstractEItem, EPhrase, ERange)
+    EMust, EMustNot, EShould, EWord, AbstractEItem, EPhrase, ERange,
+    ENested)
 from ..utils import LuceneTreeVisitorV2
-
-
-class OrAndAndOnSameLevel(Exception):
-    """
-    Raised when a OR and a AND are on the same level as we don't know how to
-    handle this case
-    """
-    pass
-
-
-class NestedSearchFieldException(Exception):
-    """
-    Raised when a SearchField is nested in an other SearchField as it doesn't
-    make sense. For Instance field1:(spam AND field2:eggs)
-    """
-    pass
+from .exceptions import OrAndAndOnSameLevel
 
 
 class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
@@ -32,11 +18,12 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
     MUST = 'must'
 
     def __init__(self, default_operator=SHOULD, default_field='text',
-                 not_analyzed_fields=None):
+                 not_analyzed_fields=None, nested_fields=None):
         """
         :param default_operator: to replace blank operator (MUST or SHOULD)
         :param default_field: to search
         :param not_analyzed_fields: field that are not analyzed in ES
+        :param nested_fields: field that are nested in ES
         """
 
         if not_analyzed_fields:
@@ -44,10 +31,13 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         else:
             self._not_analyzed_fields = []
 
+        self._nested_fields = nested_fields if nested_fields else []
+
         self.default_operator = default_operator
         self.default_field = default_field
         self.es_item_factory = ElasticSearchItemFactory(
-            no_analyze=self._not_analyzed_fields
+            no_analyze=self._not_analyzed_fields,
+            nested_fields=self._nested_fields
         )
 
     def simplify_if_same(self, children, current_node):
@@ -136,7 +126,7 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         >>> list(builder._yield_nested_children(op, op.children))
         Traceback (most recent call last):
             ...
-        luqum.elasticsearch.visitor.OrAndAndOnSameLevel: lo AND py
+        luqum.elasticsearch.exceptions.OrAndAndOnSameLevel: lo AND py
         """
 
         for child in children:
@@ -147,33 +137,6 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
                 )
             else:
                 yield child
-
-    def _raise_if_nested_search_field(self, node):
-        """
-        If two SearchField are nested, then raise NestedSearchFieldException
-        :param node:
-
-        >>> builder = ElasticsearchQueryBuilder()
-        >>> node = SearchField(
-        ...     'spam',
-        ...     OrOperation(
-        ...         Word('spam'),
-        ...         SearchField('monthy', Word('python'))
-        ...     ),
-        ... )
-        >>> builder._raise_if_nested_search_field(node)
-        Traceback (most recent call last):
-            ...
-        luqum.elasticsearch.visitor.NestedSearchFieldException: monthy:python
-
-        >>> node = SearchField('spam', OrOperation(Word('spam'), Word('pyth')))
-        >>> builder._raise_if_nested_search_field(node)
-        """
-        for child in node.children:
-            if isinstance(child, SearchField):
-                raise NestedSearchFieldException(str(child))
-            else:
-                self._raise_if_nested_search_field(child)
 
     def _binary_operation(self, cls, node, parents):
         children = self.simplify_if_same(node.children, node)
@@ -197,24 +160,38 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         return self.es_item_factory.build(
             EWord,
             q=node.value,
-            field=self.default_field
+            default_field=self.default_field
         )
 
     def _set_search_field_in_all_children(self, enode, field_name):
         """
         Recursive method to set the field name even in nested enode.
-        For instance in this case: field:(spam OR eggs OR (monthy AND python)
+        For instance in this case: field:(spam OR eggs OR (monthy AND python))
         """
         if isinstance(enode, AbstractEItem):
-            enode.field = field_name
+            enode.fields.insert(0, field_name)
         else:
             for item in enode.items:
                 self._set_search_field_in_all_children(item, field_name)
 
+    def _is_nested(self, node):
+        nested_items = []
+        for child in node.children:
+            if isinstance(child, SearchField):
+                nested_items.append(True)
+            else:
+                nested_items.append(self._is_nested(child))
+        return any(nested_items)
+
     def visit_search_field(self, node, parents):
-        self._raise_if_nested_search_field(node)
         enode = self.visit(node.children[0], parents + [node])
-        self._set_search_field_in_all_children(enode, node.name)
+        if self._is_nested(node):
+            enode = self.es_item_factory.build(
+                ENested, nested_path=node.name, items=enode)
+            self._set_search_field_in_all_children(enode.items, node.name)
+        else:
+            self._set_search_field_in_all_children(enode, node.name)
+
         return enode
 
     def visit_not(self, node, parents):
@@ -253,7 +230,7 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         return self.es_item_factory.build(
             EPhrase,
             phrase=node.value,
-            field=self.default_field
+            default_field=self.default_field
         )
 
     def visit_range(self, node, parents):

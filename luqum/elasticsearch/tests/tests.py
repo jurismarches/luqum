@@ -1,7 +1,6 @@
 from unittest import TestCase
 
-from luqum.elasticsearch.visitor import OrAndAndOnSameLevel, \
-    NestedSearchFieldException
+from ..exceptions import OrAndAndOnSameLevel, NestedSearchFieldException
 from luqum.parser import parser
 from luqum.tree import (
     AndOperation, Word, Prohibit, OrOperation, Not, Phrase, SearchField,
@@ -18,9 +17,12 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
             not_analyzed_fields=['not_analyzed_field', 'text'])
 
     def test_should_raise_when_nested_search_field(self):
-        tree = SearchField('spam', OrOperation(Word('egg'), SearchField('monty', Word('python'))))
+        tree = SearchField(
+            'spam',
+            OrOperation(Word('egg'), SearchField('monty', Word('python')))
+        )
         with self.assertRaises(NestedSearchFieldException):
-            result = self.transformer.visit(tree).json
+            self.transformer.visit(tree).json
 
     def test_should_transform_and(self):
         tree = AndOperation(Word('spam'), Word('eggs'))
@@ -391,9 +393,12 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
             "profils_en_cours", "profils_exclus", "profils_historiques"
         ]
 
+        NESTED_FIELDS = ['author']
+
         self.transformer = ElasticsearchQueryBuilder(
             default_field="text",
             not_analyzed_fields=NO_ANALYZE,
+            nested_fields=NESTED_FIELDS,
             default_operator=ElasticsearchQueryBuilder.MUST,
         )
 
@@ -501,4 +506,55 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
         tree = parser.parse('spam:"monthy\r\n python"')
         result = self.transformer.visit(tree).json
         expected = {'match_phrase': {'spam': {'query': 'monthy python'}}}
+        self.assertDictEqual(result, expected)
+
+    def test_query_with_nested_field_without_point(self):
+        """
+        Can query a nested field
+        """
+
+        tree = parser.parse('author:(firstname:"François")')
+        result = self.transformer.visit(tree).json
+        expected = {
+            "nested": {
+                "path": "author",
+                "query": {
+                    "match_phrase": {
+                        "author.firstname": {"query": "François"}
+                    }
+                }
+            }
+        }
+        self.assertDictEqual(result, expected)
+
+    def test_query_with_nested_fields_without_point(self):
+        """
+        Can query a nested field
+        """
+
+        tree = parser.parse(
+            'author:(firstname:"François" AND lastname:"Dupont")')
+        result = self.transformer.visit(tree).json
+        expected = {
+            "nested": {
+                "path": "author",
+                "query": {
+                    "bool": {
+                        "must": [
+                            {
+                                "match_phrase": {
+                                    "author.firstname": {"query": "François"}
+                                }
+                            },
+                            {
+                                "match_phrase": {
+                                    "author.lastname": {"query": "Dupont"}
+                                }
+
+                            }
+                        ]
+                    }
+                }
+            }
+        }
         self.assertDictEqual(result, expected)

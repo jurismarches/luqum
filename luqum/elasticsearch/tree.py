@@ -1,6 +1,8 @@
 import abc
 import re
 
+from .exceptions import NestedSearchFieldException
+
 
 class JsonSerializableMixin:
     """
@@ -25,9 +27,10 @@ class AbstractEItem(JsonSerializableMixin):
     _KEYS_TO_ADD = ('boost', 'fuzziness', )
     ADDITIONAL_KEYS_TO_ADD = ()
 
-    def __init__(self, no_analyze=None, method='term', field='text'):
+    def __init__(self, no_analyze=None, method='term', default_field='text'):
         self._method = method
-        self.field = field
+        self.default_field = default_field
+        self.fields = []
         self._no_analyze = no_analyze if no_analyze else []
 
     @property
@@ -58,6 +61,13 @@ class AbstractEItem(JsonSerializableMixin):
                 else:
                     inner_json[key] = value
         return json
+
+    @property
+    def field(self):
+        if self.fields:
+            return '.'.join(self.fields)
+        else:
+            return self.default_field
 
     @property
     def fuzziness(self):
@@ -130,6 +140,9 @@ class EPhrase(AbstractEItem):
         phrase = self._replace_CR_and_LF_by_a_whitespace(phrase)
         self.query = self._remove_double_quotes(phrase)
 
+    def __repr__(self):
+        return "%s(%s)" % (self.__class__.__name__, self.query)
+
     def _replace_CR_and_LF_by_a_whitespace(self, phrase):
         return re.sub(r'\s+', ' ', phrase)
 
@@ -173,19 +186,89 @@ class ERange(AbstractEItem):
 
 
 class AbstractEOperation(JsonSerializableMixin):
+    pass
+
+
+class EOperation(AbstractEOperation):
     """
     Abstract operation taking care of the json build
     """
 
     def __init__(self, items):
         self.items = items
+        self._method = None
+
+    def __repr__(self):
+        items = ", ".join(i.__repr__() for i in self.items)
+        return "%s(%s)" % (self.__class__.__name__, items)
 
     @property
     def json(self):
         return {'bool': {self.operation: [item.json for item in self.items]}}
 
 
-class EShould(AbstractEOperation):
+class ENested(AbstractEOperation):
+    """
+    Build ENested element
+
+    Take care of remove ENested children
+    """
+
+    def __init__(self, nested_path, nested_fields, items, *args, **kwargs):
+
+        self.nested_path = nested_path
+        self.items = self._exclude_nested_children(items)
+
+        # nested path must be nested in ES
+        if nested_path not in nested_fields:
+            raise NestedSearchFieldException(str(self.items))
+
+    def __repr__(self):
+        return "%s(%s)" % (self.__class__.__name__, self.items)
+
+    def _exclude_nested_children(self, subtree):
+        """
+        Rebuild tree excluding ENested in children if some are present
+
+        >>> from unittest import TestCase
+        >>> tree = EMust(items=[
+        ...     ENested(
+        ...         nested_path='a',
+        ...         nested_fields=['a'],
+        ...         items=EPhrase('"François"')
+        ...     ),
+        ...     ENested(
+        ...         nested_path='a',
+        ...         nested_fields=['a'],
+        ...         items=EPhrase('"Dupont"'))
+        ... ])
+        >>> nested_node = ENested(
+        ...     nested_path='a', nested_fields=['a'], items=tree)
+        >>> TestCase().assertEqual(
+        ...     nested_node.__repr__(),
+        ...     'ENested(EMust(EPhrase(François), EPhrase(Dupont)))'
+        ... )
+        """
+        if isinstance(subtree, ENested):
+            # Exclude ENested
+            return self._exclude_nested_children(subtree.items)
+        elif isinstance(subtree, AbstractEOperation):
+            # Exclude ENested in children
+            subtree.items = [
+                self._exclude_nested_children(child)
+                for child in subtree.items
+            ]
+            return subtree
+        else:
+            # return the subtree once ENested has been excluded
+            return subtree
+
+    @property
+    def json(self):
+        return {'nested': {'path': self.nested_path, 'query': self.items.json}}
+
+
+class EShould(EOperation):
     """
     Build a should operation
     >>> from unittest import TestCase
@@ -203,7 +286,7 @@ class EShould(AbstractEOperation):
     operation = 'should'
 
 
-class EMust(AbstractEOperation):
+class EMust(EOperation):
     """
     Build a must operation
     >>> from unittest import TestCase
@@ -221,7 +304,7 @@ class EMust(AbstractEOperation):
     operation = 'must'
 
 
-class EMustNot(AbstractEOperation):
+class EMustNot(EOperation):
     """
     Build a must not operation
     >>> from unittest import TestCase
@@ -240,7 +323,8 @@ class ElasticSearchItemFactory:
     Factory to preconfigure EItems and EOperation
     At the moment, it's only used to pass the _no_analyze field
     >>> from unittest import TestCase
-    >>> factory = ElasticSearchItemFactory(no_analyze=['text'])
+    >>> factory = ElasticSearchItemFactory(
+    ...     no_analyze=['text'], nested_fields=[])
     >>> word = factory.build(EWord, q='test')
     >>> TestCase().assertDictEqual(
     ...     word.json,
@@ -248,11 +332,22 @@ class ElasticSearchItemFactory:
     ... )
     """
 
-    def __init__(self, no_analyze):
+    def __init__(self, no_analyze, nested_fields):
         self._no_analyze = no_analyze
+        self._nested_fields = nested_fields
 
     def build(self, cls, *args, **kwargs):
         if issubclass(cls, AbstractEItem):
-            return cls(no_analyze=self._no_analyze, *args, **kwargs)
+            return cls(
+                no_analyze=self._no_analyze,
+                *args,
+                **kwargs
+            )
+        elif cls is ENested:
+            return cls(
+                nested_fields=self._nested_fields,
+                *args,
+                **kwargs
+            )
         else:
             return cls(*args, **kwargs)
