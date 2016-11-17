@@ -32,6 +32,7 @@ class AbstractEItem(JsonSerializableMixin):
         self._default_field = default_field
         self._fields = []
         self._no_analyze = no_analyze if no_analyze else []
+        self.zero_terms_query = 'none'
 
     @property
     def json(self):
@@ -50,7 +51,7 @@ class AbstractEItem(JsonSerializableMixin):
                 if key == 'q' and self.method == 'match':
                     inner_json['query'] = value
                     inner_json['type'] = 'phrase'
-                    inner_json['zero_terms_query'] = 'all'
+                    inner_json['zero_terms_query'] = self.zero_terms_query
                 elif key == 'q' and self.method == 'query_string':
                     inner_json['query'] = value
                     inner_json['analyze_wildcard'] = True
@@ -105,7 +106,7 @@ class EWord(AbstractEItem):
     >>> TestCase().assertDictEqual(
     ...     EWord(q='test').json,
     ...     {'match': {'text': {
-    ...         'zero_terms_query': 'all',
+    ...         'zero_terms_query': 'none',
     ...         'type': 'phrase',
     ...         'query': 'test'
     ...     }}},
@@ -298,6 +299,16 @@ class EShould(EOperation):
     ... )
     """
     operation = 'should'
+
+
+class AbstractEMustOperation(EOperation):
+    zero_terms_query = 'all'
+
+    def __init__(self, items):
+        op = super().__init__(items)
+        for item in self.items:
+            item.zero_terms_query = self.zero_terms_query
+        return op
 
 
 class EMust(EOperation):

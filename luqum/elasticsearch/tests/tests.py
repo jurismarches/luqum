@@ -164,7 +164,7 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
     def test_should_transform_search_field(self):
         tree = SearchField("pays", Word("spam"))
         result = self.transformer.visit(tree).json
-        expected = {"match": {"pays": {"query": 'spam', 'type': 'phrase', 'zero_terms_query': 'all'}}}
+        expected = {"match": {"pays": {"query": 'spam', 'type': 'phrase', 'zero_terms_query': 'none'}}}
         self.assertDictEqual(result, expected)
 
     def test_should_transform_unknown_operation_default(self):
@@ -272,7 +272,7 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
     def test_should_transform_boost_in_search_field(self):
         tree = SearchField("spam", Boost(Word("egg"), 1))
         result = self.transformer.visit(tree).json
-        expected = {"match": {"spam": {"query": 'egg', "boost": 1.0, 'type': 'phrase', 'zero_terms_query': 'all'}}}
+        expected = {"match": {"spam": {"query": 'egg', "boost": 1.0, 'type': 'phrase', 'zero_terms_query': 'none'}}}
         self.assertDictEqual(result, expected)
 
     def test_should_transform_fuzzy_in_word(self):
@@ -382,13 +382,40 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
     def test_no_analyze_should_follow_nested(self):
         tree = SearchField(
             "author",
-            FieldGroup(AndOperation(
-                SearchField("name", Word("Tolkien")),
-                SearchField("tag", Word("fantasy")))))
-        expected = {'nested': {'path': 'author', 'query': {'bool': {'must': [
-            {'match': {'author.name':
-                {'type': 'phrase', 'query': 'Tolkien', 'zero_terms_query': 'all'}}},
-            {'term': {'author.tag': {'value': 'fantasy'}}}]}}}}
+            FieldGroup(
+                AndOperation(
+                    SearchField("name", Word("Tolkien")),
+                    SearchField("tag", Word("fantasy"))
+                )
+            )
+        )
+        expected = {
+            'nested': {
+                'path': 'author',
+                'query': {
+                    'bool': {
+                        'must': [
+                            {
+                                'match': {
+                                    'author.name': {
+                                        'type': 'phrase',
+                                        'query': 'Tolkien',
+                                        'zero_terms_query': 'all'
+                                    }
+                                }
+                            },
+                            {
+                                'term': {
+                                    'author.tag': {
+                                        'value': 'fantasy'
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        }
         result = self.transformer.visit(tree).json
         self.assertDictEqual(result, expected)
 
@@ -419,7 +446,7 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
     def test_real_situation_1(self):
         tree = parser.parse("spam:eggs")
         result = self.transformer.visit(tree).json
-        expected = {'match': {'spam': {'query': 'eggs', 'type': 'phrase', 'zero_terms_query': 'all'}}}
+        expected = {'match': {'spam': {'query': 'eggs', 'type': 'phrase', 'zero_terms_query': 'none'}}}
         self.assertDictEqual(result, expected)
 
     def test_real_situation_2(self):
@@ -437,8 +464,8 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
         expected = {'bool': {'must': [
             {'match': {'spam': {'query': 'eggs', 'type': 'phrase', 'zero_terms_query': 'all'}}},
             {'bool': {'should': [
-                {'match': {'monty': {'query': 'python', 'type': 'phrase', 'zero_terms_query': 'all'}}},
-                {'match': {'life': {'query': 'bryan', 'type': 'phrase', 'zero_terms_query': 'all'}}},
+                {'match': {'monty': {'query': 'python', 'type': 'phrase', 'zero_terms_query': 'none'}}},
+                {'match': {'life': {'query': 'bryan', 'type': 'phrase', 'zero_terms_query': 'none'}}},
             ]}},
         ]}}
         self.assertDictEqual(result, expected)
@@ -447,7 +474,7 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
         tree = parser.parse("spam:eggs OR monty:{2 TO 4]")
         result = self.transformer.visit(tree).json
         expected = {'bool': {'should': [
-            {'match': {'spam': {'query': 'eggs', 'type': 'phrase', 'zero_terms_query': 'all'}}},
+            {'match': {'spam': {'query': 'eggs', 'type': 'phrase', 'zero_terms_query': 'none'}}},
             {'range': {'monty': {'lte': '4', 'gt': '2'}}},
         ]}}
         self.assertDictEqual(result, expected)
@@ -467,7 +494,7 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
         expected = {'bool': {'should': [
             {'term': {'pays': {'value': 'FR'}}},
             {'range': {'monty': {'lte': '4', 'gt': '2'}}},
-            {'match': {'text': {'query': 'python', 'type': 'phrase', 'zero_terms_query': 'all'}}},
+            {'match': {'text': {'query': 'python', 'type': 'phrase', 'zero_terms_query': 'none'}}},
         ]}}
         self.assertDictEqual(result, expected)
 
