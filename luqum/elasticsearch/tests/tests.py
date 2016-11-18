@@ -458,6 +458,23 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
         ]}}
         self.assertDictEqual(result, expected)
 
+    def test_real_situation_2_not_filter(self):
+        tree = parser.parse("spam:de AND -monty:le AND title:alone")
+        result = self.transformer.visit(tree).json
+        expected = {'bool': {'must': [
+            {'match': {'spam': {'query': 'de', 'type': 'phrase', 'zero_terms_query': 'all'}}},
+            {'bool': {'must_not': [
+                {'match': {
+                    'monty': {
+                        'query': 'le',
+                        'type': 'phrase',
+                        'zero_terms_query': 'all'
+                    }}}
+            ]}},
+            {'match': {'title': {'query': 'alone', 'type': 'phrase', 'zero_terms_query': 'all'}}}
+        ]}}
+        self.assertDictEqual(result, expected)
+
     def test_real_situation_3(self):
         tree = parser.parse("spam:eggs AND (monty:python OR life:bryan)")
         result = self.transformer.visit(tree).json

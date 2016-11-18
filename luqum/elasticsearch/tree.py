@@ -311,7 +311,7 @@ class AbstractEMustOperation(EOperation):
         return op
 
 
-class EMust(EOperation):
+class EMust(AbstractEMustOperation):
     """
     Build a must operation
     >>> from unittest import TestCase
@@ -329,7 +329,7 @@ class EMust(EOperation):
     operation = 'must'
 
 
-class EMustNot(EOperation):
+class EMustNot(AbstractEMustOperation):
     """
     Build a must not operation
     >>> from unittest import TestCase

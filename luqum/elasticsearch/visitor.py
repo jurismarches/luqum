@@ -196,12 +196,13 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         if '.' in node_name:
             # reverse the list
             nesteds_path = node_name.split('.')[::-1]
-            # the last is the search field not a path
+            # the first is the search field not a path
             nested_path = nesteds_path.pop(1)
 
         enode = self.es_item_factory.build(
             ENested, nested_path=nested_path, items=items)
 
+        # if this is a paht with point(s) in it
         if nested_path != node_name and len(nesteds_path) > 1:
             node_name = '.'.join(nesteds_path)
             return self._create_nested(node_name, enode)
