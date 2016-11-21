@@ -302,7 +302,6 @@ class EShould(EOperation):
 
 
 class AbstractEMustOperation(EOperation):
-    zero_terms_query = 'all'
 
     def __init__(self, items):
         op = super().__init__(items)
@@ -326,6 +325,7 @@ class EMust(AbstractEMustOperation):
     ...     ]}}
     ... )
     """
+    zero_terms_query = 'all'
     operation = 'must'
 
 
@@ -340,6 +340,7 @@ class EMustNot(AbstractEMustOperation):
     ...     ]}}
     ... )
     """
+    zero_terms_query = 'none'
     operation = 'must_not'
 
 

@@ -468,7 +468,7 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
                     'monty': {
                         'query': 'le',
                         'type': 'phrase',
-                        'zero_terms_query': 'all'
+                        'zero_terms_query': 'none'
                     }}}
             ]}},
             {'match': {'title': {'query': 'alone', 'type': 'phrase', 'zero_terms_query': 'all'}}}
