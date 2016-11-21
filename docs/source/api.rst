@@ -19,6 +19,17 @@ luqum.tree
    :members:
    :member-order: bysource
 
+Transforming to Elastic Search queries
+======================================
+
+luqum.elasticsearch
+--------------------
+
+.. autoclass:: luqum.elasticsearch.visitor.ElasticsearchQueryBuilder
+   :members: __init__, __call__
+   :member-order: bysource
+
+
 Utilities
 ==========
 

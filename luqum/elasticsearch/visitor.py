@@ -12,6 +12,28 @@ from .exceptions import OrAndAndOnSameLevel
 class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
     """
     Query builder to convert a Tree in an Elasticsearch query dsl (json)
+
+    .. warning:: there are some limitations
+
+        - mix of AND and OR on same level in expressions is not supported
+          has this leads to unpredictable results (see `this article`_)
+
+        - for full text fields,
+          `zero_terms_query` parameter of `match queries`_
+          is managed at best according to where the terms appears.
+          Lucene would just remove fields with only stop words
+          while this query builder have to retain all expressions,
+          even if is only made of stop words.
+          So in the case of an expression appearing in `AND` expression,
+          it will be set to "all"
+          while it will be set to "none" if it's part of a `OR` on `AND NOT`
+          to avoid influencing the rest of the query.
+          Some edge case like having all terms resolving to stop words
+          may however lead to different results than string_query..
+
+    .. _`this article`: https://lucidworks.com/blog/2011/12/28/why-not-and-or-and-not/
+    .. _`match queries`:
+        https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-match-query.html
     """
 
     SHOULD = 'should'
@@ -271,3 +293,12 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
     def visit_field_group(self, node, parents):
         fields = self.visit(node.expr, parents + [node])
         return fields
+
+    def __call__(self, tree):
+        """Calling the query builder returns
+        you the json compatible structure corresponding to the request tree passed in parameter
+
+        :param luqum.tree.Item tree: a luqum parse tree
+        :return dict:
+        """
+        return self.visit(tree).json

@@ -99,6 +99,9 @@ class LuceneTreeVisitorV2:
     """
     V2 of the LuceneTreeVisitor allowing to evaluate the AST
 
+    It differs from py:cls:`LuceneTreeVisitor`
+    because it's up to the visit method to recursively call children (or not)
+
     This class is meant to be subclassed, with the subclass implementing
     visitor methods for each Node type it is interested in.
 

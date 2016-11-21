@@ -5,7 +5,7 @@ from ..check import LuceneCheck
 from ..parser import lexer, parser, ParseError
 from ..pretty import Prettifier, prettify
 from ..tree import *
-from ..utils import LuceneTreeVisitor, LuceneTreeTransformer
+from ..utils import LuceneTreeVisitor, LuceneTreeTransformer, LuceneTreeVisitorV2
 
 
 class TestTree(TestCase):
@@ -557,6 +557,16 @@ class TreeVisitorTestCase(TestCase):
         def visit_word(self, node, parents=[]):
             return [node.value]
 
+    def test_generic_visit(self):
+        tree = (
+            AndOperation(
+                Word("foo"),
+                Word("bar")))
+
+        visitor = LuceneTreeVisitor()
+        nodes = list(visitor.visit(tree))
+        self.assertEqual(nodes, [])
+
     def test_basic_traversal(self):
         tree = (
             AndOperation(
@@ -604,3 +614,53 @@ class TreeTransformerTestCase(TestCase):
             (AndOperation(
                 Word("lol"),
                 Word("lol"))), new_tree)
+
+
+class TreeVisitorV2TestCase(TestCase):
+
+    class BasicVisitor(LuceneTreeVisitorV2):
+        """ Dummy visitor, simply yielding a list of nodes. """
+        def generic_visit(self, node, parents):
+            yield node
+            for c in node.children:
+                yield from self.visit(c)
+
+    class MROVisitor(LuceneTreeVisitorV2):
+
+        def visit_or_operation(self, node, parents=[]):
+            return "{} OR {}".format(*[self.visit(c) for c in node.children])
+
+        def visit_base_operation(self, node, parents=[]):
+            return "{} BASE_OP {}".format(*[self.visit(c) for c in node.children])
+
+        def visit_word(self, node, parents=[]):
+            return node.value
+
+    def test_basic_traversal(self):
+        tree = (
+            AndOperation(
+                Word("foo"),
+                Word("bar")))
+
+        visitor = self.BasicVisitor()
+        nodes = list(visitor.visit(tree))
+
+        self.assertListEqual(
+            [AndOperation(Word('foo'), Word('bar')), Word('foo'), Word('bar')],
+            nodes)
+
+    def test_mro(self):
+        visitor = self.MROVisitor()
+
+        tree = OrOperation(Word('a'), Word('b'))
+        result = visitor.visit(tree)
+        self.assertEquals(result, 'a OR b')
+
+        tree = OrOperation(AndOperation(Word('a'), Word('b')), Word('c'))
+        result = visitor.visit(tree)
+        self.assertEquals(result, 'a BASE_OP b OR c')
+
+    def test_generic_visit_fails_by_default(self):
+        visitor = self.MROVisitor()
+        with self.assertRaises(AttributeError):
+            visitor.visit(Phrase('"test"'))

@@ -12,7 +12,7 @@ class JsonSerializableMixin:
     @property
     @abc.abstractmethod
     def json(self):
-        return
+        pass  # pragma: no cover
 
 
 class AbstractEItem(JsonSerializableMixin):
