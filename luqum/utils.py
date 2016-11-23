@@ -32,18 +32,28 @@ class LuceneTreeVisitor:
     visitor_method_prefix = 'visit_'
     generic_visitor_method_name = 'generic_visit'
 
+    _get_method_cache = None
+
     def _get_method(self, node):
-        for cls in node.__class__.mro():
-            try:
-                method_name = "{}{}".format(
-                    self.visitor_method_prefix,
-                    camel_to_lower(cls.__name__)
-                )
-                return getattr(self, method_name)
-            except AttributeError:
-                continue
-        else:
-            return getattr(self, self.generic_visitor_method_name)
+        if self._get_method_cache is None:
+            self._get_method_cache = {}
+        try:
+            meth = self._get_method_cache[type(node)]
+        except KeyError:
+            for cls in node.__class__.mro():
+                try:
+                    method_name = "{}{}".format(
+                        self.visitor_method_prefix,
+                        camel_to_lower(cls.__name__)
+                    )
+                    meth = getattr(self, method_name)
+                    break
+                except AttributeError:
+                    continue
+            else:
+                meth = getattr(self, self.generic_visitor_method_name)
+            self._get_method_cache[type(node)] = meth
+        return meth
 
     def visit(self, node, parents=[]):
         """ Basic, recursive traversal of the tree. """
@@ -95,7 +105,7 @@ class LuceneTreeTransformer(LuceneTreeVisitor):
         return node
 
 
-class LuceneTreeVisitorV2:
+class LuceneTreeVisitorV2(LuceneTreeVisitor):
     """
     V2 of the LuceneTreeVisitor allowing to evaluate the AST
 
@@ -115,21 +125,6 @@ class LuceneTreeVisitorV2:
     If the goal is to modify the initial tree,
     use :py:class:`LuceneTreeTranformer` instead.
     """
-    visitor_method_prefix = 'visit_'
-    generic_visitor_method_name = 'generic_visit'
-
-    def _get_method(self, node):
-        for cls in node.__class__.mro():
-            try:
-                method_name = "{}{}".format(
-                    self.visitor_method_prefix,
-                    camel_to_lower(cls.__name__)
-                )
-                return getattr(self, method_name)
-            except AttributeError:
-                continue
-        else:
-            return getattr(self, self.generic_visitor_method_name)
 
     def visit(self, node, parents=None):
         """ Basic, recursive traversal of the tree. """
