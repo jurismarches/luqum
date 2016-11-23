@@ -434,7 +434,7 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
             "profils_en_cours", "profils_exclus", "profils_historiques"
         ]
 
-        NESTED_FIELDS = ['author', 'book', 'format']
+        NESTED_FIELDS = ['author', 'book', 'format', 'publish']
 
         self.transformer = ElasticsearchQueryBuilder(
             default_field="text",
@@ -763,6 +763,170 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
                         }
                     }
                 },
+            }
+        }
+        self.assertDictEqual(result, expected)
+
+    def test_multi_level_operation_query_nested_fields_without_point(self):
+        """
+        Can query a nested field
+        """
+
+        tree = parser.parse(
+            'author:(book:(format:(type:"pdf" OR type:"epub")))')
+        result = self.transformer.visit(tree).json
+        expected = {
+            "nested": {
+                "query": {
+                    "nested": {
+                        "query": {
+                            "nested": {
+                                "query": {
+                                    "bool": {
+                                        "should": [
+                                            {
+                                                "match_phrase": {
+                                                    "author.book.format.type": {
+                                                        "query": "pdf"
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                "match_phrase": {
+                                                    "author.book.format.type": {
+                                                        "query": "epub"
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                },
+                                "path": "author.book.format"
+                            }
+                        },
+                        "path": "author.book"
+                    }
+                },
+                "path": "author"
+            }
+        }
+        self.assertDictEqual(result, expected)
+
+    def test_multi_level_operation_query_nested_fields_with_point(self):
+        """
+        Can query a nested field
+        """
+
+        tree = parser.parse(
+            'author.book.format.type:"pdf" OR author.book.format.type:"epub"')
+        result = self.transformer.visit(tree).json
+        expected = {
+            "bool": {
+                "should": [
+                    {
+                        "nested": {
+                            "query": {
+                                "nested": {
+                                    "query": {
+                                        "nested": {
+                                            "query": {
+                                                "match_phrase": {
+                                                    "author.book.format.type": {
+                                                        "query": "pdf"
+                                                    }
+                                                }
+                                            },
+                                            "path": "author.book.format"
+                                        }
+                                    },
+                                    "path": "author.book"
+                                }
+                            },
+                            "path": "author"
+                        }
+                    },
+                    {
+                        "nested": {
+                            "query": {
+                                "nested": {
+                                    "query": {
+                                        "nested": {
+                                            "query": {
+                                                "match_phrase": {
+                                                    "author.book.format.type": {
+                                                        "query": "epub"
+                                                    }
+                                                }
+                                            },
+                                            "path": "author.book.format"
+                                        }
+                                    },
+                                    "path": "author.book"
+                                }
+                            },
+                            "path": "author"
+                        }
+                    }
+                ]
+            }
+        }
+        self.assertDictEqual(result, expected)
+
+    def test_complex_multi_level_operation_query_nested_fields(self):
+        """
+        Can query a nested field
+        """
+
+        tree = parser.parse(
+            'book:(author:firstname: "Hugo" AND publish:site:("site.fr" OR "site2.com"))'
+        )
+        result = self.transformer.visit(tree).json
+        expected = {
+            "nested": {
+                "query": {
+                    "bool": {
+                        "must": [
+                            {
+                                "nested": {
+                                    "query": {
+                                        "match_phrase": {
+                                            "book.author.firstname": {
+                                                "query": "Hugo"
+                                            }
+                                        }
+                                    },
+                                    "path": "book.author"
+                                }
+                            },
+                            {
+                                "nested": {
+                                    "query": {
+                                        "bool": {
+                                            "should": [
+                                                {
+                                                    "match_phrase": {
+                                                        "book.publish.site": {
+                                                            "query": "site.fr"
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "match_phrase": {
+                                                        "book.publish.site": {
+                                                            "query": "site2.com"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "path": "book.publish"
+                                }
+                            }
+                        ]
+                    }
+                },
+                "path": "book"
             }
         }
         self.assertDictEqual(result, expected)
