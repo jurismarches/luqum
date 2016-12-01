@@ -211,6 +211,8 @@ class CheckLuceneTreeVisitor(LuceneTreeVisitorV2):
         for sub in self._complete_path:
             if len(sub) > 1:
                 self._is_correct_path(sub, self.nested_fields)
+            elif sub[0] in self.nested_fields:
+                raise NestedSearchFieldException(sub[0])
 
     def generic_visit(self, node, parent):
         """
