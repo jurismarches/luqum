@@ -721,3 +721,13 @@ class CheckVisitorTestCase(TestCase):
         tree = parser.parse('author:"foo"')
         with self.assertRaises(NestedSearchFieldException):
             self.transformer.check(tree)
+
+    def test_simple_query_with_a_multi_nested_field_should_raise(self):
+        tree = parser.parse('author:book:"foo"')
+        with self.assertRaises(NestedSearchFieldException):
+            self.transformer.check(tree)
+
+    def test_complex_query_with_a_multi_nested_field_should_raise(self):
+        tree = parser.parse('author:book:"foo" OR author:"Hugo"')
+        with self.assertRaises(NestedSearchFieldException):
+            self.transformer.check(tree)

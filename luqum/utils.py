@@ -188,11 +188,22 @@ class CheckLuceneTreeVisitor(LuceneTreeVisitorV2):
 
     def _is_correct_path(self, path_list, subdict):
         """
-        Verify if a path is in correct order in dict else raise
+        Verify if a path is in correct order compare to dict (nested_fields)
+        else raise
+
+        Don't need to verify if there is one path and it's not in nested_fields
         """
+
+        if subdict == self.nested_fields:
+            if len(path_list) == 1 and path_list[0] not in subdict:
+                return True
+
         current_path = path_list.pop()
         if current_path in subdict:
             if not path_list:  # all path have been consumed
+                if isinstance(subdict[current_path], dict):
+                    # simple query on nested fields
+                    raise NestedSearchFieldException(current_path)
                 return True
             else:
                 return self._is_correct_path(
@@ -209,10 +220,7 @@ class CheckLuceneTreeVisitor(LuceneTreeVisitorV2):
         """
         self.visit(*args, **kwargs)
         for sub in self._complete_path:
-            if len(sub) > 1:
-                self._is_correct_path(sub, self.nested_fields)
-            elif sub[0] in self.nested_fields:
-                raise NestedSearchFieldException(sub[0])
+            self._is_correct_path(sub, self.nested_fields)
 
     def generic_visit(self, node, parent):
         """
