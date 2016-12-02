@@ -203,7 +203,11 @@ class CheckLuceneTreeVisitor(LuceneTreeVisitorV2):
             if not path_list:  # all path have been consumed
                 if isinstance(subdict[current_path], dict):
                     # simple query on nested fields
-                    raise NestedSearchFieldException(current_path)
+                    raise NestedSearchFieldException(
+                        "You can't make a simple query on nested field \"{}\"".format(
+                            current_path
+                        )
+                    )
                 return True
             else:
                 return self._is_correct_path(
@@ -211,7 +215,9 @@ class CheckLuceneTreeVisitor(LuceneTreeVisitorV2):
                     subdict[current_path]
                 )
         else:
-            raise NestedSearchFieldException(current_path)
+            raise NestedSearchFieldException(
+                '"{}"" is not a nested field'.format(current_path)
+            )
 
     def check(self, *args, **kwargs):
         """
