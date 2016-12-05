@@ -5,6 +5,8 @@ Include base classes to implement a visitor pattern.
 
 """
 
+from .exceptions import NestedSearchFieldException
+
 
 def camel_to_lower(name):
     return "".join(
@@ -126,15 +128,20 @@ class LuceneTreeVisitorV2(LuceneTreeVisitor):
     use :py:class:`LuceneTreeTranformer` instead.
     """
 
-    def visit(self, node, parents=None):
-        """ Basic, recursive traversal of the tree. """
+    def visit(self, node, parents=None, context=None):
+        """ Basic, recursive traversal of the tree.
+
+        :param list parents: the list of parents
+        :parma dict context: a dict of contextual variable for free use
+          to track states while traversing the tree
+        """
         if parents is None:
             parents = []
 
         method = self._get_method(node)
-        return method(node, parents)
+        return method(node, parents, context)
 
-    def generic_visit(self, node, parents=None):
+    def generic_visit(self, node, parents=None, context=None):
         """
         Default visitor function, called if nothing matches the current node.
         """
@@ -143,3 +150,21 @@ class LuceneTreeVisitorV2(LuceneTreeVisitor):
                 node.__class__
             )
         )
+
+
+def normalize_nested_fields_specs(nested_fields):
+    """normalize nested_fields specification to only have nested dicts
+
+    :param dict nested_fields:  dict contains fields that are nested in ES
+        each nested fields contains either
+        a dict of nested fields
+        (if some of them are also nested)
+        or a list of nesdted fields (this is for commodity)
+    """
+    if nested_fields is None:
+        return {}
+    elif isinstance(nested_fields, dict):
+        return {k: normalize_nested_fields_specs(v) for k, v in nested_fields.items()}
+    else:
+        # should be an iterable, transform to dict
+        return {sub: {} for sub in nested_fields}
