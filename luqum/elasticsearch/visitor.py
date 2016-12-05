@@ -46,6 +46,10 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         :param default_field: to search
         :param not_analyzed_fields: field that are not analyzed in ES
         :param nested_fields: dict contains fields that are nested in ES
+            each nested fields contains
+            either a dict of nested fields
+            (if some of them are also nested)
+            or a list of nesdted fields (this is for commodity)
         """
 
         if not_analyzed_fields:
@@ -53,7 +57,7 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         else:
             self._not_analyzed_fields = []
 
-        self.nested_fields = nested_fields
+        self.nested_fields = self._normalize_nested_fields(nested_fields)
 
         self.default_operator = default_operator
         self.default_field = default_field
@@ -62,9 +66,16 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
             nested_fields=self.nested_fields
         )
 
-    def convert(self, tree):
-        CheckLuceneTreeVisitor(nested_fields=self.nested_fields).check(tree)
-        return self.visit(tree)
+    def _normalize_nested_fields(self, nested_fields):
+        """normalize nested_fields to only have nested dicts
+        """
+        if nested_fields is None:
+            return {}
+        elif isinstance(nested_fields, dict):
+            return {k: self._normalize_nested_fields(v) for k, v in nested_fields.items()}
+        else:
+            # should be an iterable, transform to dict
+            return {sub: {} for sub in nested_fields}
 
     def simplify_if_same(self, children, current_node):
         """
@@ -164,7 +175,7 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
             else:
                 yield child
 
-    def _binary_operation(self, cls, node, parents):
+    def _binary_operation(self, cls, node, parents, context):
         children = self.simplify_if_same(node.children, node)
         children = self._yield_nested_children(node, children)
         items = [self.visit(child, parents + [node]) for child in children]
@@ -182,7 +193,7 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
     def visit_or_operation(self, *args, **kwargs):
         return self._should_operation(*args, **kwargs)
 
-    def visit_word(self, node, parents):
+    def visit_word(self, node, parents, context):
         return self.es_item_factory.build(
             EWord,
             q=node.value,
@@ -235,7 +246,7 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
 
         return enode
 
-    def visit_search_field(self, node, parents):
+    def visit_search_field(self, node, parents, context):
         enode = self.visit(node.children[0], parents + [node])
         if self._is_nested(node):
             enode = self._create_nested(node_name=node.name, items=enode)
@@ -245,7 +256,7 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
 
         return enode
 
-    def visit_not(self, node, parents):
+    def visit_not(self, node, parents, context):
         items = [self.visit(n, parents + [node])
                  for n in self.simplify_if_same(node.children, node)]
         return self.es_item_factory.build(EMustNot, items)
@@ -262,39 +273,39 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         elif self.default_operator == self.MUST:
             return self._must_operation(*args, **kwargs)
 
-    def visit_boost(self, node, parents):
+    def visit_boost(self, node, parents, context):
         eword = self.visit(node.children[0], parents + [node])
         eword.boost = float(node.force)
         return eword
 
-    def visit_fuzzy(self, node, parents):
+    def visit_fuzzy(self, node, parents, context):
         eword = self.visit(node.term, parents + [node])
         eword.fuzziness = float(node.degree)
         return eword
 
-    def visit_proximity(self, node, parents):
+    def visit_proximity(self, node, parents, context):
         ephrase = self.visit(node.term, parents + [node])
         ephrase.slop = float(node.degree)
         return ephrase
 
-    def visit_phrase(self, node, parents):
+    def visit_phrase(self, node, parents, context):
         return self.es_item_factory.build(
             EPhrase,
             phrase=node.value,
             default_field=self.default_field
         )
 
-    def visit_range(self, node, parents):
+    def visit_range(self, node, parents, context):
         kwargs = {
             'gte' if node.include_low else 'gt': node.low.value,
             'lte' if node.include_high else 'lt': node.high.value,
         }
         return self.es_item_factory.build(ERange, **kwargs)
 
-    def visit_group(self, node, parents):
+    def visit_group(self, node, parents, context):
         return self.visit(node.expr, parents + [node])
 
-    def visit_field_group(self, node, parents):
+    def visit_field_group(self, node, parents, context):
         fields = self.visit(node.expr, parents + [node])
         return fields
 
@@ -305,4 +316,5 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         :param luqum.tree.Item tree: a luqum parse tree
         :return dict:
         """
+        CheckLuceneTreeVisitor(nested_fields=self.nested_fields)(tree)
         return self.visit(tree).json

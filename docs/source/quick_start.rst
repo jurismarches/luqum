@@ -88,7 +88,8 @@ We may also pass default operator, and default fields::
 
 You may also use nested fields::
 
-   >>> es_builder = ElasticsearchQueryBuilder(nested_fields=["author"])
+   >>> es_builder = ElasticsearchQueryBuilder(
+   ...     nested_fields={"author": {"given_name", "last_name"}})
    >>> tree = parser.parse('''
    ...     title:"quick brown fox" AND
    ...     author:(given_name:Ja* AND last_name:London)

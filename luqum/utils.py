@@ -5,7 +5,6 @@ Include base classes to implement a visitor pattern.
 
 """
 
-from .tree import BaseOperation, SearchField, Unary
 from .exceptions import NestedSearchFieldException
 
 
@@ -129,15 +128,20 @@ class LuceneTreeVisitorV2(LuceneTreeVisitor):
     use :py:class:`LuceneTreeTranformer` instead.
     """
 
-    def visit(self, node, parents=None):
-        """ Basic, recursive traversal of the tree. """
+    def visit(self, node, parents=None, context=None):
+        """ Basic, recursive traversal of the tree.
+
+        :param list parents: the list of parents
+        :parma dict context: a dict of contextual variable for free use
+          to track states while traversing the tree
+        """
         if parents is None:
             parents = []
 
         method = self._get_method(node)
-        return method(node, parents)
+        return method(node, parents, context)
 
-    def generic_visit(self, node, parents=None):
+    def generic_visit(self, node, parents=None, context=None):
         """
         Default visitor function, called if nothing matches the current node.
         """
@@ -151,114 +155,68 @@ class LuceneTreeVisitorV2(LuceneTreeVisitor):
 class CheckLuceneTreeVisitor(LuceneTreeVisitorV2):
     """
     Visit the lucene tree to make some checks
+
+    In particular to check nested fields.
+
+    :param nested_fields: a dict where keys are name of nested fields,
+        values are dict of sub-nested fields or an empty dict for leaf
     """
 
-    def __init__(self, *args, **kwargs):
-        nested_fields = kwargs.get('nested_fields')
-        self.nested_fields = nested_fields if nested_fields else {}
-        self.__complete_path = []  # edited through self._add_path
+    def __init__(self, nested_fields):
+        assert(isinstance(nested_fields, dict))
+        self.nested_fields = nested_fields
 
-        assert(isinstance(self.nested_fields, dict))
-
-    @property
-    def _complete_path(self):
-        return self.__complete_path
-
-    def _add_path(self, path, children_name=None):
-        """
-        Clean complete path before add it
-        """
-        self.__complete_path = self._clean_complete_path()
-        if children_name:
-            for sub_path_list in self._complete_path:
-                if sub_path_list[-1] in children_name:
-                    sub_path_list.append(path)
-        else:
-            self.__complete_path[-1].append(path)
-
-    def _clean_complete_path(self):
-        """
-        Make list of paths unique
-        """
-        cleaned_list = []
-        for sublist in self._complete_path:
-            if sublist not in cleaned_list:
-                cleaned_list.append(sublist)
-        return cleaned_list
-
-    def _is_correct_path(self, path_list, subdict):
-        """
-        Verify if a path is in correct order compare to dict (nested_fields)
-        else raise
-
-        Don't need to verify if there is one path and it's not in nested_fields
-        """
-
-        if subdict == self.nested_fields:
-            if len(path_list) == 1 and path_list[0] not in subdict:
-                return True
-
-        current_path = path_list.pop()
-        if current_path in subdict:
-            if not path_list:  # all path have been consumed
-                if isinstance(subdict[current_path], dict):
-                    # simple query on nested fields
-                    raise NestedSearchFieldException(
-                        "You can't make a simple query on nested field \"{}\"".format(
-                            current_path
-                        )
-                    )
-                return True
-            else:
-                return self._is_correct_path(
-                    path_list,
-                    subdict[current_path]
-                )
-        else:
-            raise NestedSearchFieldException(
-                '"{}"" is not a nested field'.format(current_path)
-            )
-
-    def check(self, *args, **kwargs):
-        """
-        Call the visit method and then verify all nested path are in the
-        defined nested fields
-        """
-        self.visit(*args, **kwargs)
-        for sub in self._complete_path:
-            self._is_correct_path(sub, self.nested_fields)
-
-    def generic_visit(self, node, parent):
+    def generic_visit(self, node, parents, context):
         """
         If nothing matches the current node, visit children
         """
         for child in node.children:
-            self.visit(child, node)
+            self.visit(child, parents + [node], context)
 
-    def _get_all_children_node_name(self, node):
-        children_name = []
+    def _recurse_nested_fields(self, node, context, parents):
+        names = node.name.split(".")
+        nested_fields = context["nested_fields"]
+        current_field = context["current_field"]
+        for name in names:
+            if name in nested_fields:
+                # recurse
+                nested_fields = nested_fields[name]
+                current_field = name
+            elif current_field is not None:  # we are inside another field
+                if nested_fields:
+                    # calling an unknown field inside a nested one
+                    raise NestedSearchFieldException(
+                        '"{sub}" is not a subfield of "{field}" in "{expr}"'
+                        .format(sub=name, field=current_field, expr=str(parents[-1])))
+                else:
+                    # calling a field inside a non nested
+                    raise NestedSearchFieldException(
+                        '''"{sub}" can't be nested in "{field}" in "{expr}"'''
+                        .format(sub=name, field=current_field, expr=str(parents[-1])))
+            else:
+                # not a nested field, so no nesting any more
+                nested_fields = {}
+                current_field = name
+        return {"nested_fields": nested_fields, "current_field": current_field}
+
+    def visit_search_field(self, node, parents, context):
+        """
+        On search field node, check nested fields logic
+        """
+        context = dict(context)  # copy
+        context.update(self._recurse_nested_fields(node, context, parents))
         for child in node.children:
-            local_children_name = self._get_all_children_node_name(child)
-            if local_children_name:
-                children_name.extend(local_children_name)
-            if isinstance(child, SearchField):
-                for name in child.name.split('.'):
-                    children_name.append(name)
+            self.visit(child, parents + [node], context)
 
-        return list(set(children_name))
+    def visit_term(self, node, parents, context):
+        """
+        On term field, verify term is in a final search field
+        """
+        if context["nested_fields"] and context["current_field"]:
+            raise NestedSearchFieldException(
+                '''"{expr}" can't be directly attributed to "{field}" as it is a nested field'''
+                .format(expr=str(node), field=context["current_field"]))
 
-    def visit_search_field(self, node, parent):
-        """
-        On search field node, create list to keep current path in it
-        """
-        if not parent or isinstance(parent, (BaseOperation, Unary)):
-            self.__complete_path.append([])
-        self.visit(node.children[0], node)
-        if '.' in node.name:
-            for n in reversed(node.name.split('.')):
-                self._add_path(n)
-        else:
-            children_name = None
-            if node.children:
-                children_name = self._get_all_children_node_name(node)
-            self._add_path(node.name, children_name=children_name)
+    def __call__(self, tree):
+        context = {"nested_fields": self.nested_fields, "current_field": None}
+        return self.visit(tree, context=context)
