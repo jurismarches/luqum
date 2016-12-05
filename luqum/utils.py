@@ -5,6 +5,9 @@ Include base classes to implement a visitor pattern.
 
 """
 
+from .tree import BaseOperation, SearchField, Unary
+from .exceptions import NestedSearchFieldException
+
 
 def camel_to_lower(name):
     return "".join(
@@ -143,3 +146,119 @@ class LuceneTreeVisitorV2(LuceneTreeVisitor):
                 node.__class__
             )
         )
+
+
+class CheckLuceneTreeVisitor(LuceneTreeVisitorV2):
+    """
+    Visit the lucene tree to make some checks
+    """
+
+    def __init__(self, *args, **kwargs):
+        nested_fields = kwargs.get('nested_fields')
+        self.nested_fields = nested_fields if nested_fields else {}
+        self.__complete_path = []  # edited through self._add_path
+
+        assert(isinstance(self.nested_fields, dict))
+
+    @property
+    def _complete_path(self):
+        return self.__complete_path
+
+    def _add_path(self, path, children_name=None):
+        """
+        Clean complete path before add it
+        """
+        self.__complete_path = self._clean_complete_path()
+        if children_name:
+            for sub_path_list in self._complete_path:
+                if sub_path_list[-1] in children_name:
+                    sub_path_list.append(path)
+        else:
+            self.__complete_path[-1].append(path)
+
+    def _clean_complete_path(self):
+        """
+        Make list of paths unique
+        """
+        cleaned_list = []
+        for sublist in self._complete_path:
+            if sublist not in cleaned_list:
+                cleaned_list.append(sublist)
+        return cleaned_list
+
+    def _is_correct_path(self, path_list, subdict):
+        """
+        Verify if a path is in correct order compare to dict (nested_fields)
+        else raise
+
+        Don't need to verify if there is one path and it's not in nested_fields
+        """
+
+        if subdict == self.nested_fields:
+            if len(path_list) == 1 and path_list[0] not in subdict:
+                return True
+
+        current_path = path_list.pop()
+        if current_path in subdict:
+            if not path_list:  # all path have been consumed
+                if isinstance(subdict[current_path], dict):
+                    # simple query on nested fields
+                    raise NestedSearchFieldException(
+                        "You can't make a simple query on nested field \"{}\"".format(
+                            current_path
+                        )
+                    )
+                return True
+            else:
+                return self._is_correct_path(
+                    path_list,
+                    subdict[current_path]
+                )
+        else:
+            raise NestedSearchFieldException(
+                '"{}"" is not a nested field'.format(current_path)
+            )
+
+    def check(self, *args, **kwargs):
+        """
+        Call the visit method and then verify all nested path are in the
+        defined nested fields
+        """
+        self.visit(*args, **kwargs)
+        for sub in self._complete_path:
+            self._is_correct_path(sub, self.nested_fields)
+
+    def generic_visit(self, node, parent):
+        """
+        If nothing matches the current node, visit children
+        """
+        for child in node.children:
+            self.visit(child, node)
+
+    def _get_all_children_node_name(self, node):
+        children_name = []
+        for child in node.children:
+            local_children_name = self._get_all_children_node_name(child)
+            if local_children_name:
+                children_name.extend(local_children_name)
+            if isinstance(child, SearchField):
+                for name in child.name.split('.'):
+                    children_name.append(name)
+
+        return list(set(children_name))
+
+    def visit_search_field(self, node, parent):
+        """
+        On search field node, create list to keep current path in it
+        """
+        if not parent or isinstance(parent, (BaseOperation, Unary)):
+            self.__complete_path.append([])
+        self.visit(node.children[0], node)
+        if '.' in node.name:
+            for n in reversed(node.name.split('.')):
+                self._add_path(n)
+        else:
+            children_name = None
+            if node.children:
+                children_name = self._get_all_children_node_name(node)
+            self._add_path(node.name, children_name=children_name)

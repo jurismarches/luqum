@@ -1,11 +1,18 @@
 # -*- coding: utf-8 -*-
 from unittest import TestCase
 
+from luqum.exceptions import NestedSearchFieldException
+
 from ..check import LuceneCheck
 from ..parser import lexer, parser, ParseError
 from ..pretty import Prettifier, prettify
 from ..tree import *
-from ..utils import LuceneTreeVisitor, LuceneTreeTransformer, LuceneTreeVisitorV2
+from ..utils import (
+    LuceneTreeVisitor,
+    LuceneTreeTransformer,
+    LuceneTreeVisitorV2,
+    CheckLuceneTreeVisitor
+)
 
 
 class TestTree(TestCase):
@@ -664,3 +671,78 @@ class TreeVisitorV2TestCase(TestCase):
         visitor = self.MROVisitor()
         with self.assertRaises(AttributeError):
             visitor.visit(Phrase('"test"'))
+
+
+class CheckVisitorTestCase(TestCase):
+
+    def setUp(self):
+
+        NESTED_FIELDS = {
+            'author': {
+                'firstname': '',
+                'book': {
+                    'title': '',
+                    'format': {
+                        'type': ''
+                    }
+                }
+            },
+        }
+
+        self.transformer = CheckLuceneTreeVisitor(nested_fields=NESTED_FIELDS)
+
+    def test_correct_nested_lucene_query_wo_point_not_raise(self):
+        tree = parser.parse('author:book:title:"foo" AND '
+                            'author:book:format:type: "pdf"')
+        self.transformer.check(tree)
+        self.assertIsNotNone(tree)
+
+    def test_correct_nested_lucene_query_with_point_not_raise(self):
+        tree = parser.parse('author.book.title:"foo" AND '
+                            'author.book.format.type:"pdf"')
+        self.transformer.check(tree)
+        self.assertIsNotNone(tree)
+
+    def test_incorrect_nested_lucene_query_wo_point_raise(self):
+        tree = parser.parse('author:gender:"Mr" AND '
+                            'author:book:format:type:"pdf"')
+        with self.assertRaises(NestedSearchFieldException) as e:
+            self.transformer.check(tree)
+        self.assertIn('"gender"', str(e.exception))
+
+    def test_incorrect_nested_lucene_query_with_point_raise(self):
+        tree = parser.parse('author.gender:"Mr" AND '
+                            'author.book.format.type:"pdf"')
+        with self.assertRaises(NestedSearchFieldException) as e:
+            self.transformer.check(tree)
+        self.assertIn('"gender"', str(e.exception))
+
+    def test_correct_nested_lucene_query_with_and_wo_point_not_raise(self):
+        tree = parser.parse(
+            'author:(book.title:"foo" OR book.title:"bar")')
+        self.transformer.check(tree)
+        self.assertIsNotNone(tree)
+
+    def test_simple_query_with_a_nested_field_should_raise(self):
+        tree = parser.parse('author:"foo"')
+        with self.assertRaises(NestedSearchFieldException) as e:
+            self.transformer.check(tree)
+        self.assertIn('"author"', str(e.exception))
+
+    def test_simple_query_with_a_multi_nested_field_should_raise(self):
+        tree = parser.parse('author:book:"foo"')
+        with self.assertRaises(NestedSearchFieldException) as e:
+            self.transformer.check(tree)
+        self.assertIn('"book"', str(e.exception))
+
+    def test_complex_query_with_a_multi_nested_field_should_raise(self):
+        tree = parser.parse('author:test OR author.firstname:"Hugo"')
+        with self.assertRaises(NestedSearchFieldException) as e:
+            self.transformer.check(tree)
+        self.assertIn('"author"', str(e.exception))
+
+    def test_complex_query_wo_point_with_a_multi_nested_field_should_raise(self):
+        tree = parser.parse('author:("test" AND firstname:Hugo)')
+        with self.assertRaises(NestedSearchFieldException) as e:
+            self.transformer.check(tree)
+        self.assertIn('"author"', str(e.exception))

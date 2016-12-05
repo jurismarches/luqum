@@ -1,12 +1,12 @@
 from luqum.elasticsearch.tree import ElasticSearchItemFactory
+from luqum.exceptions import OrAndAndOnSameLevel
 from luqum.tree import (
     OrOperation, AndOperation, UnknownOperation, SearchField)
 from luqum.tree import Word  # noqa: F401
 from .tree import (
     EMust, EMustNot, EShould, EWord, AbstractEItem, EPhrase, ERange,
     ENested)
-from ..utils import LuceneTreeVisitorV2
-from .exceptions import OrAndAndOnSameLevel
+from ..utils import LuceneTreeVisitorV2, CheckLuceneTreeVisitor
 
 
 class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
@@ -45,7 +45,7 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         :param default_operator: to replace blank operator (MUST or SHOULD)
         :param default_field: to search
         :param not_analyzed_fields: field that are not analyzed in ES
-        :param nested_fields: field that are nested in ES
+        :param nested_fields: dict contains fields that are nested in ES
         """
 
         if not_analyzed_fields:
@@ -53,14 +53,18 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         else:
             self._not_analyzed_fields = []
 
-        self._nested_fields = nested_fields if nested_fields else []
+        self.nested_fields = nested_fields
 
         self.default_operator = default_operator
         self.default_field = default_field
         self.es_item_factory = ElasticSearchItemFactory(
             no_analyze=self._not_analyzed_fields,
-            nested_fields=self._nested_fields
+            nested_fields=self.nested_fields
         )
+
+    def convert(self, tree):
+        CheckLuceneTreeVisitor(nested_fields=self.nested_fields).check(tree)
+        return self.visit(tree)
 
     def simplify_if_same(self, children, current_node):
         """
@@ -148,7 +152,7 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         >>> list(builder._yield_nested_children(op, op.children))
         Traceback (most recent call last):
             ...
-        luqum.elasticsearch.exceptions.OrAndAndOnSameLevel: lo AND py
+        luqum.exceptions.OrAndAndOnSameLevel: lo AND py
         """
 
         for child in children:

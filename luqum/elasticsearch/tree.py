@@ -1,8 +1,6 @@
 import abc
 import re
 
-from .exceptions import NestedSearchFieldException
-
 
 class JsonSerializableMixin:
     """
@@ -222,10 +220,6 @@ class ENested(AbstractEOperation):
 
         self._nested_path = [nested_path]
         self.items = self._exclude_nested_children(items)
-
-        # nested path must be nested in ES
-        if nested_path not in nested_fields:
-            raise NestedSearchFieldException(str(self.items))
 
     @property
     def nested_path(self):
