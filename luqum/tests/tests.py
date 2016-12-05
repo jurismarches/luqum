@@ -679,6 +679,7 @@ class CheckVisitorTestCase(TestCase):
 
         NESTED_FIELDS = {
             'author': {
+                'firstname': '',
                 'book': {
                     'title': '',
                     'format': {
@@ -735,6 +736,13 @@ class CheckVisitorTestCase(TestCase):
         self.assertIn('"book"', str(e.exception))
 
     def test_complex_query_with_a_multi_nested_field_should_raise(self):
-        tree = parser.parse('author:book:"foo" OR author:"Hugo"')
-        with self.assertRaises(NestedSearchFieldException):
+        tree = parser.parse('author:test OR author.firstname:"Hugo"')
+        with self.assertRaises(NestedSearchFieldException) as e:
             self.transformer.check(tree)
+        self.assertIn('"author"', str(e.exception))
+
+    def test_complex_query_wo_point_with_a_multi_nested_field_should_raise(self):
+        tree = parser.parse('author:("test" AND firstname:Hugo)')
+        with self.assertRaises(NestedSearchFieldException) as e:
+            self.transformer.check(tree)
+        self.assertIn('"author"', str(e.exception))
