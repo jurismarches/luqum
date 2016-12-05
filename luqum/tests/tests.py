@@ -3,7 +3,7 @@ from unittest import TestCase
 
 from luqum.exceptions import NestedSearchFieldException
 
-from ..check import LuceneCheck
+from ..check import LuceneCheck, CheckNestedFields
 from ..parser import lexer, parser, ParseError
 from ..pretty import Prettifier, prettify
 from ..tree import *
@@ -11,7 +11,6 @@ from ..utils import (
     LuceneTreeVisitor,
     LuceneTreeTransformer,
     LuceneTreeVisitorV2,
-    CheckLuceneTreeVisitor
 )
 
 
@@ -689,7 +688,7 @@ class CheckVisitorTestCase(TestCase):
             },
         }
 
-        self.checker = CheckLuceneTreeVisitor(nested_fields=NESTED_FIELDS)
+        self.checker = CheckNestedFields(nested_fields=NESTED_FIELDS)
 
     def test_correct_nested_lucene_query_wo_point_not_raise(self):
         tree = parser.parse('author:book:title:"foo" AND '

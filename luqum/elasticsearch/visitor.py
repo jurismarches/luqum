@@ -6,7 +6,8 @@ from luqum.tree import Word  # noqa: F401
 from .tree import (
     EMust, EMustNot, EShould, EWord, AbstractEItem, EPhrase, ERange,
     ENested)
-from ..utils import LuceneTreeVisitorV2, CheckLuceneTreeVisitor
+from ..utils import LuceneTreeVisitorV2, normalize_nested_fields_specs
+from ..check import CheckNestedFields
 
 
 class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
@@ -67,15 +68,7 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         )
 
     def _normalize_nested_fields(self, nested_fields):
-        """normalize nested_fields to only have nested dicts
-        """
-        if nested_fields is None:
-            return {}
-        elif isinstance(nested_fields, dict):
-            return {k: self._normalize_nested_fields(v) for k, v in nested_fields.items()}
-        else:
-            # should be an iterable, transform to dict
-            return {sub: {} for sub in nested_fields}
+        return normalize_nested_fields_specs(nested_fields)
 
     def simplify_if_same(self, children, current_node):
         """
@@ -316,5 +309,5 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         :param luqum.tree.Item tree: a luqum parse tree
         :return dict:
         """
-        CheckLuceneTreeVisitor(nested_fields=self.nested_fields)(tree)
+        CheckNestedFields(nested_fields=self.nested_fields)(tree)
         return self.visit(tree).json
