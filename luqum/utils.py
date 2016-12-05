@@ -5,8 +5,6 @@ Include base classes to implement a visitor pattern.
 
 """
 
-from .exceptions import NestedSearchFieldException
-
 
 def camel_to_lower(name):
     return "".join(
