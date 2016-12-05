@@ -12,7 +12,7 @@ To parse a query you need to import the parser, and give it a string to parse::
     >>> from luqum.parser import parser
     >>> tree = parser.parse('(title:"foo bar" AND body:"quick fox") OR title:fox')
 
-You'll get an object wich is a tree, made of the elements composing the query::
+You'll get an object which is a tree, made of the elements composing the query::
 
     >>> print(repr(tree))
     OrOperation(Group(AndOperation(SearchField('title', Phrase('"foo bar"')), SearchField('body', Phrase('"quick fox"')))), SearchField('title', Word('fox')))
@@ -55,9 +55,9 @@ Luqum does provide some helpers for this::
 Transforming to elastic query
 -----------------------------
 
-Luqum also offers you to transform lucene queries to luqum queries.
+Luqum also offers you to transform Lucene queries to luqum queries.
 
-This is usefull to extend capacities of lucene queries and get the best out of elastic search.
+This is useful to extend capacities of Lucene queries and get the best out of elastic search.
 
 To help interpret the requests,
 we need to pass a list of fields to consider as terms (as opposed to full text searches).
@@ -112,7 +112,7 @@ You may also use nested fields::
    ...                     'zero_terms_query': 'all'}}}]}},
    ...             'path': 'author'}}]}})
 
-You can use this json directly with `elasticsearch`_,
+You can use this JSON directly with `elasticsearch python bindings`_,
 but also use it to build query with `elasticsearch_dsl`_.
 
 .. note: the list of terms fields could, of course,
@@ -120,7 +120,7 @@ but also use it to build query with `elasticsearch_dsl`_.
 
 Note that under the hood, the operation is too fold:
 it first create a new tree from the
-this tree can then be transformed to json.
+this tree can then be transformed to JSON.
 
 
 Pretty printing
@@ -143,5 +143,5 @@ Luqum also comes with a query pretty printer::
   yet_another_fieldname: [a_strange_value TO z]
 
 
-.. _`elasticsearch`: https://pypi.python.org/pypi/elasticsearch/
+.. _`elasticsearch python bindings`: https://pypi.python.org/pypi/elasticsearch/
 .. _`elasticsearch_dsl`: https://pypi.python.org/pypi/elasticsearch-dsl
