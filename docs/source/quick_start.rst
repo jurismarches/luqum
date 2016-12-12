@@ -4,6 +4,9 @@ Quick start
     >>> from unittest import TestCase
     >>> t = TestCase()
 
+
+.. _tutorial-parsing:
+
 Parsing
 -------
 
@@ -16,6 +19,30 @@ You'll get an object which is a tree, made of the elements composing the query::
 
     >>> print(repr(tree))
     OrOperation(Group(AndOperation(SearchField('title', Phrase('"foo bar"')), SearchField('body', Phrase('"quick fox"')))), SearchField('title', Word('fox')))
+
+This can be viewed like that:
+
+.. graphviz::
+
+   digraph foo {
+     or1 [label="OrOperation"];
+     group1 [label="Group"];
+     and1 [label="AndOperation"];
+     search_title1 [label="SearchField\ntitle"];
+     foo_bar [label="Phrase\nfoo bar"];
+     search_body [label="SearchField\nbody"];
+     quick_fox [label="Phrase\nquick fox"];
+     search_title2 [label="SearchField\ntitle"];
+     fox [label="Word\nfox"];
+     or1 -> group1;
+     or1 -> search_title2;
+     group1 -> and1;
+     and1 -> search_title1;
+     and1 -> search_body;
+     search_title1 -> foo_bar;
+     search_body -> quick_fox;
+     search_title2 -> fox;
+   }
 
 
 You can convert it back to a query using the standard ``str`` method from python::
@@ -51,6 +78,7 @@ Luqum does provide some helpers for this::
     >>> print(str(new_tree))
     (title:"back to foo bar" AND body:"quick fox") OR title:fox
 
+.. _tutorial-elastic:
 
 Transforming to elastic query
 -----------------------------
@@ -122,6 +150,7 @@ Note that under the hood, the operation is too fold:
 it first create a new tree from the
 this tree can then be transformed to JSON.
 
+.. _tutorial-pretty-printing:
 
 Pretty printing
 ---------------

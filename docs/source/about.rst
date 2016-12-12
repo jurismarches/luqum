@@ -7,9 +7,16 @@ It features a python library with a parser for  the `Lucene Query DSL`_ as found
 `Solr`_ `query syntax`_ or
 `ElasticSearch`_ `query string`_
 
-From the parser it builds a tree.
+From the parser it builds a tree (see :ref:`tutorial-parsing`).
 
-This tree can eventually be manipulated and then transformed back into a query string.
+This tree can eventually be manipulated
+and then transformed back into a query string,
+or used to generate other form of query.
+
+In particular, luqum ships with
+a utility to transform a lucene query
+into a query using Elasticsearch query DSL language (in json form).
+(see :ref:`tutorial-elastic`)
 
 You may use this to:
 
@@ -18,13 +25,15 @@ You may use this to:
 * replace some expressions in query
 * pretty print a query
 * inject queries in queries
+* extend lucene query language semantics
 
 The parser is built using `PLY`_.
 
 .. warning::
 
-   This library is not yet production ready.
-   It also lacks some features.
+   While used in production by our team for some time,
+   this library is still a work in progress and also lacks some features.
+
    Contributions are welcome.
 
 .. _`Lucene Query DSL`: https://lucene.apache.org/core/3_6_0/queryparsersyntax.html

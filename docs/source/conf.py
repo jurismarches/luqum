@@ -32,8 +32,12 @@ import os
 extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.autodoc',
+    'sphinx.ext.graphviz',
     'alabaster',
 ]
+
+graphviz_dot_args = ["-Nshape=box"]
+graphviz_output_format = "svg"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
