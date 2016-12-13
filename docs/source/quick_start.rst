@@ -83,7 +83,7 @@ Luqum does provide some helpers for this::
 Transforming to elastic query
 -----------------------------
 
-Luqum also offers you to transform Lucene queries to luqum queries.
+Luqum also offers you to transform Lucene queries to `Elasticsearch queries DSL`_.
 
 This is useful to extend capacities of Lucene queries and get the best out of elastic search.
 
@@ -143,12 +143,19 @@ You may also use nested fields::
 You can use this JSON directly with `elasticsearch python bindings`_,
 but also use it to build query with `elasticsearch_dsl`_.
 
-.. note: the list of terms fields could, of course,
+.. note::
+   The list of terms fields could, of course,
    be automatically deduced from the elasticsearch schema
 
+   Also there are some limitations to this transformation.
+   Please, refers to the API :ref:`elasticsearch-api`
+   
+
 Note that under the hood, the operation is too fold:
-it first create a new tree from the
-this tree can then be transformed to JSON.
+it first create a new specific tree from the luqum tree.
+This tree is then capable of giving it's JSON like represetation
+(that is JSON compatible python objects).
+
 
 .. _tutorial-pretty-printing:
 
@@ -174,3 +181,4 @@ Luqum also comes with a query pretty printer::
 
 .. _`elasticsearch python bindings`: https://pypi.python.org/pypi/elasticsearch/
 .. _`elasticsearch_dsl`: https://pypi.python.org/pypi/elasticsearch-dsl
+.. _`Elasticsearch queries DSL`: https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html

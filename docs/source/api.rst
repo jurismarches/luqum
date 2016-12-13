@@ -19,6 +19,8 @@ luqum.tree
    :members:
    :member-order: bysource
 
+.. _elasticsearch-api:
+
 Transforming to Elastic Search queries
 ======================================
 
