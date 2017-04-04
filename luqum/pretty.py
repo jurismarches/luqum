@@ -45,18 +45,24 @@ class Prettifier(object):
         if isinstance(element, BaseOperation):
             if not isinstance(parent, BaseOperation) or element.op == parent.op:
                 # same level, this is just associativity
-                yield from self._get_chains(element.a, element)
-                if self.inline_ops:
-                    yield _STICK_MARKER
-                yield element.op
-                yield from self._get_chains(element.b, element)
+                num_children = len(element.children)
+                for n, child in enumerate(element.children):
+                    yield from self._get_chains(child, element)
+                    if n < num_children - 1:
+                        if self.inline_ops:
+                            yield _STICK_MARKER
+                        yield element.op
             else:
                 # another operation, raise level
-                yield (
-                    list(self._get_chains(element.a, element)) +
-                    ([_STICK_MARKER] if self.inline_ops else []) +
-                    [element.op] +
-                    list(self._get_chains(element.b, element)))
+                new_level = []
+                num_children = len(element.children)
+                for n, child in enumerate(element.children):
+                    new_level.extend(self._get_chains(child, element))
+                    if n < num_children - 1:
+                        if self.inline_ops:
+                            new_level.append(_STICK_MARKER)
+                        new_level.append(element.op)
+                yield new_level
         elif isinstance(element, BaseGroup):
             # raise level
             yield "("

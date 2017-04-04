@@ -140,11 +140,10 @@ class TestParser(TestCase):
     def test_minus(self):
         tree = (
             AndOperation(
-                AndOperation(
-                    Prohibit(
-                        Word("test")),
-                    Prohibit(
-                        Word("foo"))),
+                Prohibit(
+                    Word("test")),
+                Prohibit(
+                    Word("foo")),
                 Not(
                     Word("bar"))))
         parsed = parser.parse("-test AND -foo AND NOT bar")
@@ -154,10 +153,9 @@ class TestParser(TestCase):
     def test_plus(self):
         tree = (
             AndOperation(
-                AndOperation(
-                    Plus(
-                        Word("test")),
-                    Word("foo")),
+                Plus(
+                    Word("test")),
+                Word("foo"),
                 Plus(
                     Word("bar"))))
         parsed = parser.parse("+test AND foo AND +bar")
@@ -179,17 +177,15 @@ class TestParser(TestCase):
                 Proximity(
                     Phrase('"foo bar"'),
                     3),
-                UnknownOperation(
-                    Proximity(
-                        Phrase('"foo baz"'),
-                        1),
-                    UnknownOperation(
-                        Fuzzy(
-                            Word('baz'),
-                            Decimal("0.3")),
-                        Fuzzy(
-                            Word('fou'),
-                            Decimal("0.5"))))))
+                Proximity(
+                    Phrase('"foo baz"'),
+                    1),
+                Fuzzy(
+                    Word('baz'),
+                    Decimal("0.3")),
+                Fuzzy(
+                    Word('fou'),
+                    Decimal("0.5"))))
         parsed = parser.parse('"foo bar"~3 "foo baz"~ baz~0.3 fou~')
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)

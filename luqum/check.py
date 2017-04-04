@@ -94,11 +94,7 @@ class LuceneCheck:
         return iter([])
 
     @_check_children
-    def check_or_operation(self, item, parents):
-        return iter([])
-
-    @_check_children
-    def check_and_operation(self, item, parents):
+    def check_base_operation(self, item, parents):
         return iter([])
 
     @_check_children

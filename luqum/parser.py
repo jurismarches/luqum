@@ -98,6 +98,7 @@ def t_SEPARATOR(t):
     r'\s+'
     pass  # discard separators
 
+
 @lex.TOKEN(TERM_RE)
 def t_TERM(t):
     # check if it is not a reserved term (an operation)
@@ -141,17 +142,17 @@ lexer = lex.lex()
 
 def p_expression_or(p):
     'expression : expression OR_OP expression'
-    p[0] = OrOperation(p[1], p[3])
+    p[0] = create_operation(OrOperation, p[1], p[3])
 
 
 def p_expression_and(p):
     '''expression : expression AND_OP expression'''
-    p[0] = AndOperation(p[1], p[len(p) - 1], explicit=len(p) > 3)
+    p[0] = create_operation(AndOperation, p[1], p[len(p) - 1])
 
 
 def p_expression_implicit(p):
     '''expression : expression expression'''
-    p[0] = UnknownOperation(p[1], p[2])
+    p[0] = create_operation(UnknownOperation, p[1], p[2])
 
 
 def p_expression_plus(p):

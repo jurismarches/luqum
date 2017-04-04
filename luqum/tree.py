@@ -256,18 +256,17 @@ class BaseOperation(Item):
     :param a: left hand expression
     :param b: right hand expression
     """
-    def __init__(self, a, b):
-        self.a = a
-        self.b = b
+    def __init__(self, *operands):
+        self.operands = operands
 
     def __str__(self):
-        return "%s %s %s" % (self.a.__str__(), self.op, self.b.__str__())
+        return (" %s " % self.op).join(str(o) for o in self.operands)
 
     @property
     def children(self):
         """children are left and right expressions
         """
-        return [self.a, self.b]
+        return self.operands
 
 
 class UnknownOperation(BaseOperation):
@@ -283,9 +282,6 @@ class UnknownOperation(BaseOperation):
     """
     op = ''
 
-    def __str__(self):
-        return "%s %s" % (self.a.__str__(), self.b.__str__())
-
 
 class OrOperation(BaseOperation):
     """OR expression
@@ -298,11 +294,14 @@ class AndOperation(BaseOperation):
     """
     op = 'AND'
 
-    def __init__(self, a, b, explicit=True):
-        """explicit value tells if AND was explicitely written or it was a blank space
-        """
-        super(AndOperation, self).__init__(a, b)
-        self.explicit = explicit
+
+def create_operation(cls, a, b):
+    """Create operation between a and b, merging if a or b is already an operation of same class
+    """
+    operands = []
+    operands.extend(a.operands if isinstance(a, cls) else [a])
+    operands.extend(b.operands if isinstance(b, cls) else [b])
+    return cls(*operands)
 
 
 class Unary(Item):

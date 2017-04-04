@@ -85,6 +85,22 @@ class LuceneTreeTransformer(LuceneTreeVisitor):
             if v == old_node:
                 parent.__dict__[k] = new_node
                 break
+            elif isinstance(v, list):
+                try:
+                    i = v.index(old_node)
+                    v[i] = new_node
+                    break
+                except ValueError:
+                    pass
+            elif isinstance(v, tuple):
+                try:
+                    i = v.index(old_node)
+                    v = list(v)
+                    v[i] = new_node
+                    parent.__dict__[k] = tuple(v)
+                    break
+                except ValueError:
+                    pass
 
     def generic_visit(self, node, parent=[]):
         return node
