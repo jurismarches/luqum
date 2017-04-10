@@ -282,6 +282,9 @@ class UnknownOperation(BaseOperation):
     """
     op = ''
 
+    def __str__(self):
+        return " ".join(str(o) for o in self.operands)
+
 
 class OrOperation(BaseOperation):
     """OR expression

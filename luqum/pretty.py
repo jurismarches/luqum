@@ -51,7 +51,8 @@ class Prettifier(object):
                     if n < num_children - 1:
                         if self.inline_ops:
                             yield _STICK_MARKER
-                        yield element.op
+                        if element.op:
+                            yield element.op
             else:
                 # another operation, raise level
                 new_level = []
@@ -61,7 +62,8 @@ class Prettifier(object):
                     if n < num_children - 1:
                         if self.inline_ops:
                             new_level.append(_STICK_MARKER)
-                        new_level.append(element.op)
+                        if element.op:
+                            new_level.append(element.op)
                 yield new_level
         elif isinstance(element, BaseGroup):
             # raise level

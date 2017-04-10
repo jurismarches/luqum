@@ -337,6 +337,12 @@ class TestParser(TestCase):
             parser.parse('AND')
 
 
+class TestPrint(TestCase):
+
+    def test_unknown_operation(self):
+        tree = UnknownOperation(Word("foo"), Word("bar"), Word("baz"))
+        self.assertEqual(str(tree), "foo bar baz")
+
 class TestPrettify(TestCase):
 
     big_tree = AndOperation(
@@ -353,6 +359,22 @@ class TestPrettify(TestCase):
     def test_one_liner(self):
         tree = AndOperation(Group(OrOperation(Word("bar"), Word("baz"))), Word("foo"))
         self.assertEqual(prettify(tree), "( bar OR baz ) AND foo")
+
+    def test_with_unknown_op(self):
+        prettify = Prettifier(indent=8, max_len=20)
+        tree =  UnknownOperation(
+            Group(
+                UnknownOperation(
+                    Word("baaaaaaaaaar"),
+                    Word("baaaaaaaaaaaaaz"))),
+            Word("fooooooooooo"))
+        self.assertEqual(
+            "\n" + prettify(tree), """
+(
+        baaaaaaaaaar
+        baaaaaaaaaaaaaz
+)
+fooooooooooo""")
 
     def test_small(self):
         prettify = Prettifier(indent=8, max_len=20)
