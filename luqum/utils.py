@@ -114,8 +114,7 @@ class LuceneTreeTransformer(LuceneTreeVisitor):
         new_node = method(node, parents)
         if parents:
             self.replace_node(node, new_node, parents[-1])
-        else:
-            node = new_node
+        node = new_node
         for child in node.children:
             self.visit(child, parents + [node])
         return node
