@@ -149,7 +149,7 @@ class EPhrase(AbstractEItem):
         return re.sub(r'\s+', ' ', phrase)
 
     def _remove_double_quotes(self, phrase):
-        return re.search(r'"(?P<value>.+)"', phrase).group("value")
+        return phrase[1:-1]
 
     @property
     def slop(self):
