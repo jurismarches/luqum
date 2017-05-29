@@ -151,6 +151,12 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
         expected = {"match_phrase": {"text": {"query": 'spam eggs'}}}
         self.assertDictEqual(result, expected)
 
+    def test_should_transform_empty_phrase(self):
+        tree = Phrase('""')
+        result = self.transformer(tree)
+        expected = {"match_phrase": {"text": {"query": ''}}}
+        self.assertDictEqual(result, expected)
+
     def test_should_transform_phrase_with_custom_search_field(self):
         transformer = ElasticsearchQueryBuilder(default_field="custom")
         tree = Phrase('"spam eggs"')
