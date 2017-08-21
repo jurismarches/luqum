@@ -156,6 +156,30 @@ it first create a new specific tree from the luqum tree.
 This tree is then capable of giving it's JSON like represetation
 (that is JSON compatible python objects).
 
+.. _tutorial-unknown-operation:
+
+
+The unknown operation
+----------------------
+
+In query you may use an implicit operator
+leaving a blank between two expressions instead of OR or AND.
+Because the meaning of this operator is unknown at parsing time,
+it is replaced by a special ``UnknownOperator`` operation.
+
+::
+
+    >>> tree = parser.parse('foo bar')
+    >>> tree
+    UnknownOperation(Word('foo'), Word('bar'))
+
+To help you deal with this we provide a transformer,
+that will smartly replace ``UnkownOperation`` by ``AndOperation`` or ``OrOperation``.
+
+    >>> from luqum.utils import UnknownOperationResolver
+    >>> resolver = UnknownOperationResolver()
+    >>> str(resolver(tree))
+    'foo AND bar'
 
 .. _tutorial-pretty-printing:
 

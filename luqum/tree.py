@@ -279,6 +279,8 @@ class UnknownOperation(BaseOperation):
         Lucene seem to use whatever operator was used before reaching that one,
         defaulting to AND, but we cannot know anything about this at parsing
         time...
+    .. seealso::
+        the :py:class:`.utils.UnknownOperationResolver` to resolve those nodes to OR and AND
     """
     op = ''
 
