@@ -137,6 +137,16 @@ class TestParser(TestCase):
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
 
+    def test_field_with_number(self):
+        # non regression for issue #10
+        tree = (
+            SearchField(
+                "field_42",
+                Word("42")))
+        parsed = parser.parse("field_42:42")
+        self.assertEqual(str(parsed), str(tree))
+        self.assertEqual(parsed, tree)
+
     def test_minus(self):
         tree = (
             AndOperation(

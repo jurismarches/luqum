@@ -72,21 +72,32 @@ precedence = (
 )
 
 # term
+
 # the case of : which is used in date is problematic because it is also a delimiter
 # lets catch those expressions appart
 # Note : we must use positive look behind, because regexp engine is eager,
 # and it's only arrived at : that it will try this rule
-TIME_RE = r'(?<=\d{2}):\d{2}(:\d{2})?'
+TIME_RE = r'''
+(?<=T\d{2}):  # look behind for T and two digits: hours
+\d{2}         # minutes
+(:\d{2})?     # seconds
+'''
 # this is a wide catching expression, to also include date math.
 # Inspired by the original lucene parser:
 # https://github.com/apache/lucene-solr/blob/master/lucene/queryparser/src/java/org/apache/lucene/queryparser/surround/parser/QueryParser.jj#L189
 # We do allow the wildcards operators ('*' and '?') as our parser doesn't deal with them.
+
 TERM_RE = r'''
-  (?P<term>  # group term
-       [^\s:^,"'+~\-\(\)\[\]\{{\}}]         # first char is not a space neither some char which have meanings
-                                            # note: escape of "-" and doubling of "{{" (because we use format)
-       ([^\s:^~\(\)\[\]\{{\}}]|{time_re})*  # following chars or a time expression
-)'''.format(time_re=TIME_RE)
+(?P<term>  # group term
+  [^\s:^~(){{}}[\],"'+\-]  # first char is not a space neither some char which have meanings
+                           # note: escape of "-" and "]"
+                           #       and doubling of "{{}}" (because we use format)
+  ([^\s:^~(){{}}[\]]       # following chars
+   |                       # OR
+   {time_re}               # a time expression
+  )*
+)
+'''.format(time_re=TIME_RE)
 # phrase
 PHRASE_RE = r'(?P<phrase>"[^"]*")'
 # modifiers after term or phrase
@@ -191,6 +202,7 @@ def p_field_search(p):
     '''unary_expression : TERM COLUMN unary_expression'''
     if isinstance(p[3], Group):
         p[3] = group_to_fieldgroup(p[3])
+    # for field name we take p[1].value for it was captured as a word expression
     p[0] = SearchField(p[1].value, p[3])
 
 
