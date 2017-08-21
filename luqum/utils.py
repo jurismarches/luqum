@@ -4,6 +4,7 @@
 Include base classes to implement a visitor pattern.
 
 """
+from .tree import BaseOperation, OrOperation, AndOperation
 
 
 def camel_to_lower(name):
@@ -108,7 +109,7 @@ class LuceneTreeTransformer(LuceneTreeVisitor):
     def visit(self, node, parents=[]):
         """
         Recursively traverses the tree and replace nodes with the appropriate
-        visitor methid's return values.
+        visitor method's return values.
         """
         method = self._get_method(node)
         new_node = method(node, parents)
@@ -163,6 +164,62 @@ class LuceneTreeVisitorV2(LuceneTreeVisitor):
                 node.__class__
             )
         )
+
+
+class UnknownOperationResolver(LuceneTreeTransformer):
+    """Transform the UnknownOperation to OR or AND
+    """
+
+    VALID_OPERATIONS = frozenset([None, AndOperation, OrOperation])
+    DEFAULT_OPERATION = AndOperation
+
+    def __init__(self, resolve_to=None):
+        """Initialize a new resolver
+
+        :param resolve_to: must be either None, OrOperation or AndOperation.
+
+          for the latter two the UnknownOperation is repalced by specified operation.
+
+          if it is None, we use the last operation encountered, as would Lucene do
+        """
+        if resolve_to not in self.VALID_OPERATIONS:
+            raise ValueError("%r is not a valid value for resolve_to" % resolve_to)
+        self.resolve_to = resolve_to
+        self.last_operation = {}
+
+    def _first_nonop_parent(self, parents):
+        for parent in parents:
+            if not isinstance(parent, BaseOperation):
+                return id(parent)  # use id() because parent might not be hashable
+        return None
+
+    def visit_or_operation(self, node, parents=None):
+        if self.resolve_to is None:
+            # memorize last op
+            parent = self._first_nonop_parent(parents)
+            self.last_operation[parent] = OrOperation
+        return node
+
+    def visit_and_operation(self, node, parents=None):
+        if self.resolve_to is None:
+            # memorize last op
+            parent = self._first_nonop_parent(parents)
+            self.last_operation[parent] = AndOperation
+        return node
+
+    def visit_unknown_operation(self, node, parents=None):
+        # resolve
+        if self.resolve_to is None:
+            parent = self._first_nonop_parent(parents)
+            operation = self.last_operation.get(parent, None)
+            if operation is None:
+                operation = self.DEFAULT_OPERATION
+        else:
+            operation = self.resolve_to
+        return operation(*node.operands)
+
+    def __call__(self, tree):
+        return self.visit(tree)
 
 
 def normalize_nested_fields_specs(nested_fields):

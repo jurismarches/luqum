@@ -11,6 +11,7 @@ from ..utils import (
     LuceneTreeVisitor,
     LuceneTreeTransformer,
     LuceneTreeVisitorV2,
+    UnknownOperationResolver,
 )
 
 
@@ -352,6 +353,7 @@ class TestPrint(TestCase):
     def test_unknown_operation(self):
         tree = UnknownOperation(Word("foo"), Word("bar"), Word("baz"))
         self.assertEqual(str(tree), "foo bar baz")
+
 
 class TestPrettify(TestCase):
 
@@ -773,3 +775,108 @@ class CheckVisitorTestCase(TestCase):
         with self.assertRaises(NestedSearchFieldException) as e:
             self.checker(tree)
         self.assertIn('"author"', str(e.exception))
+
+
+class UnknownOperationResolverTestCase(TestCase):
+
+    def test_and_resolution(self):
+        tree = (
+            UnknownOperation(
+                Word("a"),
+                Word("b"),
+                OrOperation(Word("c"), Word("d"))))
+        expected = (
+            AndOperation(
+                Word("a"),
+                Word("b"),
+                OrOperation(Word("c"), Word("d"))))
+        resolver = UnknownOperationResolver(resolve_to=AndOperation)
+        self.assertEqual(resolver(tree), expected)
+
+    def test_or_resolution(self):
+        tree = (
+            UnknownOperation(
+                Word("a"),
+                Word("b"),
+                AndOperation(Word("c"), Word("d"))))
+        expected = (
+            OrOperation(
+                Word("a"),
+                Word("b"),
+                AndOperation(Word("c"), Word("d"))))
+        resolver = UnknownOperationResolver(resolve_to=OrOperation)
+        self.assertEqual(resolver(tree), expected)
+
+    def test_lucene_resolution_simple(self):
+        tree = (
+            UnknownOperation(
+                Word("a"),
+                Word("b"),
+                UnknownOperation(Word("c"), Word("d"))))
+        expected = (
+            AndOperation(
+                Word("a"),
+                Word("b"),
+                AndOperation(Word("c"), Word("d"))))
+        resolver = UnknownOperationResolver(resolve_to=None)
+        self.assertEqual(resolver(tree), expected)
+
+    def test_lucene_resolution_last_op(self):
+        tree = (
+            OrOperation(
+                Word("a"),
+                Word("b"),
+                UnknownOperation(Word("c"), Word("d")),
+                AndOperation(
+                    Word("e"),
+                    UnknownOperation(Word("f"), Word("g"))),
+                UnknownOperation(Word("i"), Word("j")),
+                OrOperation(
+                    Word("k"),
+                    UnknownOperation(Word("l"), Word("m"))),
+                UnknownOperation(Word("n"), Word("o"))))
+        expected = (
+            OrOperation(
+                Word("a"),
+                Word("b"),
+                OrOperation(Word("c"), Word("d")),
+                AndOperation(
+                    Word("e"),
+                    AndOperation(Word("f"), Word("g"))),
+                AndOperation(Word("i"), Word("j")),
+                OrOperation(
+                    Word("k"),
+                    OrOperation(Word("l"), Word("m"))),
+                OrOperation(Word("n"), Word("o"))))
+        resolver = UnknownOperationResolver(resolve_to=None)
+        self.assertEqual(resolver(tree), expected)
+
+    def test_lucene_resolution_last_op_with_group(self):
+        tree = (
+            OrOperation(
+                Word("a"),
+                Word("b"),
+                Group(
+                    AndOperation(
+                        Word("c"),
+                        UnknownOperation(Word("d"), Word("e")))),
+                UnknownOperation(Word("f"), Word("g")),
+                Group(
+                    UnknownOperation(Word("h"), Word("i")))))
+        expected = (
+            OrOperation(
+                Word("a"),
+                Word("b"),
+                Group(
+                    AndOperation(
+                        Word("c"),
+                        AndOperation(Word("d"), Word("e")))),
+                OrOperation(Word("f"), Word("g")),
+                Group(
+                    AndOperation(Word("h"), Word("i")))))
+        resolver = UnknownOperationResolver(resolve_to=None)
+        self.assertEqual(resolver(tree), expected)
+
+    def test_resolve_to_verification(self):
+        with self.assertRaises(ValueError):
+            UnknownOperationResolver(resolve_to=object())
