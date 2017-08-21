@@ -12,19 +12,19 @@ to inspect, analyze or otherwise manipulate search queries.
 Compatible with Python 3.3 & 3.4.
 
 Installation
-------------
+============
 
 ``pip install luqum``
 
 
 Dependencies
-------------
+============
 
 PLY==3.8
 
 
 Full documentation
-------------------
+==================
 
 http://luqum.readthedocs.org/en/latest/
 

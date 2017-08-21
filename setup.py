@@ -6,6 +6,8 @@ from luqum import __version__
 
 with open('README.rst', 'r') as f:
     long_description = f.read()
+with open('CHANGELOG.rst', 'r') as f:
+    long_description += "\n\n" + f.read()
 
 
 setup(
