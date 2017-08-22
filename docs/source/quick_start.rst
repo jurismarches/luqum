@@ -165,7 +165,7 @@ The unknown operation
 In query you may use an implicit operator
 leaving a blank between two expressions instead of OR or AND.
 Because the meaning of this operator is unknown at parsing time,
-it is replaced by a special ``UnknownOperator`` operation.
+it is replaced by a special ``UnknownOperation`` operation.
 
 ::
 
