@@ -1,12 +1,13 @@
 from luqum.elasticsearch.tree import ElasticSearchItemFactory
 from luqum.exceptions import OrAndAndOnSameLevel
-from luqum.tree import (
-    OrOperation, AndOperation, UnknownOperation, SearchField)
+from luqum.tree import OrOperation, AndOperation, UnknownOperation
 from luqum.tree import Word  # noqa: F401
 from .tree import (
-    EMust, EMustNot, EShould, EWord, AbstractEItem, EPhrase, ERange,
+    EMust, EMustNot, EShould, EWord, EPhrase, ERange,
     ENested)
-from ..utils import LuceneTreeVisitorV2, normalize_nested_fields_specs
+from ..utils import (
+    LuceneTreeVisitorV2,
+    normalize_nested_fields_specs, normalize_object_fields_specs, flatten_nested_fields_specs)
 from ..check import CheckNestedFields
 
 
@@ -40,8 +41,11 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
     SHOULD = 'should'
     MUST = 'must'
 
+    CONTEXT_ANALYZE_MARKER = "analyzed"
+    CONTEXT_FIELD_PREFIX = "field_prefix"
+
     def __init__(self, default_operator=SHOULD, default_field='text',
-                 not_analyzed_fields=None, nested_fields=None):
+                 not_analyzed_fields=None, nested_fields=None, object_fields=None):
         """
         :param default_operator: to replace blank operator (MUST or SHOULD)
         :param default_field: to search
@@ -51,6 +55,21 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
             either a dict of nested fields
             (if some of them are also nested)
             or a list of nesdted fields (this is for commodity)
+
+            exemple, a where record contains multiple authors,
+            each with one name and multiple books.
+            Each book has on title but multiple formats with on type each::
+
+                'author': {
+                    'name': None,
+                    'book': {
+                        'format': ['type'],
+                        'title': None
+                    }
+                },
+        :param object_fields: list containing full qualified names of object fields.
+          You may also use a spec similar to the one used for nested_fields.
+          None, will accept all non nested fields as object fields.
         """
 
         if not_analyzed_fields:
@@ -59,6 +78,10 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
             self._not_analyzed_fields = []
 
         self.nested_fields = self._normalize_nested_fields(nested_fields)
+        self._nested_prefixes = set(
+            k.rsplit(".", 1)[0]
+            for k in flatten_nested_fields_specs(self.nested_fields))
+        self.object_fields = self._normalize_object_fields(object_fields)
 
         self.default_operator = default_operator
         self.default_field = default_field
@@ -66,9 +89,49 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
             no_analyze=self._not_analyzed_fields,
             nested_fields=self.nested_fields
         )
+        self.nesting_checker = CheckNestedFields(
+            nested_fields=self.nested_fields, object_fields=self.object_fields)
+
+    def _field_prefix(self, context):
+        return context.get(self.CONTEXT_FIELD_PREFIX, []) if context is not None else []
+
+    def _fields(self, context):
+        default = [self.default_field]
+        return context.get(self.CONTEXT_FIELD_PREFIX, default) if context is not None else default
+
+    def _split_nested(self, node, context):
+        """split the node name to its nesting
+        """
+        # we take prefix and first part of node name
+        # for if eg. author is nested,
+        # a direct invocation of author.firstname should be considered nested
+        names = node.name.split(".")
+        prefix = self._field_prefix(context)
+        # we try to reduce the name until we get to a nested field
+        for i in range(len(names)):
+            nested_prefix = ".".join(prefix + names[:-i or None])
+            if nested_prefix in self._nested_prefixes:
+                break
+        else:
+            # no nesting at this level
+            nested_prefix = None
+        return nested_prefix
+
+    def _is_analyzed(self, context):
+        """return if current search field is analyzed
+        """
+        marker = context.get(self.CONTEXT_ANALYZE_MARKER) if context is not None else None
+        if marker is None:
+            # default
+            return self.default_field not in self._not_analyzed_fields
+        else:
+            return marker
 
     def _normalize_nested_fields(self, nested_fields):
         return normalize_nested_fields_specs(nested_fields)
+
+    def _normalize_object_fields(self, object_fields):
+        return normalize_object_fields_specs(object_fields)
 
     def simplify_if_same(self, children, current_node):
         """
@@ -92,10 +155,11 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         :param delta: nb of characters to extract before and after the operator
         :return: str
 
-        >>> operation = OrOperation(Word('Python'), Word('Monty'))
-        >>> builder = ElasticsearchQueryBuilder()
-        >>> builder._get_operator_extract(operation, 3)
-        'hon OR Mon'
+        ::
+            >>> operation = OrOperation(Word('Python'), Word('Monty'))
+            >>> builder = ElasticsearchQueryBuilder()
+            >>> builder._get_operator_extract(operation, 3)
+            'hon OR Mon'
         """
         node_str = str(binary_operation)
         child_str_1 = str(binary_operation.children[0])
@@ -116,10 +180,11 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         :param node: to check
         :return: Boolean
 
-        >>> ElasticsearchQueryBuilder(
-        ...     default_operator=ElasticsearchQueryBuilder.MUST
-        ... )._is_must(AndOperation(Word('Monty'), Word('Python')))
-        True
+        ::
+            >>> ElasticsearchQueryBuilder(
+            ...     default_operator=ElasticsearchQueryBuilder.MUST
+            ... )._is_must(AndOperation(Word('Monty'), Word('Python')))
+            True
         """
         return (
             isinstance(operation, AndOperation) or
@@ -131,10 +196,12 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         """
         Returns True if the node is a OrOperation or an UnknownOperation when
         the default operator is SHOULD
-        >>> ElasticsearchQueryBuilder(
-        ...     default_operator=ElasticsearchQueryBuilder.MUST
-        ... )._is_should(OrOperation(Word('Monty'), Word('Python')))
-        True
+
+        ::
+            >>> ElasticsearchQueryBuilder(
+            ...     default_operator=ElasticsearchQueryBuilder.MUST
+            ... )._is_should(OrOperation(Word('Monty'), Word('Python')))
+            True
         """
         return (
             isinstance(operation, OrOperation) or
@@ -144,19 +211,19 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
 
     def _yield_nested_children(self, parent, children):
         """
-        Raise if a OR (should) is in a AND (must) without being in parenthesis
+        Raise if a OR (should) is in a AND (must) without being in parenthesis::
 
-        >>> builder = ElasticsearchQueryBuilder()
-        >>> op = OrOperation(Word('yo'), OrOperation(Word('lo'), Word('py')))
-        >>> list(builder._yield_nested_children(op, op.children))
-        [Word('yo'), OrOperation(Word('lo'), Word('py'))]
+            >>> builder = ElasticsearchQueryBuilder()
+            >>> op = OrOperation(Word('yo'), OrOperation(Word('lo'), Word('py')))
+            >>> list(builder._yield_nested_children(op, op.children))
+            [Word('yo'), OrOperation(Word('lo'), Word('py'))]
 
 
-        >>> op = OrOperation(Word('yo'), AndOperation(Word('lo'), Word('py')))
-        >>> list(builder._yield_nested_children(op, op.children))
-        Traceback (most recent call last):
-            ...
-        luqum.exceptions.OrAndAndOnSameLevel: lo AND py
+            >>> op = OrOperation(Word('yo'), AndOperation(Word('lo'), Word('py')))
+            >>> list(builder._yield_nested_children(op, op.children))
+            Traceback (most recent call last):
+                ...
+            luqum.exceptions.OrAndAndOnSameLevel: lo AND py
         """
 
         for child in children:
@@ -171,7 +238,7 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
     def _binary_operation(self, cls, node, parents, context):
         children = self.simplify_if_same(node.children, node)
         children = self._yield_nested_children(node, children)
-        items = [self.visit(child, parents + [node]) for child in children]
+        items = [self.visit(child, parents + [node], context) for child in children]
         return self.es_item_factory.build(cls, items)
 
     def _must_operation(self, *args, **kwargs):
@@ -186,71 +253,21 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
     def visit_or_operation(self, *args, **kwargs):
         return self._should_operation(*args, **kwargs)
 
-    def visit_word(self, node, parents, context):
-        return self.es_item_factory.build(
-            EWord,
-            q=node.value,
-            default_field=self.default_field
-        )
-
-    def _set_fields_in_all_children(self, enode, field_name):
-        """
-        Recursive method to set the field name even in nested enode.
-        For instance in this case: field:(spam OR eggs OR (monthy AND python))
-        """
-        if isinstance(enode, AbstractEItem):
-            enode.add_field(field_name)
-        elif isinstance(enode, ENested):
-            nested_path_to_add = field_name.split('.' + enode.nested_path)[0]
-            enode.add_nested_path(nested_path_to_add)
-            self._set_fields_in_all_children(enode.items, field_name)
-        else:
-            for item in enode.items:
-                self._set_fields_in_all_children(item, field_name)
-
-    def _is_nested(self, node):
-        if isinstance(node, SearchField) and '.' in node.name:
-            return True
-
-        for child in node.children:
-            if isinstance(child, SearchField):
-                return True
-            elif self._is_nested(child):
-                return True
-
-        return False
-
-    def _create_nested(self, node_name, items):
-
-        nested_path = node_name
-        if '.' in node_name:
-            # reverse the list
-            nesteds_path = node_name.split('.')[::-1]
-            # the first is the search field not a path
-            nested_path = nesteds_path.pop(1)
-
-        enode = self.es_item_factory.build(
-            ENested, nested_path=nested_path, items=items)
-
-        # if this is a paht with point(s) in it
-        if nested_path != node_name and len(nesteds_path) > 1:
-            node_name = '.'.join(nesteds_path)
-            return self._create_nested(node_name, enode)
-
-        return enode
-
     def visit_search_field(self, node, parents, context):
-        enode = self.visit(node.children[0], parents + [node])
-        if self._is_nested(node):
-            enode = self._create_nested(node_name=node.name, items=enode)
-            self._set_fields_in_all_children(enode.items, node.name)
-        else:
-            self._set_fields_in_all_children(enode, node.name)
-
+        child_context = dict(context) if context is not None else {}
+        prefix = self._field_prefix(context) + node.name.split(".")
+        name = ".".join(prefix)
+        child_context[self.CONTEXT_ANALYZE_MARKER] = name not in self._not_analyzed_fields
+        child_context[self.CONTEXT_FIELD_PREFIX] = prefix
+        enode = self.visit(node.children[0], parents + [node], child_context)
+        nested_path = self._split_nested(node, context)
+        skip_nesting = isinstance(enode, ENested)  # no need to nest a nested
+        if nested_path is not None and not skip_nesting:
+            enode = self.es_item_factory.build(ENested, nested_path=nested_path, items=enode)
         return enode
 
     def visit_not(self, node, parents, context):
-        items = [self.visit(n, parents + [node])
+        items = [self.visit(n, parents + [node], context)
                  for n in self.simplify_if_same(node.children, node)]
         return self.es_item_factory.build(EMustNot, items)
 
@@ -267,39 +284,59 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
             return self._must_operation(*args, **kwargs)
 
     def visit_boost(self, node, parents, context):
-        eword = self.visit(node.children[0], parents + [node])
+        eword = self.visit(node.children[0], parents + [node], context)
         eword.boost = float(node.force)
         return eword
 
     def visit_fuzzy(self, node, parents, context):
-        eword = self.visit(node.term, parents + [node])
+        eword = self.visit(node.term, parents + [node], context)
         eword.fuzziness = float(node.degree)
         return eword
 
     def visit_proximity(self, node, parents, context):
-        ephrase = self.visit(node.term, parents + [node])
-        ephrase.slop = float(node.degree)
+        ephrase = self.visit(node.term, parents + [node], context)
+        if self._is_analyzed(context):
+            ephrase.slop = float(node.degree)
+        else:
+            # on a term query the ~ is always fuziness
+            ephrase.fuzzyness = float(node.degree)
         return ephrase
 
-    def visit_phrase(self, node, parents, context):
+    def visit_word(self, node, parents, context):
         return self.es_item_factory.build(
-            EPhrase,
-            phrase=node.value,
-            default_field=self.default_field
+            EWord,
+            q=node.value,
+            method="match" if self._is_analyzed(context) else "term",
+            fields=self._fields(context),
         )
+
+    def visit_phrase(self, node, parents, context):
+        if self._is_analyzed(context):
+            return self.es_item_factory.build(
+                EPhrase,
+                phrase=node.value,
+                fields=self._fields(context),
+            )
+        else:
+            # in the case of a term, parenthesis are just there to escape spaces or colons
+            return self.es_item_factory.build(
+                EWord,
+                q=node.value[1:-1],  # remove quotes
+                fields=self._fields(context),
+            )
 
     def visit_range(self, node, parents, context):
         kwargs = {
             'gte' if node.include_low else 'gt': node.low.value,
             'lte' if node.include_high else 'lt': node.high.value,
         }
-        return self.es_item_factory.build(ERange, **kwargs)
+        return self.es_item_factory.build(ERange, fields=self._fields(context), **kwargs)
 
     def visit_group(self, node, parents, context):
-        return self.visit(node.expr, parents + [node])
+        return self.visit(node.expr, parents + [node], context)
 
     def visit_field_group(self, node, parents, context):
-        fields = self.visit(node.expr, parents + [node])
+        fields = self.visit(node.expr, parents + [node], context)
         return fields
 
     def __call__(self, tree):
@@ -309,5 +346,5 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         :param luqum.tree.Item tree: a luqum parse tree
         :return dict:
         """
-        CheckNestedFields(nested_fields=self.nested_fields)(tree)
+        self.nesting_checker(tree)
         return self.visit(tree).json

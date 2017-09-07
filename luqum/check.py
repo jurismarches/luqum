@@ -4,8 +4,9 @@ import math
 import re
 
 from . import tree
-from .exceptions import NestedSearchFieldException
-from .utils import LuceneTreeVisitorV2, normalize_nested_fields_specs
+from .exceptions import NestedSearchFieldException, ObjectSearchFieldException
+from .utils import LuceneTreeVisitorV2
+from .utils import flatten_nested_fields_specs, normalize_object_fields_specs
 
 
 def camel_to_lower(name):
@@ -146,11 +147,17 @@ class CheckNestedFields(LuceneTreeVisitorV2):
 
     :param nested_fields: a dict where keys are name of nested fields,
         values are dict of sub-nested fields or an empty dict for leaf
+    :param object_fields:
+        this is either None, in which case unknown object fields will be accepted,
+        or a dict of sub-nested fields (like nested_fields)
     """
 
-    def __init__(self, nested_fields):
+    def __init__(self, nested_fields, object_fields=None):
         assert(isinstance(nested_fields, dict))
-        self.nested_fields = normalize_nested_fields_specs(nested_fields)
+        self.object_fields = normalize_object_fields_specs(object_fields)
+        self.object_prefixes = set(k.rsplit(".", 1)[0] for k in self.object_fields or [])
+        self.nested_fields = flatten_nested_fields_specs(nested_fields)
+        self.nested_prefixes = set(k.rsplit(".", 1)[0] for k in self.nested_fields)
 
     def generic_visit(self, node, parents, context):
         """
@@ -159,50 +166,51 @@ class CheckNestedFields(LuceneTreeVisitorV2):
         for child in node.children:
             self.visit(child, parents + [node], context)
 
-    def _recurse_nested_fields(self, node, context, parents):
-        names = node.name.split(".")
-        nested_fields = context["nested_fields"]
-        current_field = context["current_field"]
-        for name in names:
-            if name in nested_fields:
-                # recurse
-                nested_fields = nested_fields[name]
-                current_field = name
-            elif current_field is not None:  # we are inside another field
-                if nested_fields:
-                    # calling an unknown field inside a nested one
-                    raise NestedSearchFieldException(
-                        '"{sub}" is not a subfield of "{field}" in "{expr}"'
-                        .format(sub=name, field=current_field, expr=str(parents[-1])))
-                else:
-                    # calling a field inside a non nested
-                    raise NestedSearchFieldException(
-                        '''"{sub}" can't be nested in "{field}" in "{expr}"'''
-                        .format(sub=name, field=current_field, expr=str(parents[-1])))
-            else:
-                # not a nested field, so no nesting any more
-                nested_fields = {}
-                current_field = name
-        return {"nested_fields": nested_fields, "current_field": current_field}
-
     def visit_search_field(self, node, parents, context):
         """
         On search field node, check nested fields logic
         """
-        context = dict(context)  # copy
-        context.update(self._recurse_nested_fields(node, context, parents))
+        child_context = dict(context)  # copy
+        child_context["prefix"] = context["prefix"] + node.name.split(".")
         for child in node.children:
-            self.visit(child, parents + [node], context)
+            self.visit(child, parents + [node], child_context)
+
+    def _check_final_operation(self, node, context):
+        prefix = context["prefix"]
+        if prefix:
+            fullname = ".".join(prefix)
+            if fullname in self.nested_prefixes:
+                raise NestedSearchFieldException(
+                    ('''"{expr}" can't be directly attributed to "{field}"''' +
+                     ''' as it is a nested field''')
+                    .format(expr=str(node), field=fullname))
+            elif fullname in self.object_prefixes:
+                raise NestedSearchFieldException(
+                    ('''"{expr}" can't be directly attributed to "{field}"''' +
+                     ''' as it is an object field''')
+                    .format(expr=str(node), field=fullname))
+            elif len(prefix) > 1:
+                unknown_field = (
+                    self.object_fields is not None and
+                    fullname not in self.object_fields and
+                    fullname not in self.nested_fields)
+                if unknown_field:
+                    raise ObjectSearchFieldException(
+                        '''"{expr}" attributed to unknown nested or object field "{field}"'''
+                        .format(expr=str(node), field=fullname))
+
+    def visit_phrase(self, node, parents, context):
+        """
+        On phrase field, verify term is in a final search field
+        """
+        self._check_final_operation(node, context)
 
     def visit_term(self, node, parents, context):
         """
         On term field, verify term is in a final search field
         """
-        if context["nested_fields"] and context["current_field"]:
-            raise NestedSearchFieldException(
-                '''"{expr}" can't be directly attributed to "{field}" as it is a nested field'''
-                .format(expr=str(node), field=context["current_field"]))
+        self._check_final_operation(node, context)
 
     def __call__(self, tree):
-        context = {"nested_fields": self.nested_fields, "current_field": None}
+        context = {"prefix": []}
         return self.visit(tree, context=context)

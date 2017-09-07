@@ -7,10 +7,20 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/spec
 Unreleased
 ============
 
+Added
+-----
+
+- Manage object fields in elasicsearch transformation
+
 Fixed
 -----
 
 - minor fix, getting better error message when parsing error is at the end of content
+
+Changed
+--------
+
+- better handling of nested fields may lead to shorter requests
 
 0.5.3 - 2017-08-21
 ==================

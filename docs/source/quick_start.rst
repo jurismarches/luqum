@@ -114,13 +114,14 @@ We may also pass default operator, and default fields::
    ...         {'range': {'published': {'lte': '1990-01-01T00:00:00.000Z'}}},
    ...         {'term': {'tag': {'value': 'fable'}}}]}})
 
-You may also use nested fields::
+You may also use nested fields or object fields::
 
    >>> es_builder = ElasticsearchQueryBuilder(
-   ...     nested_fields={"author": {"given_name", "last_name"}})
+   ...     nested_fields={"authors": {"given_name", "last_name", "city"}},
+   ...     object_fields=["authors.city.name"])
    >>> tree = parser.parse('''
    ...     title:"quick brown fox" AND
-   ...     author:(given_name:Ja* AND last_name:London)
+   ...     authors:(given_name:Ja* AND last_name:London AND city.name:"San Francisco")
    ...     ''')
    >>> query = es_builder(tree)
    >>> t.assertDictEqual(
@@ -130,18 +131,20 @@ You may also use nested fields::
    ...         {'nested': {
    ...             'query': {'bool': {'must': [
    ...                 {'query_string': {
-   ...                     'default_field': 'author.given_name',
+   ...                     'default_field': 'authors.given_name',
    ...                     'analyze_wildcard': True,
    ...                     'query': 'Ja*',
    ...                     'allow_leading_wildcard': True}},
-   ...                 {'match': {'author.last_name': {
+   ...                 {'match': {'authors.last_name': {
    ...                     'query': 'London',
    ...                     'type': 'phrase',
-   ...                     'zero_terms_query': 'all'}}}]}},
-   ...             'path': 'author'}}]}})
+   ...                     'zero_terms_query': 'all'}}},
+   ...                 {'match_phrase': {'authors.city.name': {
+   ...                     'query': 'San Francisco'}}}]}},
+   ...             'path': 'authors'}}]}})
 
 You can use this JSON directly with `elasticsearch python bindings`_,
-but also use it to build query with `elasticsearch_dsl`_.
+but also use it to build a query with `elasticsearch_dsl`_.
 
 .. note::
    The list of terms fields could, of course,

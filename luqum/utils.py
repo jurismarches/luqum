@@ -230,6 +230,14 @@ def normalize_nested_fields_specs(nested_fields):
         a dict of nested fields
         (if some of them are also nested)
         or a list of nesdted fields (this is for commodity)
+
+
+    ::
+        >>> from unittest import TestCase
+        >>> TestCase().assertDictEqual(
+        ...     normalize_nested_fields_specs(
+        ...         {"author" : {"books": ["name", "ref"], "firstname" : None }}),
+        ...     {"author" : {"books": {"name": {}, "ref": {}}, "firstname" : {} }})
     """
     if nested_fields is None:
         return {}
@@ -238,3 +246,70 @@ def normalize_nested_fields_specs(nested_fields):
     else:
         # should be an iterable, transform to dict
         return {sub: {} for sub in nested_fields}
+
+
+def _flatten_fields_specs(object_fields):
+    if not object_fields:
+        return [[]]  # parent is a single field
+    elif isinstance(object_fields, dict):
+        return [
+            [k] + v2
+            for k, v in object_fields.items()
+            for v2 in _flatten_fields_specs(v)]
+    else:  # iterable
+        return [[k] for k in object_fields]
+
+
+def flatten_nested_fields_specs(nested_fields):
+    """normalize object_fields specification to only have a simple set
+
+    :param dict nested_fields:  contains fields that are object in ES
+        has a serie of nested dict.
+        List are accepted as well for concisness.
+
+    ::
+        >>> from unittest import TestCase
+        >>> flatten_nested_fields_specs(None)
+        set()
+        >>> TestCase().assertEqual(
+        ...     flatten_nested_fields_specs(["author.name", "book.title"]),
+        ...     set(["author.name", "book.title"]))
+        >>> TestCase().assertEqual(
+        ...     flatten_nested_fields_specs(
+        ...         {"book" : { "author": ["firstname", "lastname"], "title" : None }}),
+        ...     set(["book.author.firstname", "book.author.lastname", "book.title"]))
+    """
+    if isinstance(nested_fields, dict):
+        return set(".".join(v) for v in _flatten_fields_specs(nested_fields))
+    elif nested_fields is None:
+        return set([])
+    else:
+        return set(nested_fields)
+
+
+def normalize_object_fields_specs(object_fields):
+    """normalize object_fields specification to only have a simple set
+
+    :param dict object_fields:  contains fields that are object in ES
+        has a serie of nested dict.
+        List are accepted as well for concisness.
+        None, which means no spec, is returned as is.
+
+    ::
+        >>> from unittest import TestCase
+        >>> normalize_object_fields_specs(None) is None
+        True
+        >>> TestCase().assertEqual(
+        ...     normalize_object_fields_specs(["author.name", "book.title"]),
+        ...     set(["author.name", "book.title"]))
+        >>> TestCase().assertEqual(
+        ...     normalize_object_fields_specs(
+        ...         {"book" : { "author": ["firstname", "lastname"], "title" : None }}),
+        ...     set(["book.author.firstname", "book.author.lastname", "book.title"]))
+    """
+    if object_fields is None:
+        return None
+    if isinstance(object_fields, dict):
+        return set(".".join(v) for v in _flatten_fields_specs(object_fields))
+    else:
+        return set(object_fields)

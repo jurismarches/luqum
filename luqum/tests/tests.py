@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from unittest import TestCase
 
-from luqum.exceptions import NestedSearchFieldException
+from luqum.exceptions import NestedSearchFieldException, ObjectSearchFieldException
 
 from ..check import LuceneCheck, CheckNestedFields
 from ..parser import lexer, parser, ParseError
@@ -704,49 +704,79 @@ class TreeVisitorV2TestCase(TestCase):
 
 class CheckVisitorTestCase(TestCase):
 
-    def setUp(self):
-
-        NESTED_FIELDS = {
-            'author': {
-                'firstname': {},
-                'book': {
-                    'title': {},
-                    'format': {
-                        'type': {}
-                    }
+    NESTED_FIELDS = {
+        'author': {
+            'firstname': {},
+            'book': {
+                'title': {},
+                'format': {
+                    'type': {}
                 }
-            },
-        }
+            }
+        },
+        'collection.keywords': {  # nested field inside an object field
+            'key': {},
+            'more_info.linked': { # again nested field inside an object field
+                'key': {}
+            }, 
+        },
+    }
 
-        self.checker = CheckNestedFields(nested_fields=NESTED_FIELDS)
+    OBJECT_FIELDS = [
+        'author.birth.city',
+        'collection.title', 'collection.ref', 'collection.keywords.more_info.revision']
 
-    def test_correct_nested_lucene_query_wo_point_not_raise(self):
+    def setUp(self):
+        self.checker = CheckNestedFields(nested_fields=self.NESTED_FIELDS)
+        self.strict_checker = CheckNestedFields(
+            nested_fields=self.NESTED_FIELDS, object_fields=self.OBJECT_FIELDS)
+
+    def test_correct_nested_lucene_query_column_not_raise(self):
         tree = parser.parse('author:book:title:"foo" AND '
                             'author:book:format:type: "pdf"')
+        self.strict_checker(tree)
+
+    def test_correct_object_lucene_query_column_not_raise(self):
+        tree = parser.parse('author:birth:city:"foo" AND '
+                            'collection:(ref:"foo" AND title:"bar")')
+        self.strict_checker(tree)
         self.checker(tree)
         self.assertIsNotNone(tree)
 
     def test_correct_nested_lucene_query_with_point_not_raise(self):
         tree = parser.parse('author.book.title:"foo" AND '
                             'author.book.format.type:"pdf"')
+        self.strict_checker(tree)
+        self.assertIsNotNone(tree)
+
+    def test_correct_object_lucene_query_with_point_not_raise(self):
+        tree = parser.parse('author.birth.city:"foo" AND '
+                            'collection.ref:"foo"')
+        self.strict_checker(tree)
         self.checker(tree)
         self.assertIsNotNone(tree)
 
-    def test_incorrect_nested_lucene_query_wo_point_raise(self):
+    def test_correct_object_mix_do_not_raise(self):
+        tree = parser.parse('author:(birth.city:"foo" AND book.title:"bar")')
+        self.strict_checker(tree)
+        self.checker(tree)
+        self.assertIsNotNone(tree)
+
+    def test_incorrect_nested_lucene_query_column_raise(self):
         tree = parser.parse('author:gender:"Mr" AND '
                             'author:book:format:type:"pdf"')
-        with self.assertRaises(NestedSearchFieldException) as e:
-            self.checker(tree)
-        self.assertIn('"gender"', str(e.exception))
+        with self.assertRaises(ObjectSearchFieldException) as e:
+            self.strict_checker(tree)
+        self.assertIn('author.gender', str(e.exception))
 
     def test_incorrect_nested_lucene_query_with_point_raise(self):
         tree = parser.parse('author.gender:"Mr" AND '
                             'author.book.format.type:"pdf"')
-        with self.assertRaises(NestedSearchFieldException) as e:
-            self.checker(tree)
-        self.assertIn('"gender"', str(e.exception))
+        with self.assertRaises(ObjectSearchFieldException) as e:
+            self.strict_checker(tree)
+        self.assertIn('"author.gender"', str(e.exception))
 
-    def test_correct_nested_lucene_query_with_and_wo_point_not_raise(self):
+    def test_correct_nested_lucene_query_with_and_column_not_raise(self):
         tree = parser.parse(
             'author:(book.title:"foo" OR book.title:"bar")')
         self.checker(tree)
@@ -755,27 +785,53 @@ class CheckVisitorTestCase(TestCase):
     def test_simple_query_with_a_nested_field_should_raise(self):
         tree = parser.parse('author:"foo"')
         with self.assertRaises(NestedSearchFieldException) as e:
-            self.checker(tree)
+            self.strict_checker(tree)
         self.assertIn('"author"', str(e.exception))
 
     def test_simple_query_with_a_multi_nested_field_should_raise(self):
         tree = parser.parse('author:book:"foo"')
         with self.assertRaises(NestedSearchFieldException) as e:
-            self.checker(tree)
-        self.assertIn('"book"', str(e.exception))
+            self.strict_checker(tree)
+        self.assertIn('"author.book"', str(e.exception))
 
     def test_complex_query_with_a_multi_nested_field_should_raise(self):
         tree = parser.parse('author:test OR author.firstname:"Hugo"')
         with self.assertRaises(NestedSearchFieldException) as e:
-            self.checker(tree)
+            self.strict_checker(tree)
         self.assertIn('"author"', str(e.exception))
 
-    def test_complex_query_wo_point_with_a_multi_nested_field_should_raise(self):
+    def test_complex_query_column_with_a_multi_nested_field_should_raise(self):
         tree = parser.parse('author:("test" AND firstname:Hugo)')
         with self.assertRaises(NestedSearchFieldException) as e:
-            self.checker(tree)
+            self.strict_checker(tree)
         self.assertIn('"author"', str(e.exception))
 
+    def test_complex_mix(self):
+        tree = parser.parse(
+            'collection:(title:"foo" AND keywords.more_info:(linked.key:"bar" revision:"test"))')
+        self.strict_checker(tree)
+        self.checker(tree)
+        self.assertIsNotNone(tree)
+
+    def test_complex_mix_raise(self):
+        tree = parser.parse(
+            'collection:(title:"foo" AND keywords.more_info:(linked:"bar" revision:"test"))')
+        with self.assertRaises(NestedSearchFieldException) as e:
+            self.strict_checker(tree)
+        self.assertIn('"collection.keywords.more_info.linked"', str(e.exception))
+        self.assertIsNotNone(tree)
+
+    def test_incomplete_object_field_raise(self):
+        tree = parser.parse('collection.keywords.more_info:"foo"')
+        with self.assertRaises(NestedSearchFieldException) as e:
+            self.strict_checker(tree)
+        self.assertIn('"collection.keywords.more_info"', str(e.exception))
+
+        tree = parser.parse('author:birth:"foo"')
+        with self.assertRaises(NestedSearchFieldException) as e:
+            self.strict_checker(tree)
+        self.assertIn('"author.birth"', str(e.exception))
+        
 
 class UnknownOperationResolverTestCase(TestCase):
 

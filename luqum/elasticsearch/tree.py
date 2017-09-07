@@ -25,10 +25,9 @@ class AbstractEItem(JsonSerializableMixin):
     _KEYS_TO_ADD = ('boost', 'fuzziness', )
     ADDITIONAL_KEYS_TO_ADD = ()
 
-    def __init__(self, no_analyze=None, method='term', default_field='text'):
+    def __init__(self, no_analyze=None, method='term', fields=[]):
         self._method = method
-        self._default_field = default_field
-        self._fields = []
+        self._fields = fields
         self._no_analyze = no_analyze if no_analyze else []
         self.zero_terms_query = 'none'
 
@@ -63,13 +62,7 @@ class AbstractEItem(JsonSerializableMixin):
 
     @property
     def field(self):
-        if self._fields:
-            return '.'.join(self._fields)
-        else:
-            return self._default_field
-
-    def add_field(self, field):
-        self._fields.insert(0, field)
+        return '.'.join(self._fields)
 
     @property
     def fuzziness(self):
@@ -84,31 +77,30 @@ class AbstractEItem(JsonSerializableMixin):
         return any(char in getattr(self, 'q', '') for char in ['*', '?'])
 
     def _is_analyzed(self):
-        return self.field in self._no_analyze
+        return self.field not in self._no_analyze
 
     @property
     def method(self):
-        if self._is_analyzed() and self._value_has_wildcard_char():
+        is_analyzed = self._is_analyzed()
+        if not is_analyzed and self._value_has_wildcard_char():
             return 'wildcard'
-        elif not self._is_analyzed() and self._value_has_wildcard_char():
+        elif is_analyzed and self._value_has_wildcard_char():
             return 'query_string'
-        elif not self._is_analyzed() and self._method == 'term':
-            return 'match'
         return self._method
 
 
 class EWord(AbstractEItem):
     """
     Build a word
-    >>> from unittest import TestCase
-    >>> TestCase().assertDictEqual(
-    ...     EWord(q='test').json,
-    ...     {'match': {'text': {
-    ...         'zero_terms_query': 'none',
-    ...         'type': 'phrase',
-    ...         'query': 'test'
-    ...     }}},
-    ... )
+
+    ::
+        >>> from unittest import TestCase
+        >>> TestCase().assertDictEqual(
+        ...     EWord(q='test', fields=["text"]).json,
+        ...     {'term': {'text': {
+        ...         'value': 'test'
+        ...     }}},
+        ... )
     """
 
     ADDITIONAL_KEYS_TO_ADD = ('q', )
@@ -127,11 +119,13 @@ class EWord(AbstractEItem):
 class EPhrase(AbstractEItem):
     """
     Build a phrase
-    >>> from unittest import TestCase
-    >>> TestCase().assertDictEqual(
-    ...     EPhrase(phrase='"another test"').json,
-    ...     {'match_phrase': {'text': {'query': 'another test'}}},
-    ... )
+
+    ::
+        >>> from unittest import TestCase
+        >>> TestCase().assertDictEqual(
+        ...     EPhrase(phrase='"another test"', fields=["text"]).json,
+        ...     {'match_phrase': {'text': {'query': 'another test'}}},
+        ... )
     """
 
     ADDITIONAL_KEYS_TO_ADD = ('query',)
@@ -164,11 +158,13 @@ class EPhrase(AbstractEItem):
 class ERange(AbstractEItem):
     """
     Build a range
-    >>> from unittest import TestCase
-    >>> TestCase().assertDictEqual(
-    ...     ERange(lt=100, gte=10).json,
-    ...     {'range': {'text': {'lt': 100, 'gte': 10}}},
-    ... )
+    ::
+
+        >>> from unittest import TestCase
+        >>> TestCase().assertDictEqual(
+        ...     ERange(lt=100, gte=10, fields=["text"]).json,
+        ...     {'range': {'text': {'lt': 100, 'gte': 10}}},
+        ... )
     """
 
     def __init__(self, lt=None, lte=None, gt=None, gte=None, *args, **kwargs):
@@ -225,9 +221,6 @@ class ENested(AbstractEOperation):
     def nested_path(self):
         return '.'.join(self._nested_path)
 
-    def add_nested_path(self, nested_path):
-        self._nested_path.insert(0, nested_path)
-
     def __repr__(self):
         return "%s(%s, %s)" % (self.__class__.__name__, self.nested_path, self.items)
 
@@ -235,24 +228,25 @@ class ENested(AbstractEOperation):
         """
         Rebuild tree excluding ENested in children if some are present
 
-        >>> from unittest import TestCase
-        >>> tree = EMust(items=[
-        ...     ENested(
-        ...         nested_path='a',
-        ...         nested_fields=['a'],
-        ...         items=EPhrase('"François"')
-        ...     ),
-        ...     ENested(
-        ...         nested_path='a',
-        ...         nested_fields=['a'],
-        ...         items=EPhrase('"Dupont"'))
-        ... ])
-        >>> nested_node = ENested(
-        ...     nested_path='a', nested_fields=['a'], items=tree)
-        >>> TestCase().assertEqual(
-        ...     nested_node.__repr__(),
-        ...     'ENested(a, EMust(EPhrase(text=François), EPhrase(text=Dupont)))'
-        ... )
+        ::
+            >>> from unittest import TestCase
+            >>> tree = EMust(items=[
+            ...     ENested(
+            ...         nested_path='a',
+            ...         nested_fields=['a'],
+            ...         items=EPhrase('"François"', fields=["text"])
+            ...     ),
+            ...     ENested(
+            ...         nested_path='a',
+            ...         nested_fields=['a'],
+            ...         items=EPhrase('"Dupont"', fields=["text"]))
+            ... ])
+            >>> nested_node = ENested(
+            ...     nested_path='a', nested_fields=['a'], items=tree)
+            >>> TestCase().assertEqual(
+            ...     nested_node.__repr__(),
+            ...     'ENested(a, EMust(EPhrase(text=François), EPhrase(text=Dupont)))'
+            ... )
         """
         if isinstance(subtree, ENested):
             # Exclude ENested
@@ -280,17 +274,20 @@ class ENested(AbstractEOperation):
 class EShould(EOperation):
     """
     Build a should operation
-    >>> from unittest import TestCase
-    >>> json = EShould(
-    ...     items=[EPhrase('"monty python"'), EPhrase('"spam eggs"')]
-    ... ).json
-    >>> TestCase().assertDictEqual(
-    ...     json,
-    ...     {'bool': {'should': [
-    ...         {'match_phrase': {'text': {'query': 'monty python'}}},
-    ...         {'match_phrase': {'text': {'query': 'spam eggs'}}},
-    ...     ]}}
-    ... )
+
+    ::
+        >>> from unittest import TestCase
+        >>> json = EShould(
+        ...     items=[EPhrase('"monty python"', fields=["text"]),
+        ...            EPhrase('"spam eggs"', fields=["text"])]
+        ... ).json
+        >>> TestCase().assertDictEqual(
+        ...     json,
+        ...     {'bool': {'should': [
+        ...         {'match_phrase': {'text': {'query': 'monty python'}}},
+        ...         {'match_phrase': {'text': {'query': 'spam eggs'}}},
+        ...     ]}}
+        ... )
     """
     operation = 'should'
 
@@ -307,17 +304,20 @@ class AbstractEMustOperation(EOperation):
 class EMust(AbstractEMustOperation):
     """
     Build a must operation
-    >>> from unittest import TestCase
-    >>> json = EMust(
-    ...     items=[EPhrase('"monty python"'), EPhrase('"spam eggs"')]
-    ... ).json
-    >>> TestCase().assertDictEqual(
-    ...     json,
-    ...     {'bool': {'must': [
-    ...         {'match_phrase': {'text': {'query': 'monty python'}}},
-    ...         {'match_phrase': {'text': {'query': 'spam eggs'}}},
-    ...     ]}}
-    ... )
+
+    ::
+        >>> from unittest import TestCase
+        >>> json = EMust(
+        ...     items=[EPhrase('"monty python"', fields=["text"]),
+        ...            EPhrase('"spam eggs"', fields=["text"])]
+        ... ).json
+        >>> TestCase().assertDictEqual(
+        ...     json,
+        ...     {'bool': {'must': [
+        ...         {'match_phrase': {'text': {'query': 'monty python'}}},
+        ...         {'match_phrase': {'text': {'query': 'spam eggs'}}},
+        ...     ]}}
+        ... )
     """
     zero_terms_query = 'all'
     operation = 'must'
@@ -326,13 +326,15 @@ class EMust(AbstractEMustOperation):
 class EMustNot(AbstractEMustOperation):
     """
     Build a must not operation
-    >>> from unittest import TestCase
-    >>> TestCase().assertDictEqual(
-    ...     EMustNot(items=[EPhrase('"monty python"')]).json,
-    ...     {'bool': {'must_not': [
-    ...         {'match_phrase': {'text': {'query': 'monty python'}}},
-    ...     ]}}
-    ... )
+
+    ::
+        >>> from unittest import TestCase
+        >>> TestCase().assertDictEqual(
+        ...     EMustNot(items=[EPhrase('"monty python"', fields=["text"])],).json,
+        ...     {'bool': {'must_not': [
+        ...         {'match_phrase': {'text': {'query': 'monty python'}}},
+        ...     ]}}
+        ... )
     """
     zero_terms_query = 'none'
     operation = 'must_not'
@@ -342,14 +344,16 @@ class ElasticSearchItemFactory:
     """
     Factory to preconfigure EItems and EOperation
     At the moment, it's only used to pass the _no_analyze field
-    >>> from unittest import TestCase
-    >>> factory = ElasticSearchItemFactory(
-    ...     no_analyze=['text'], nested_fields=[])
-    >>> word = factory.build(EWord, q='test')
-    >>> TestCase().assertDictEqual(
-    ...     word.json,
-    ...     {'term': {'text': {'value': 'test'}}},
-    ... )
+
+    ::
+        >>> from unittest import TestCase
+        >>> factory = ElasticSearchItemFactory(
+        ...     no_analyze=['text'], nested_fields=[])
+        >>> word = factory.build(EWord, q='test', fields=["text"])
+        >>> TestCase().assertDictEqual(
+        ...     word.json,
+        ...     {'term': {'text': {'value': 'test'}}},
+        ... )
     """
 
     def __init__(self, no_analyze, nested_fields):
