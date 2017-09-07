@@ -246,6 +246,8 @@ def p_phrase_or_term(p):
 # Error rule for syntax errors
 # TODO : should report better
 def p_error(p):
+    if p is None:
+        p = "(probably at end of input, may be unmatch parenthesis or so)"
     raise ParseError("Syntax error in input at %r!" % p)
 
 parser = yacc.yacc()

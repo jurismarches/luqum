@@ -7,6 +7,10 @@ and this project tries to adhere to [Semantic Versioning](http://semver.org/spec
 Unreleased
 ============
 
+Fixed
+-----
+
+- minor fix, getting better error message when parsing error is at the end of content
 
 0.5.3 - 2017-08-21
 ==================
