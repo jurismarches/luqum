@@ -56,14 +56,15 @@ class LuceneTreeVisitor:
             self._get_method_cache[type(node)] = meth
         return meth
 
-    def visit(self, node, parents=[]):
+    def visit(self, node, parents=None):
         """ Basic, recursive traversal of the tree. """
+        parents = parents or []
         method = self._get_method(node)
         yield from method(node, parents)
         for child in node.children:
             yield from self.visit(child, parents + [node])
 
-    def generic_visit(self, node, parents=[]):
+    def generic_visit(self, node, parents=None):
         """
         Default visitor function, called if nothing matches the current node.
         """
@@ -103,14 +104,15 @@ class LuceneTreeTransformer(LuceneTreeVisitor):
                 except ValueError:
                     pass
 
-    def generic_visit(self, node, parent=[]):
+    def generic_visit(self, node, parent=None):
         return node
 
-    def visit(self, node, parents=[]):
+    def visit(self, node, parents=None):
         """
         Recursively traverses the tree and replace nodes with the appropriate
         visitor method's return values.
         """
+        parents = parents or []
         method = self._get_method(node)
         new_node = method(node, parents)
         if parents:
