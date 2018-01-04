@@ -47,7 +47,6 @@ class AbstractEItem(JsonSerializableMixin):
             if value is not None:
                 if key == 'q' and self.method == 'match':
                     inner_json['query'] = value
-                    inner_json['type'] = 'phrase'
                     inner_json['zero_terms_query'] = self.zero_terms_query
                 elif key == 'q' and self.method == 'query_string':
                     inner_json['query'] = value
