@@ -9,7 +9,11 @@ luqum - A lucene query parser in Python, using PLY
 written in the `Lucene Query DSL`_ and build an abstract syntax tree 
 to inspect, analyze or otherwise manipulate search queries.
 
-Compatible with Python 3.3 & 3.4.
+It enables enriching the Lucene Query DSL meanings
+(for example to support nested object searches or have particular treatments on some fields),
+and transform lucene DSL queries to native `ElasticSearch JSON DSL`_
+
+Compatible with Python 3.4+
 
 Installation
 ============
@@ -30,6 +34,7 @@ http://luqum.readthedocs.org/en/latest/
 
 
 .. _`Lucene Query DSL` : https://lucene.apache.org/core/3_6_0/queryparsersyntax.html
+.. _`ElasticSearch JSON DSL`: https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html
 
 .. |logo| image:: https://raw.githubusercontent.com/jurismarches/luqum/master/luqum-logo.png
 
