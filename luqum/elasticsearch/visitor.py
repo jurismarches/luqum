@@ -9,6 +9,7 @@ from ..utils import (
     LuceneTreeVisitorV2,
     normalize_nested_fields_specs, normalize_object_fields_specs, flatten_nested_fields_specs)
 from ..check import CheckNestedFields
+from ..naming import get_name
 
 
 class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
@@ -308,6 +309,7 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
             q=node.value,
             method="match" if self._is_analyzed(context) else "term",
             fields=self._fields(context),
+            _name=get_name(node),
         )
 
     def visit_phrase(self, node, parents, context):
@@ -316,6 +318,7 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
                 EPhrase,
                 phrase=node.value,
                 fields=self._fields(context),
+                _name=get_name(node),
             )
         else:
             # in the case of a term, parenthesis are just there to escape spaces or colons
@@ -323,6 +326,7 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
                 EWord,
                 q=node.value[1:-1],  # remove quotes
                 fields=self._fields(context),
+                _name=get_name(node),
             )
 
     def visit_range(self, node, parents, context):
@@ -330,7 +334,12 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
             'gte' if node.include_low else 'gt': node.low.value,
             'lte' if node.include_high else 'lt': node.high.value,
         }
-        return self.es_item_factory.build(ERange, fields=self._fields(context), **kwargs)
+        return self.es_item_factory.build(
+            ERange,
+            _name=get_name(node),
+            fields=self._fields(context),
+            **kwargs
+        )
 
     def visit_group(self, node, parents, context):
         return self.visit(node.expr, parents + [node], context)

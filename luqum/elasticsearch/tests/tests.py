@@ -7,6 +7,7 @@ from luqum.tree import (
     AndOperation, Word, Prohibit, OrOperation, Not, Phrase, SearchField,
     UnknownOperation, Boost, Fuzzy, Proximity, Range, Group, FieldGroup,
     Plus)
+from ...naming import set_name
 from ..visitor import ElasticsearchQueryBuilder
 
 
@@ -441,6 +442,94 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
         }
         result = self.transformer(tree)
         self.assertDictEqual(result, expected)
+
+    def test_named_queries_simple(self):
+        tree = SearchField("spam", Word("bar"))
+        set_name(tree.children[0], "0")
+        result = self.transformer(tree)
+        self.assertEqual(
+            result,
+            {
+                "match": {
+                    "spam": {
+                        "query": "bar",
+                        "_name": "0",
+                        "type": "phrase",
+                        "zero_terms_query": "none",
+                    },
+                },
+            },
+        )
+
+        tree = SearchField("spam", Phrase('"foo bar"'))
+        set_name(tree.children[0], "0")
+        result = self.transformer(tree)
+        self.assertEqual(
+            result,
+            {
+                "match_phrase": {
+                    "spam": {
+                        "query": "foo bar",
+                        "_name": "0",
+                    },
+                },
+            },
+        )
+
+        tree = SearchField("text", Word("bar"))
+        set_name(tree.children[0], "0")
+        result = self.transformer(tree)
+        self.assertEqual(
+            result,
+            {"term": {"text": {"value": "bar", "_name": "0"}}},
+        )
+
+        tree = SearchField("text", Phrase('"foo bar"'))
+        set_name(tree.children[0], "0")
+        result = self.transformer(tree)
+        self.assertEqual(
+            result,
+            {"term": {"text": {"value": "foo bar", "_name": "0"}}},
+        )
+
+    def test_named_queries_nested_auto_name(self):
+        tree = (
+            AndOperation(
+                SearchField("text", Phrase('"foo bar"')),
+                Group(
+                    OrOperation(
+                        Word("bar"),
+                        SearchField("spam", Word("baz")),
+                    ),
+                ),
+            )
+        )
+        and_op = tree
+        foo_bar = and_op.operands[0].expr
+        or_op = and_op.operands[1].expr
+        bar = or_op.operands[0]
+        baz = or_op.operands[1].expr
+        set_name(and_op, "and_op")
+        set_name(foo_bar, "foo_bar")
+        set_name(or_op, "or_op")
+        set_name(bar, "bar")
+        set_name(baz, "baz")
+
+        expected = {
+            'bool': {'must': [
+                {'term': {'text': {'_name': 'foo_bar', 'value': 'foo bar'}}},
+                {'bool': {'should': [
+                    {'term': {'text': {'_name': 'bar', 'value': 'bar'}}},
+                    {'match': {'spam': {'_name': 'baz',
+                                        'query': 'baz',
+                                        'type': 'phrase',
+                                        'zero_terms_query': 'none'}}}
+                ]}}
+            ]}
+        }
+
+        result = self.transformer(tree)
+        self.assertEqual(result, expected)
 
 
 class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):

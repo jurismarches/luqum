@@ -253,8 +253,7 @@ class BaseOperation(Item):
     Parent class for binary operations are binary operation used to join expressions,
     like OR and AND
 
-    :param a: left hand expression
-    :param b: right hand expression
+    :param *operands: expressions to apply operation on
     """
     def __init__(self, *operands):
         self.operands = operands

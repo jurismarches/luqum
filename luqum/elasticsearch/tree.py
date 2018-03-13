@@ -22,14 +22,16 @@ class AbstractEItem(JsonSerializableMixin):
     boost = None
     _fuzzy = None
 
-    _KEYS_TO_ADD = ('boost', 'fuzziness', )
+    _KEYS_TO_ADD = ('boost', 'fuzziness', '_name')
     ADDITIONAL_KEYS_TO_ADD = ()
 
-    def __init__(self, no_analyze=None, method='term', fields=[]):
+    def __init__(self, no_analyze=None, method='term', fields=[], _name=None):
         self._method = method
         self._fields = fields
         self._no_analyze = no_analyze if no_analyze else []
         self.zero_terms_query = 'none'
+        if _name is not None:
+            self._name = _name
 
     @property
     def json(self):
@@ -43,19 +45,20 @@ class AbstractEItem(JsonSerializableMixin):
         # add base conf
         keys = self._KEYS_TO_ADD + self.ADDITIONAL_KEYS_TO_ADD
         for key in keys:
-            value = getattr(self, key)
+            value = getattr(self, key, None)
             if value is not None:
-                if key == 'q' and self.method == 'match':
-                    inner_json['query'] = value
-                    inner_json['type'] = 'phrase'
-                    inner_json['zero_terms_query'] = self.zero_terms_query
-                elif key == 'q' and self.method == 'query_string':
-                    inner_json['query'] = value
-                    inner_json['analyze_wildcard'] = True
-                    inner_json['default_field'] = self.field
-                    inner_json['allow_leading_wildcard'] = True
-                elif key == 'q':
-                    inner_json['value'] = value
+                if key == 'q':
+                    if self.method == 'match':
+                        inner_json['query'] = value
+                        inner_json['type'] = 'phrase'
+                        inner_json['zero_terms_query'] = self.zero_terms_query
+                    elif self.method == 'query_string':
+                        inner_json['query'] = value
+                        inner_json['analyze_wildcard'] = True
+                        inner_json['default_field'] = self.field
+                        inner_json['allow_leading_wildcard'] = True
+                    else:
+                        inner_json['value'] = value
                 else:
                     inner_json[key] = value
         return json
@@ -111,6 +114,7 @@ class EWord(AbstractEItem):
 
     @property
     def json(self):
+        # field:* is transformed to exists query
         if self.q == '*':
             return {"exists": {"field": self.field}}
         return super().json
