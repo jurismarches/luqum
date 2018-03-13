@@ -24,7 +24,6 @@ Changed
 --------
 
 - dropped official Python 3.3 support
-- added Python 3.7 support
 
 0.6.0 - 2017-12-12
 ==================
