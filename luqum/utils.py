@@ -68,7 +68,7 @@ class LuceneTreeVisitor:
         """
         Default visitor function, called if nothing matches the current node.
         """
-        return iter([])     # No-op
+        return iter([])  # No-op
 
 
 class LuceneTreeTransformer(LuceneTreeVisitor):
@@ -82,6 +82,7 @@ class LuceneTreeTransformer(LuceneTreeVisitor):
     otherwise it is replaced with the return value. The return value may be the
     original node, in which case no replacement takes place.
     """
+
     def replace_node(self, old_node, new_node, parent):
         for k, v in parent.__dict__.items():
             if v == old_node:
@@ -90,7 +91,10 @@ class LuceneTreeTransformer(LuceneTreeVisitor):
             elif isinstance(v, list):
                 try:
                     i = v.index(old_node)
-                    v[i] = new_node
+                    if new_node is None:
+                        del v[i]
+                    else:
+                        v[i] = new_node
                     break
                 except ValueError:
                     pass
@@ -98,7 +102,10 @@ class LuceneTreeTransformer(LuceneTreeVisitor):
                 try:
                     i = v.index(old_node)
                     v = list(v)
-                    v[i] = new_node
+                    if new_node is None:
+                        del v[i]
+                    else:
+                        v[i] = new_node
                     parent.__dict__[k] = tuple(v)
                     break
                 except ValueError:
