@@ -492,6 +492,22 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
             {"term": {"text": {"value": "foo bar", "_name": "0"}}},
         )
 
+        tree = SearchField("text", Fuzzy(Word('bar')))
+        set_name(tree.expr.term, "0")
+        result = self.transformer(tree)
+        self.assertEqual(
+            result,
+            {"fuzzy": {"text": {"value": "bar", "_name": "0", 'fuzziness': 0.5}}},
+        )
+
+        tree = SearchField("text", Fuzzy(Phrase('"foo bar"')))
+        set_name(tree.expr.term, "0")
+        result = self.transformer(tree)
+        self.assertEqual(
+            result,
+            {"fuzzy": {"text": {"value": "foo bar", "_name": "0", 'fuzziness': 0.5}}},
+        )
+
     def test_named_queries_nested_auto_name(self):
         tree = (
             AndOperation(

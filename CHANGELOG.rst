@@ -4,6 +4,22 @@ Changelog for luqum
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project tries to adhere to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+Unreleased
+============
+
+Added
+-----
+
+- Support for named queries (see `elastic named queries`__)
+
+Fixed
+-----
+
+- small fix in utils.TreeTransformerV2,
+  which was not removing elements from lists or tuple as stated
+
+__ https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-named-queries-and-filters.html
+
 0.6.0 - 2017-12-12
 ==================
 

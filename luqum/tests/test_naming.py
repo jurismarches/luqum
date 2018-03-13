@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 from unittest import TestCase
 
-from ..naming import get_name, set_name, auto_name, name_index
+from ..naming import get_name, set_name, auto_name, name_index, extract
 from ..parser import parser
 from ..tree import (
-    AndOperation, OrOperation, UnknownOperation, SearchField, Word, Phrase, Range, Group)
+    AndOperation, OrOperation, UnknownOperation, SearchField,
+    Fuzzy, Proximity, Word, Phrase, Range, Group)
 
 
 class AutoNameTestCase(TestCase):
@@ -39,13 +40,13 @@ class AutoNameTestCase(TestCase):
             OrOperation(
                 SearchField("bar", Word("test")),
                 AndOperation(
-                    Phrase('"test"'),
+                    Proximity(Phrase('"test"'), 2),
                     SearchField("baz", Word("test")),
                 ),
             ),
             Group(
                 UnknownOperation(
-                    Word("test"),
+                    Fuzzy(Word("test")),
                     Phrase('"test"'),
                 ),
             ),
@@ -65,8 +66,8 @@ class AutoNameTestCase(TestCase):
         # --- and
         and2 = or1.children[1]
         self.assertEqual(get_name(and2), "0_0_1")
-        # ----- phrase
-        self.assertEqual(get_name(and2.children[0]), "0_0_1_0")
+        # ----- proximity phrase
+        self.assertEqual(get_name(and2.children[0].term), "0_0_1_0")
         # ----- search field word
         sfield2 = and2.children[1]
         self.assertFalse(get_name(sfield2))
@@ -77,8 +78,8 @@ class AutoNameTestCase(TestCase):
         # --- unknown op
         unknownop1 = group1.children[0]
         self.assertEqual(get_name(unknownop1), "0_1")
-        # ----- word
-        self.assertEqual(get_name(unknownop1.children[0]), "0_1_0")
+        # ----- fuzzy word
+        self.assertEqual(get_name(unknownop1.children[0].term), "0_1_0")
         # ----- phrase
         self.assertEqual(get_name(unknownop1.children[1]), "0_1_1")
 
@@ -99,7 +100,7 @@ class NameIndexTestCase(TestCase):
 
     def test_name_index_nested(self):
         # we use parsing for this way, it's more evident to see index is right
-        expr = 'bar:baz OR (foo AND "foo bar") OR spam:(bazz dazz)'
+        expr = 'bar:baz OR (foo~2 AND "foo bar") OR spam:(bazz dazz)'
 
         tree = parser.parse(expr)
         self.assertEqual(str(tree), expr)  # needs to be sure
@@ -108,7 +109,7 @@ class NameIndexTestCase(TestCase):
         bar_search_field = tree.children[0]
         baz = bar_search_field.expr
         and_op = tree.children[1].children[0]
-        foo = and_op.children[0]
+        foo = and_op.children[0].term
         foo_bar = and_op.children[1]
         spam_search_field = tree.children[2]
         unknown_op = spam_search_field.expr.children[0]
@@ -126,11 +127,11 @@ class NameIndexTestCase(TestCase):
         result = name_index(tree)
 
         def _extract(name):
-            return expr[result[name][0]: result[name][0] + result[name][1]]
+            return extract(expr, name, result)
 
         self.assertEqual(_extract("root_or"), expr)
         self.assertEqual(_extract("baz"), "baz")
-        self.assertEqual(_extract("and_op"), 'foo AND "foo bar"')
+        self.assertEqual(_extract("and_op"), 'foo~2 AND "foo bar"')
         self.assertEqual(_extract("foo"), "foo")
         self.assertEqual(_extract("foo_bar"), '"foo bar"')
         self.assertEqual(_extract("unknown_op"), "bazz dazz")
@@ -158,7 +159,7 @@ class NameIndexTestCase(TestCase):
         result = name_index(tree)
 
         def _extract(name):
-            return expr[result[name][0]: result[name][0] + result[name][1]]
+            return extract(expr, name, result)
 
         self.assertEqual(_extract("or_op"), 'bar OR (foo AND "foo bar")')
         self.assertEqual(_extract("bar"), "bar")

@@ -189,11 +189,16 @@ that will smartly replace ``UnkownOperation`` by ``AndOperation`` or ``OrOperati
 Pretty printing
 ---------------
 
-Luqum also comes with a query pretty printer::
+Luqum also comes with a query pretty printer.
+
+Say we got an expression::
 
   >>> from luqum.pretty import prettify
   >>> tree = parser.parse(
   ...     'some_long_field:("some long value" OR "another quite long expression"~2 OR "even something more expanded"^4) AND yet_another_fieldname:[a_strange_value TO z]')
+
+We can pretty print it::
+
   >>> print(prettify(tree))
   some_long_field: (
       "some long value"
@@ -209,3 +214,57 @@ Luqum also comes with a query pretty printer::
 .. _`elasticsearch python bindings`: https://pypi.python.org/pypi/elasticsearch/
 .. _`elasticsearch_dsl`: https://pypi.python.org/pypi/elasticsearch-dsl
 .. _`Elasticsearch queries DSL`: https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html
+
+Named Queries
+--------------
+
+Luqum support using named queries.
+The main purpose would be to highlight to the user the matching parts of his query.
+
+Say we have a query::
+
+   >>> expr = "foo~2 OR (bar AND baz)"
+   >>> tree = parser.parse(expr)
+
+We can use :py:func:`luqum.naming.auto_name` to automatically add names::
+
+   >>> from luqum.naming import auto_name
+   >>> auto_name(tree)
+
+The generated elastic search queries use the names
+when  building the query (see `elastic named queries`__)::
+
+   >>> es_query = es_builder(tree)
+   >>> t.assertDictEqual(
+   ...     es_query,
+   ...     {'bool': {'should': [
+   ...         {'fuzzy': {'text': {'_name': '0_0', 'fuzziness': 2.0, 'value': 'foo'}}},
+   ...         {'bool': {'must': [
+   ...             {'match': {'text': {
+   ...                 '_name': '0_1_0',
+   ...                 'query': 'bar', 'type': 'phrase', 'zero_terms_query': 'all'}}},
+   ...             {'match': {'text': {
+   ...                 '_name': '0_1_1',
+   ...                 'query': 'baz', 'type': 'phrase', 'zero_terms_query': 'all'}}}
+   ...         ]}}
+   ...     ]}}
+   ... )
+
+If you use this on elasticsearch, for each record,
+elastic will return the part of the queries matched by the record, using their names.
+
+To display it to the user, we can find back which name refers to which  part of the query,
+using :py:func:`luqum.naming.name_index`::
+
+   >>> from luqum.naming import name_index, extract
+   >>> index = name_index(tree)
+   >>> index["0_1_0"]  # for each name, associate start index and length
+   (10, 3)
+   >>> extract(expr, "0_1_0", index)
+   'bar'
+   >>> extract(expr, "0_1", index)
+   'bar AND baz'
+   
+   
+
+__ https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-named-queries-and-filters.html

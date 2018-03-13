@@ -22,8 +22,7 @@ def get_name(node):
 
 
 class TreeAutoNamer(LuceneTreeVisitorV2):
-    """helper for :py:fun:`auto_name`
-    """
+    # helper for :py:func:`tree_name_index`
 
     def visit_base_operation(self, node, parents=None, context=None):
         # operations are the splitting point, we name them and make children subnames
@@ -42,7 +41,7 @@ class TreeAutoNamer(LuceneTreeVisitorV2):
         # no need to visit children
 
     def generic_visit(self, node, parents=None, context=None):
-        # no op
+        # just propagate to children
         for c in node.children:
             self.visit(c, context=context)
 
@@ -65,13 +64,7 @@ def auto_name(tree):
 
 
 class NameIndexer(LuceneTreeVisitorV2):
-    """
-    helper for :py:fun:`tree_name_index`
-
-    .. warning::
-        this is not an efficient implementation.
-        It will call str representation several times on each item, and seek for substrings.
-    """
+    # helper for :py:func:`tree_name_index`
 
     def generic_visit(self, node, parents=None, context=None):
         # visit children
@@ -115,6 +108,8 @@ def name_index(tree):
     also gives the node type.
 
     .. warning:: this is not an efficient implementation, see :py:class:TreeNameIndexer
+        It will call str representation several times on each item, and seek for substrings.
+
 
     :param tree: a luqum parse tree
     :return dict: mapping each name to a `(start position, length)` tuple
@@ -123,3 +118,13 @@ def name_index(tree):
     # flatten the hierarchy
     result = {name: (pos, length) for name, pos, length in _flatten_name_index(subnodes_pos)}
     return result
+
+
+def extract(expr, name, name_index):
+    """extract named part of expression, using name_index
+
+    :param str expr: the lucene expression
+    :param str name: name of the part to extract
+    :param dict name_index: the dict obtained from :py:func:`name_index`
+    """
+    return expr[name_index[name][0]: name_index[name][0] + name_index[name][1]]

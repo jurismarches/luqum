@@ -35,21 +35,29 @@ luqum.elasticsearch
 Utilities
 ==========
 
-luqum.utils
-------------
 
-.. automodule:: luqum.utils
+luqum.naming: Naming query parts
+---------------------------------
+
+.. automodule:: luqum.naming
    :members:
    :member-order: bysource
 
-luqum.pretty
---------------
+luqum.pretty: Pretty printing
+------------------------------
 
 .. automodule:: luqum.pretty
    :members:
 
-luqum.check
---------------
+luqum.check: Checking for validity
+-----------------------------------
 
 .. automodule:: luqum.check
    :members:
+
+luqum.utils: Misc
+-----------------
+
+.. automodule:: luqum.utils
+   :members:
+   :member-order: bysource

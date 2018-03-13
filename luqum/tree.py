@@ -195,6 +195,10 @@ class BaseApprox(Item):
     def __repr__(self):
         return "%s(%s, %s)" % (self.__class__.__name__, self.term.__repr__(), self.degree)
 
+    @property
+    def children(self):
+        return [self.term]
+
 
 class Fuzzy(BaseApprox):
     """Fuzzy search on word
@@ -253,7 +257,7 @@ class BaseOperation(Item):
     Parent class for binary operations are binary operation used to join expressions,
     like OR and AND
 
-    :param *operands: expressions to apply operation on
+    :param operands: expressions to apply operation on
     """
     def __init__(self, *operands):
         self.operands = operands
