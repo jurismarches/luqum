@@ -20,6 +20,12 @@ Fixed
 
 __ https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-named-queries-and-filters.html
 
+Changed
+--------
+
+- dropped official Python 3.3 support
+- added Python 3.7 support
+
 0.6.0 - 2017-12-12
 ==================
 
