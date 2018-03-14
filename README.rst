@@ -41,7 +41,7 @@ http://luqum.readthedocs.org/en/latest/
 .. _`Lucene Query DSL` : https://lucene.apache.org/core/3_6_0/queryparsersyntax.html
 .. _`ElasticSearch JSON DSL`: https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html
 
-.. _`PLY`: http://www.dabeaz.com/ply/
+.. _`PLY`: http://www.dabeaz.com/ply/
 
 .. |logo| image:: https://raw.githubusercontent.com/jurismarches/luqum/master/luqum-logo.png
 
