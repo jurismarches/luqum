@@ -23,7 +23,7 @@ setup(
         'luqum.elasticsearch'
     ],
     install_requires=[
-        'ply==3.10',
+        'ply>=3.11',
     ],
     classifiers=[
         'Development Status :: 4 - Beta',

@@ -29,7 +29,7 @@ Installation
 Dependencies
 ============
 
-PLY==3.8
+`PLY`_ >= 3.11
 
 
 Full documentation
@@ -40,6 +40,8 @@ http://luqum.readthedocs.org/en/latest/
 
 .. _`Lucene Query DSL` : https://lucene.apache.org/core/3_6_0/queryparsersyntax.html
 .. _`ElasticSearch JSON DSL`: https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html
+
+.. _`PLY`: http://www.dabeaz.com/ply/
 
 .. |logo| image:: https://raw.githubusercontent.com/jurismarches/luqum/master/luqum-logo.png
 
@@ -56,3 +58,5 @@ http://luqum.readthedocs.org/en/latest/
 .. |readthedocs| image:: https://readthedocs.org/projects/luqum/badge/?version=latest
     :target: http://luqum.readthedocs.org/en/latest/?badge=latest
     :alt: Documentation Status
+
+
