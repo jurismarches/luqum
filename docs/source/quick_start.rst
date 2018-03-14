@@ -10,7 +10,9 @@ Quick start
 Parsing
 -------
 
-To parse a query you need to import the parser, and give it a string to parse::
+.. py:currentmodule:: luqum.parser
+
+To parse a query you need to import the :py:data:`parser`, and give it a string to parse::
 
     >>> from luqum.parser import parser
     >>> tree = parser.parse('(title:"foo bar" AND body:"quick fox") OR title:fox')
@@ -64,7 +66,10 @@ In the previous request we can modify ``"foo bar"`` for ``"lazy dog"``::
 That was a bit tedious. Of course, normally you will use recursion and visitor pattern
 to do such things.
 
-Luqum does provide some helpers for this::
+
+.. py:currentmodule:: luqum.utils
+
+Luqum does provide some helpers like :py:class:`LuceneTreeTransformer` for this::
 
     >>> from luqum.utils import LuceneTreeTransformer
     >>> class MyTransformer(LuceneTreeTransformer):
@@ -87,72 +92,141 @@ Luqum also offers you to transform Lucene queries to `Elasticsearch queries DSL`
 
 This is useful to extend capacities of Lucene queries and get the best out of elastic search.
 
+The hard way
+.............
+
 To help interpret the requests,
 we need to pass a list of fields to consider as terms (as opposed to full text searches).
 We may also pass default operator, and default fields::
 
-   >>> from luqum.elasticsearch import ElasticsearchQueryBuilder
-   >>> es_builder = ElasticsearchQueryBuilder(not_analyzed_fields=["published", "tag"])
-
-   >>> tree = parser.parse('''
-   ...     title:("brown fox" AND quick AND NOT dog) AND
-   ...     published:[* TO 1990-01-01T00:00:00.000Z] AND
-   ...     tag:fable
-   ...     ''')
-   >>> query = es_builder(tree)
-   >>> t.assertDictEqual(
-   ...     query,
-   ...     {'bool': {'must': [
-   ...         {'bool': {'must': [
-   ...             {'match_phrase': {'title': {'query': 'brown fox'}}},
-   ...             {'match': {'title': {'query': 'quick',
-   ...                                  'type': 'phrase',
-   ...                                  'zero_terms_query': 'all'}}},
-   ...             {'bool': {'must_not': [{'match': {'title': {'query': 'dog',
-   ...                                                         'type': 'phrase',
-   ...                                                         'zero_terms_query': 'none'}}}]}}]}},
-   ...         {'range': {'published': {'lte': '1990-01-01T00:00:00.000Z'}}},
-   ...         {'term': {'tag': {'value': 'fable'}}}]}})
+    >>> from luqum.elasticsearch import ElasticsearchQueryBuilder
+    >>> es_builder = ElasticsearchQueryBuilder(not_analyzed_fields=["published", "tag"])
+   
+    >>> tree = parser.parse('''
+    ...     title:("brown fox" AND quick AND NOT dog) AND
+    ...     published:[* TO 1990-01-01T00:00:00.000Z] AND
+    ...     tag:fable
+    ...     ''')
+    >>> query = es_builder(tree)
+    >>> t.assertDictEqual(
+    ...     query,
+    ...     {'bool': {'must': [
+    ...         {'bool': {'must': [
+    ...             {'match_phrase': {'title': {'query': 'brown fox'}}},
+    ...             {'match': {'title': {'query': 'quick',
+    ...                                  'type': 'phrase',
+    ...                                  'zero_terms_query': 'all'}}},
+    ...             {'bool': {'must_not': [{'match': {'title': {'query': 'dog',
+    ...                                                         'type': 'phrase',
+    ...                                                         'zero_terms_query': 'none'}}}]}}]}},
+    ...         {'range': {'published': {'lte': '1990-01-01T00:00:00.000Z'}}},
+    ...         {'term': {'tag': {'value': 'fable'}}}]}})
 
 You may also use nested fields or object fields::
 
-   >>> es_builder = ElasticsearchQueryBuilder(
-   ...     nested_fields={"authors": {"given_name", "last_name", "city"}},
-   ...     object_fields=["authors.city.name"])
-   >>> tree = parser.parse('''
-   ...     title:"quick brown fox" AND
-   ...     authors:(given_name:Ja* AND last_name:London AND city.name:"San Francisco")
-   ...     ''')
-   >>> query = es_builder(tree)
-   >>> t.assertDictEqual(
-   ...     query,
-   ...     {'bool': {'must': [
-   ...         {'match_phrase': {'title': {'query': 'quick brown fox'}}},
-   ...         {'nested': {
-   ...             'query': {'bool': {'must': [
-   ...                 {'query_string': {
-   ...                     'default_field': 'authors.given_name',
-   ...                     'analyze_wildcard': True,
-   ...                     'query': 'Ja*',
-   ...                     'allow_leading_wildcard': True}},
-   ...                 {'match': {'authors.last_name': {
-   ...                     'query': 'London',
-   ...                     'type': 'phrase',
-   ...                     'zero_terms_query': 'all'}}},
-   ...                 {'match_phrase': {'authors.city.name': {
-   ...                     'query': 'San Francisco'}}}]}},
-   ...             'path': 'authors'}}]}})
+    >>> es_builder = ElasticsearchQueryBuilder(
+    ...     nested_fields={"authors": {"given_name", "last_name", "city"}},
+    ...     object_fields=["authors.city.name"])
+    >>> tree = parser.parse('''
+    ...     title:"quick brown fox" AND
+    ...     authors:(given_name:Ja* AND last_name:London AND city.name:"San Francisco")
+    ...     ''')
+    >>> query = es_builder(tree)
+    >>> t.assertDictEqual(
+    ...     query,
+    ...     {'bool': {'must': [
+    ...         {'match_phrase': {'title': {'query': 'quick brown fox'}}},
+    ...         {'nested': {
+    ...             'query': {'bool': {'must': [
+    ...                 {'query_string': {
+    ...                     'default_field': 'authors.given_name',
+    ...                     'analyze_wildcard': True,
+    ...                     'query': 'Ja*',
+    ...                     'allow_leading_wildcard': True}},
+    ...                 {'match': {'authors.last_name': {
+    ...                     'query': 'London',
+    ...                     'type': 'phrase',
+    ...                     'zero_terms_query': 'all'}}},
+    ...                 {'match_phrase': {'authors.city.name': {
+    ...                     'query': 'San Francisco'}}}]}},
+    ...             'path': 'authors'}}]}})
+
+The easy way
+.............
+
+.. py:currentmodule:: luqum.elasticsearch.visitor
+
+As the parameters to :py:class:`ElasticsearchQueryBuilder`
+can be deduced from ElasticSearch schema,
+we provide a tool to get them easily.
+Just give your ES Index configuration
+(that you have in you code, or that you ask to your ES instance),
+and it computes parameters for you.
+
+You got this schema::
+
+    >>> from luqum.elasticsearch import SchemaAnalyzer
+    >>> MESSAGES_SCHEMA = {
+    ...     "settings": {"query": {"default_field": "message"}},
+    ...     "mappings": {
+    ...         "type1": {
+    ...             "properties": {
+    ...                 "message": { "type": "text" },
+    ...                 "created": { "type": "date" },
+    ...                 "author": {
+    ...                     "type": "object",
+    ...                     "properties": {
+    ...                         "given_name": { "type": "keyword" },
+    ...                         "last_name": { "type": "keyword" },
+    ...                     },
+    ...                 },
+    ...                 "references": {
+    ...                     "type": "nested",
+    ...                     "properties": {
+    ...                         "link_type": { "type": "keyword" },
+    ...                         "link_url": {"type": "keyword"},
+    ...                     },
+    ...                 },
+    ...             },
+    ...         },
+    ...     },
+    ... }
+
+
+.. py:currentmodule:: luqum.elasticsearch.schema
+
+The schema analyzer (:py:class:`SchemaAnalyzer`)
+makes it easy to get a query builder::
+
+    >>> schema_analizer = SchemaAnalyzer(MESSAGES_SCHEMA)
+    >>> message_es_builder = ElasticsearchQueryBuilder(**schema_analizer.query_builder_options())
+
+That works::
+
+    >>> q = 'message:"exciting news" AND author.given_name:John AND references.link_type:action'
+    >>> tree = parser.parse(q)
+    >>> query = message_es_builder(tree)
+    >>> t.assertDictEqual(
+    ...     query,
+    ...     {'bool': {'must': [
+    ...         {'match_phrase': {'message': {'query': 'exciting news'}}},
+    ...         {'term': {'author.given_name': {'value': 'John'}}},
+    ...         {'nested':
+    ...             {'path': 'references',
+    ...              'query': {'term': {'references.link_type': {'value': 'action'}}},
+    ...             },
+    ...         },
+    ...     ]}}
+    ... )
+
 
 You can use this JSON directly with `elasticsearch python bindings`_,
 but also use it to build a query with `elasticsearch_dsl`_.
 
 .. note::
-   The list of terms fields could, of course,
-   be automatically deduced from the elasticsearch schema
-
-   Also there are some limitations to this transformation.
+   There are some limitations to this transformation.
    Please, refers to the API :ref:`elasticsearch-api`
-   
+
 
 Note that under the hood, the operation is too fold:
 it first create a new specific tree from the luqum tree.
@@ -165,10 +239,13 @@ This tree is then capable of giving it's JSON like represetation
 The unknown operation
 ----------------------
 
+
+.. py:currentmodule:: luqum.tree
+
 In query you may use an implicit operator
 leaving a blank between two expressions instead of OR or AND.
 Because the meaning of this operator is unknown at parsing time,
-it is replaced by a special ``UnknownOperation`` operation.
+it is replaced by a special :py:class:`UnknownOperation` operation.
 
 ::
 
@@ -189,7 +266,9 @@ that will smartly replace ``UnkownOperation`` by ``AndOperation`` or ``OrOperati
 Pretty printing
 ---------------
 
-Luqum also comes with a query pretty printer.
+.. py:currentmodule:: 
+
+Luqum also comes with a query pretty printer in :py:mod:`luqum.pretty`.
 
 Say we got an expression::
 
@@ -218,6 +297,9 @@ We can pretty print it::
 Named Queries
 --------------
 
+
+.. py:currentmodule:: luqum.naming
+
 Luqum support using named queries.
 The main purpose would be to highlight to the user the matching parts of his query.
 
@@ -226,7 +308,7 @@ Say we have a query::
    >>> expr = "foo~2 OR (bar AND baz)"
    >>> tree = parser.parse(expr)
 
-We can use :py:func:`luqum.naming.auto_name` to automatically add names::
+We can use :py:func:`auto_name` to automatically add names::
 
    >>> from luqum.naming import auto_name
    >>> auto_name(tree)
@@ -254,7 +336,7 @@ If you use this on elasticsearch, for each record,
 elastic will return the part of the queries matched by the record, using their names.
 
 To display it to the user, we can find back which name refers to which  part of the query,
-using :py:func:`luqum.naming.name_index`::
+using :py:func:`name_index` and :py:func:`extract`::
 
    >>> from luqum.naming import name_index, extract
    >>> index = name_index(tree)

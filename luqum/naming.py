@@ -57,8 +57,6 @@ def auto_name(tree):
 
     We add them to terminal nodes : range, phrases and words, as this is where it is useful,
     but also on operations, to easily grab the group.
-
-    see :py:class:`TreeAutoNamer.visit`
     """
     TreeAutoNamer().visit(tree)
 
@@ -107,8 +105,10 @@ def name_index(tree):
     """Given a tree with names, give the index of each group in the string representation.
     also gives the node type.
 
-    .. warning:: this is not an efficient implementation, see :py:class:TreeNameIndexer
+    .. warning:: this is not an efficient implementation,
         It will call str representation several times on each item, and seek for substrings.
+
+        see :py:class:`TreeNameIndexer`
 
 
     :param tree: a luqum parse tree

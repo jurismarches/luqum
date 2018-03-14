@@ -24,6 +24,14 @@ luqum.tree
 Transforming to Elastic Search queries
 ======================================
 
+luqum.schema
+------------
+
+.. autoclass:: luqum.elasticsearch.schema.SchemaAnalyzer
+   :members: 
+   :member-order: bysource
+
+
 luqum.elasticsearch
 --------------------
 

@@ -11,6 +11,8 @@ Added
 -----
 
 - Support for named queries (see `elastic named queries`__)
+- Helper to automatically create ElasticSearch query builder options from the index configuration,
+  see: luqum.schema
 
 Fixed
 -----
