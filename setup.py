@@ -13,7 +13,7 @@ with open('CHANGELOG.rst', 'r') as f:
 setup(
     name='luqum',
     version=__version__,
-    description="A Lucene query parser in Python, using PLY",
+    description="A Lucene query parser generating ElasticSearch queries and more !",
     long_description=long_description,
     author='Jurismarches',
     author_email='contact@jurismarches.com',

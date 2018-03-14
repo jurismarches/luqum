@@ -13,6 +13,11 @@ It enables enriching the Lucene Query DSL meanings
 (for example to support nested object searches or have particular treatments on some fields),
 and transform lucene DSL queries to native `ElasticSearch JSON DSL`_
 
+Thanks to luqum, your users may continue to write queries like:
+`author.last_name:Smith OR author:(age:[25 TO 34] AND first_name:John)`
+and you will be able to leverage ElasticSearch query DSL,
+and control the precise meaning of each search terms.
+
 Compatible with Python 3.4+
 
 Installation
