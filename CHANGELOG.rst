@@ -5,7 +5,7 @@ The format is based on `Keep a Changelog`_
 and this project tries to adhere to `Semantic Versioning`_.
 
 .. _`Keep a Changelog`: http://keepachangelog.com/en/1.0.0/
-.. _`Semantic Versioning`_ http://semver.org/spec/v2.0.0.html
+.. _`Semantic Versioning`: http://semver.org/spec/v2.0.0.html
 
 0.7.0 - 2018-03-20
 ==================
@@ -15,8 +15,8 @@ Added
 
 - Support for named queries (see `elastic named queries`__)
 - Helper to automatically create ElasticSearch query builder options from the index configuration,
-  see: :py:mod:`luqum.elasticsearch.schema`
-- a new arg `field_options` on :py:class:`luqum.elasticsearch.visitor.ElasticsearchQueryBuilder`
+  see: `luqum.elasticsearch.schema`
+- a new arg `field_options` on `luqum.elasticsearch.visitor.ElasticsearchQueryBuilder`
   allows to add parameters to field queries.
   It also permits to control the type of query for match queries.
 
