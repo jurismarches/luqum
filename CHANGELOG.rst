@@ -1,11 +1,14 @@
 Changelog for luqum
 ###################
 
-The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
-and this project tries to adhere to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
+The format is based on `Keep a Changelog`_
+and this project tries to adhere to `Semantic Versioning`_.
 
-Unreleased
-============
+.. _`Keep a Changelog`: http://keepachangelog.com/en/1.0.0/
+.. _`Semantic Versioning`_ http://semver.org/spec/v2.0.0.html
+
+0.7.0 - 2018-03-20
+==================
 
 Added
 -----
