@@ -60,3 +60,6 @@ docs/build/
 
 # PyBuilder
 target/
+
+# nose
+.noseids
