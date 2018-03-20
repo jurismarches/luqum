@@ -46,7 +46,8 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
     CONTEXT_FIELD_PREFIX = "field_prefix"
 
     def __init__(self, default_operator=SHOULD, default_field='text',
-                 not_analyzed_fields=None, nested_fields=None, object_fields=None):
+                 not_analyzed_fields=None, nested_fields=None, object_fields=None,
+                 field_options=None):
         """
         :param default_operator: to replace blank operator (MUST or SHOULD)
         :param default_field: to search
@@ -71,6 +72,15 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         :param object_fields: list containing full qualified names of object fields.
           You may also use a spec similar to the one used for nested_fields.
           None, will accept all non nested fields as object fields.
+        :param dict field_options: allows you to give defaults options for each fields.
+          They will be applied unless, overwritten by generated parameters.
+          For match query, the `type` parameter modifies the query type.
+
+        .. note::
+            some of the parameters above
+            can be deduced from elasticsearch index configuration.
+            see :py:meth:`luqum.elasticsearch.schema.SchemaAnalyzer.query_builder_options`
+
         """
 
         if not_analyzed_fields:
@@ -83,12 +93,13 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
             k.rsplit(".", 1)[0]
             for k in flatten_nested_fields_specs(self.nested_fields))
         self.object_fields = self._normalize_object_fields(object_fields)
-
+        self.field_options = field_options or {}
         self.default_operator = default_operator
         self.default_field = default_field
         self.es_item_factory = ElasticSearchItemFactory(
             no_analyze=self._not_analyzed_fields,
-            nested_fields=self.nested_fields
+            nested_fields=self.nested_fields,
+            field_options=self.field_options,
         )
         self.nesting_checker = CheckNestedFields(
             nested_fields=self.nested_fields, object_fields=self.object_fields)

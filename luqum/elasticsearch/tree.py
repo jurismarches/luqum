@@ -25,22 +25,24 @@ class AbstractEItem(JsonSerializableMixin):
     _KEYS_TO_ADD = ('boost', 'fuzziness', '_name')
     ADDITIONAL_KEYS_TO_ADD = ()
 
-    def __init__(self, no_analyze=None, method='term', fields=[], _name=None):
+    def __init__(self, no_analyze=None, method='term', fields=[], _name=None, field_options=None):
         self._method = method
         self._fields = fields
         self._no_analyze = no_analyze if no_analyze else []
         self.zero_terms_query = 'none'
+        self.field_options = field_options or {}
         if _name is not None:
             self._name = _name
 
     @property
     def json(self):
-
-        inner_json = {}
+        field = self.field
+        inner_json = dict(self.field_options.get(field, {}))
+        inner_json.pop('type', None)  # remove "type" key
         if self.method == 'query_string':
             json = {self.method: inner_json}
         else:
-            json = {self.method: {self.field: inner_json}}
+            json = {self.method: {field: inner_json}}
 
         # add base conf
         keys = self._KEYS_TO_ADD + self.ADDITIONAL_KEYS_TO_ADD
@@ -48,15 +50,15 @@ class AbstractEItem(JsonSerializableMixin):
             value = getattr(self, key, None)
             if value is not None:
                 if key == 'q':
-                    if self.method == 'match':
+                    if self.method.startswith('match'):
                         inner_json['query'] = value
-                        inner_json['type'] = 'phrase'
                         inner_json['zero_terms_query'] = self.zero_terms_query
                     elif self.method == 'query_string':
                         inner_json['query'] = value
-                        inner_json['analyze_wildcard'] = True
                         inner_json['default_field'] = self.field
-                        inner_json['allow_leading_wildcard'] = True
+                        inner_json['analyze_wildcard'] = inner_json.get('analyze_wildcard', True)
+                        inner_json['allow_leading_wildcard'] = inner_json.get(
+                            'allow_leading_wildcard', True)
                     else:
                         inner_json['value'] = value
                 else:
@@ -87,8 +89,11 @@ class AbstractEItem(JsonSerializableMixin):
         is_analyzed = self._is_analyzed()
         if not is_analyzed and self._value_has_wildcard_char():
             return 'wildcard'
-        elif is_analyzed and self._value_has_wildcard_char():
-            return 'query_string'
+        elif is_analyzed:
+            if self._value_has_wildcard_char():
+                return 'query_string'
+            elif self._method.startswith("match"):
+                return self.field_options.get(self.field, {}).get("type", self._method)
         return self._method
 
 
@@ -128,20 +133,20 @@ class EPhrase(AbstractEItem):
         >>> from unittest import TestCase
         >>> TestCase().assertDictEqual(
         ...     EPhrase(phrase='"another test"', fields=["text"]).json,
-        ...     {'match_phrase': {'text': {'query': 'another test'}}},
+        ...     {'match_phrase': {'text': {'query': 'another test', 'zero_terms_query': 'none'}}},
         ... )
     """
 
-    ADDITIONAL_KEYS_TO_ADD = ('query',)
+    ADDITIONAL_KEYS_TO_ADD = ('q',)
     _proximity = None
 
     def __init__(self, phrase, *args, **kwargs):
         super().__init__(method='match_phrase', *args, **kwargs)
         phrase = self._replace_CR_and_LF_by_a_whitespace(phrase)
-        self.query = self._remove_double_quotes(phrase)
+        self.q = self._remove_double_quotes(phrase)
 
     def __repr__(self):
-        return "%s(%s=%s)" % (self.__class__.__name__, self.field, self.query)
+        return "%s(%s=%s)" % (self.__class__.__name__, self.field, self.q)
 
     def _replace_CR_and_LF_by_a_whitespace(self, phrase):
         return re.sub(r'\s+', ' ', phrase)
@@ -288,8 +293,9 @@ class EShould(EOperation):
         >>> TestCase().assertDictEqual(
         ...     json,
         ...     {'bool': {'should': [
-        ...         {'match_phrase': {'text': {'query': 'monty python'}}},
-        ...         {'match_phrase': {'text': {'query': 'spam eggs'}}},
+        ...         {'match_phrase': {'text':
+        ...             {'query': 'monty python', 'zero_terms_query': 'none'}}},
+        ...         {'match_phrase': {'text': {'query': 'spam eggs', 'zero_terms_query': 'none'}}},
         ...     ]}}
         ... )
     """
@@ -318,8 +324,10 @@ class EMust(AbstractEMustOperation):
         >>> TestCase().assertDictEqual(
         ...     json,
         ...     {'bool': {'must': [
-        ...         {'match_phrase': {'text': {'query': 'monty python'}}},
-        ...         {'match_phrase': {'text': {'query': 'spam eggs'}}},
+        ...         {'match_phrase': {'text':
+        ...             {'query': 'monty python', 'zero_terms_query': 'all'}}},
+        ...         {'match_phrase': {'text':
+        ...             {'query': 'spam eggs', 'zero_terms_query': 'all'}}},
         ...     ]}}
         ... )
     """
@@ -336,7 +344,8 @@ class EMustNot(AbstractEMustOperation):
         >>> TestCase().assertDictEqual(
         ...     EMustNot(items=[EPhrase('"monty python"', fields=["text"])],).json,
         ...     {'bool': {'must_not': [
-        ...         {'match_phrase': {'text': {'query': 'monty python'}}},
+        ...         {'match_phrase': {'text':
+        ...             {'query': 'monty python', 'zero_terms_query': 'none'}}},
         ...     ]}}
         ... )
     """
@@ -347,25 +356,30 @@ class EMustNot(AbstractEMustOperation):
 class ElasticSearchItemFactory:
     """
     Factory to preconfigure EItems and EOperation
-    At the moment, it's only used to pass the _no_analyze field
 
     ::
         >>> from unittest import TestCase
         >>> factory = ElasticSearchItemFactory(
-        ...     no_analyze=['text'], nested_fields=[])
+        ...     no_analyze=['text'], nested_fields=[], field_options={"text": {"slop": 1}})
         >>> word = factory.build(EWord, q='test', fields=["text"])
         >>> TestCase().assertDictEqual(
         ...     word.json,
-        ...     {'term': {'text': {'value': 'test'}}},
+        ...     {'term': {'text': {'value': 'test', "slop": 1}}},
         ... )
     """
 
-    def __init__(self, no_analyze, nested_fields):
+    def __init__(self, no_analyze, nested_fields, field_options):
         self._no_analyze = no_analyze
         self._nested_fields = nested_fields
+        self._nested_fields = nested_fields
+        self._field_options = field_options
 
     def build(self, cls, *args, **kwargs):
+        # add parameters based on item type
         if issubclass(cls, AbstractEItem):
+            # eventually add field defaults to kwargs
+            if "field_options" not in kwargs:
+                kwargs = dict(kwargs, field_options=self._field_options)
             return cls(
                 no_analyze=self._no_analyze,
                 *args,

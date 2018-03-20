@@ -12,13 +12,18 @@ Added
 
 - Support for named queries (see `elastic named queries`__)
 - Helper to automatically create ElasticSearch query builder options from the index configuration,
-  see: luqum.schema
+  see: :py:mod:`luqum.elasticsearch.schema`
+- a new arg `field_options` on :py:class:`luqum.elasticsearch.visitor.ElasticsearchQueryBuilder`
+  allows to add parameters to field queries.
+  It also permits to control the type of query for match queries.
 
 Fixed
 -----
 
 - small fix in utils.TreeTransformerV2,
   which was not removing elements from lists or tuple as stated
+- single word matches, are now `match`, and not `match_phrase`
+- `match_phrase` has the `zero_terms_query` field, as for `match`
 
 __ https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-named-queries-and-filters.html
 

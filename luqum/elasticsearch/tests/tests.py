@@ -156,33 +156,33 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
     def test_should_transform_phrase(self):
         tree = SearchField("foo", Phrase('"spam eggs"'))
         result = self.transformer(tree)
-        expected = {"match_phrase": {"foo": {"query": 'spam eggs'}}}
+        expected = {"match_phrase": {"foo": {"query": 'spam eggs', 'zero_terms_query': 'none'}}}
         self.assertDictEqual(result, expected)
 
     def test_should_transform_empty_phrase(self):
         tree = SearchField("foo", Phrase('""'))
         result = self.transformer(tree)
-        expected = {"match_phrase": {"foo": {"query": ''}}}
+        expected = {"match_phrase": {"foo": {"query": '', 'zero_terms_query': 'none'}}}
         self.assertDictEqual(result, expected)
 
     def test_should_transform_phrase_with_custom_search_field(self):
         transformer = ElasticsearchQueryBuilder(default_field="custom")
         tree = Phrase('"spam eggs"')
         result = transformer(tree)
-        expected = {"match_phrase": {"custom": {"query": 'spam eggs'}}}
+        expected = {"match_phrase": {"custom": {"query": 'spam eggs', 'zero_terms_query': 'none'}}}
         self.assertDictEqual(result, expected)
 
     def test_should_transform_phrase_with_search_field(self):
         tree = SearchField('monthy', Phrase('"spam eggs"'))
         result = self.transformer(tree)
-        expected = {"match_phrase": {"monthy": {"query": 'spam eggs'}}}
+        expected = {"match_phrase": {"monthy": {"query": 'spam eggs', 'zero_terms_query': 'none'}}}
         self.assertDictEqual(result, expected)
 
     def test_should_transform_search_field(self):
         tree = SearchField("pays", Word("spam"))
         result = self.transformer(tree)
         expected = {
-            "match": {"pays": {"query": 'spam', 'type': 'phrase', 'zero_terms_query': 'none'}}}
+            "match": {"pays": {"query": 'spam', 'zero_terms_query': 'none'}}}
         self.assertDictEqual(result, expected)
 
     def test_should_transform_unknown_operation_default(self):
@@ -293,7 +293,7 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
         expected = {
             "match": {
                 "spam": {
-                    "query": 'egg', "boost": 1.0, 'type': 'phrase', 'zero_terms_query': 'none',
+                    "query": 'egg', "boost": 1.0, 'zero_terms_query': 'none',
                 },
             },
         }
@@ -315,7 +315,7 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
         tree = SearchField("foo", Proximity(Phrase('"spam and eggs"'), 1))
         result = self.transformer(tree)
         expected = {"match_phrase": {
-            "foo": {"query": "spam and eggs", "slop": 1.0}
+            "foo": {"query": "spam and eggs", "slop": 1.0, 'zero_terms_query': 'none'}
         }}
         self.assertDictEqual(result, expected)
 
@@ -323,7 +323,7 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
         tree = SearchField("spam", Proximity(Phrase('"Life of Bryan"'), 1))
         result = self.transformer(tree)
         expected = {"match_phrase": {
-            "spam": {"query": "Life of Bryan", "slop": 1.0}
+            "spam": {"query": "Life of Bryan", "slop": 1.0, 'zero_terms_query': 'none'}
         }}
         self.assertDictEqual(result, expected)
 
@@ -398,8 +398,8 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
         tree = SearchField("spam", FieldGroup(AndOperation(Word("monty"), Word("python"))))
         result = self.transformer(tree)
         expected = {'bool': {'must': [
-            {'match': {'spam': {'query': 'monty', 'type': 'phrase', 'zero_terms_query': 'all'}}},
-            {'match': {'spam': {'query': 'python', 'type': 'phrase', 'zero_terms_query': 'all'}}},
+            {'match': {'spam': {'query': 'monty', 'zero_terms_query': 'all'}}},
+            {'match': {'spam': {'query': 'python', 'zero_terms_query': 'all'}}},
         ]}}
         self.assertDictEqual(result, expected)
 
@@ -422,7 +422,6 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
                             {
                                 'match': {
                                     'author.name': {
-                                        'type': 'phrase',
                                         'query': 'Tolkien',
                                         'zero_terms_query': 'all'
                                     }
@@ -454,7 +453,6 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
                     "spam": {
                         "query": "bar",
                         "_name": "0",
-                        "type": "phrase",
                         "zero_terms_query": "none",
                     },
                 },
@@ -471,6 +469,7 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
                     "spam": {
                         "query": "foo bar",
                         "_name": "0",
+                        'zero_terms_query': 'none',
                     },
                 },
             },
@@ -536,10 +535,11 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
                 {'term': {'text': {'_name': 'foo_bar', 'value': 'foo bar'}}},
                 {'bool': {'should': [
                     {'term': {'text': {'_name': 'bar', 'value': 'bar'}}},
-                    {'match': {'spam': {'_name': 'baz',
-                                        'query': 'baz',
-                                        'type': 'phrase',
-                                        'zero_terms_query': 'none'}}}
+                    {'match': {'spam': {
+                        '_name': 'baz',
+                        'query': 'baz',
+                        'zero_terms_query': 'none'
+                    }}}
                 ]}}
             ]}
         }
@@ -547,6 +547,121 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
         result = self.transformer(tree)
         self.assertEqual(result, expected)
 
+    def test_options_match(self):
+        tree = SearchField("foo", Word("bar"))
+        transformer = ElasticsearchQueryBuilder(
+            field_options={"foo": {"type": "match"}}
+        )
+        self.assertEqual(
+            transformer(tree),
+            {"match": {"foo": {
+                "query": "bar",
+                "zero_terms_query": "none",
+            }}}
+        )
+        transformer = ElasticsearchQueryBuilder(
+            field_options={"foo": {
+                "type": "match_prefix",
+                "max_expansions": 3,
+            }}
+        )
+        self.assertEqual(
+            transformer(tree),
+            {"match_prefix": {"foo": {
+                "query": "bar",
+                "max_expansions": 3,
+                "zero_terms_query": "none",
+            }}},
+        )
+        # other fields not affected
+        tree = SearchField("baz", Word("bar"))
+        self.assertEqual(
+            transformer(tree),
+            {"match": {"baz": {
+                "query": "bar",
+                "zero_terms_query": "none",
+            }}}
+        )
+
+    def test_options_term(self):
+        transformer = ElasticsearchQueryBuilder(
+            not_analyzed_fields=["foo", "baz"],
+            field_options={"foo": {"boost": 2.0}}
+        )
+        tree = SearchField("foo", Word("bar"))
+        self.assertEqual(
+            transformer(tree),
+            {"term": {"foo": {
+                "value": "bar",
+                "boost": 2.0,
+            }}}
+        )
+        tree = SearchField("baz", Word("bar"))
+        self.assertEqual(
+            transformer(tree),
+            {"term": {"baz": {
+                "value": "bar",
+            }}}
+        )
+
+    def test_options_nested(self):
+        transformer = ElasticsearchQueryBuilder(
+            nested_fields={'author': ['name']},
+            field_options={"author.name": {"type": "match_prefix", "boost": 3.0}}
+        )
+        tree = SearchField("author.name", Word("bar"))
+        expected = {"nested": {
+            "path": "author",
+            "query": {
+                "match_prefix": {"author.name": {
+                    "query": "bar",
+                    "boost": 3.0,
+                    "zero_terms_query": "none",
+                }}
+            }
+        }}
+        self.assertEqual(transformer(tree), expected)
+        tree = SearchField("author", SearchField("name", Word("bar")))
+        self.assertEqual(transformer(tree), expected)
+
+    def test_options_deep(self):
+        """test options when field is inside a more complex query"""
+        transformer = ElasticsearchQueryBuilder(
+            default_field="foo",
+            not_analyzed_fields=["spam"],
+            field_options={"foo": {"type": "match", "boost": 2.0}}
+        )
+        tree = (
+            OrOperation(
+                SearchField(
+                    "foo",
+                    FieldGroup(AndOperation(Word("bar"), Boost(Phrase('"baz"'), 4.0))),
+                ),
+                Group(
+                    AndOperation(
+                        Word("oof"),
+                        SearchField("spam", Word("ham")),
+                    ),
+                )
+            )
+        )
+        expected = {
+            "bool": {"should": [
+                {"bool": {"must": [
+                    {"match": {"foo": {"query": "bar", "boost": 2.0, "zero_terms_query": "all"}}},
+                    {"match": {"foo":
+                        {"query": "baz", "boost": 4.0, "zero_terms_query": "all"}
+                    }},
+                ]}},
+                {"bool": {"must": [
+                    {"match": {"foo": {"query": "oof", "boost": 2.0, "zero_terms_query": "all"}}},
+                    {"term": {"spam": {"value": "ham"}}},
+                ]}},
+            ]},
+        }
+        result = transformer(tree)
+        self.assertEqual(result, expected)
+        
 
 class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
     """Those are tests issued from bugs found thanks to jurismarches requests
@@ -574,7 +689,7 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
         tree = parser.parse("spam:eggs")
         result = self.transformer(tree)
         expected = {'match': {'spam': {
-            'query': 'eggs', 'type': 'phrase', 'zero_terms_query': 'none'}}}
+            'query': 'eggs', 'zero_terms_query': 'none'}}}
         self.assertDictEqual(result, expected)
 
     def test_real_situation_2(self):
@@ -582,7 +697,7 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
         result = self.transformer(tree)
         expected = {'bool': {'must': [
             {'term': {'pays': {'value': 'FR'}}},
-            {'match': {'monty': {'query': 'python', 'type': 'phrase', 'zero_terms_query': 'all'}}},
+            {'match': {'monty': {'query': 'python', 'zero_terms_query': 'all'}}},
         ]}}
         self.assertDictEqual(result, expected)
 
@@ -590,16 +705,15 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
         tree = parser.parse("spam:de AND -monty:le AND title:alone")
         result = self.transformer(tree)
         expected = {'bool': {'must': [
-            {'match': {'spam': {'query': 'de', 'type': 'phrase', 'zero_terms_query': 'all'}}},
+            {'match': {'spam': {'query': 'de', 'zero_terms_query': 'all'}}},
             {'bool': {'must_not': [
                 {'match': {
                     'monty': {
                         'query': 'le',
-                        'type': 'phrase',
                         'zero_terms_query': 'none'
                     }}}
             ]}},
-            {'match': {'title': {'query': 'alone', 'type': 'phrase', 'zero_terms_query': 'all'}}}
+            {'match': {'title': {'query': 'alone', 'zero_terms_query': 'all'}}}
         ]}}
         self.assertDictEqual(result, expected)
 
@@ -607,13 +721,12 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
         tree = parser.parse("spam:eggs AND (monty:python OR life:bryan)")
         result = self.transformer(tree)
         expected = {'bool': {'must': [
-            {'match': {'spam': {'query': 'eggs', 'type': 'phrase', 'zero_terms_query': 'all'}}},
+            {'match': {'spam': {'query': 'eggs', 'zero_terms_query': 'all'}}},
             {'bool': {'should': [
                 {
                     'match': {
                         'monty': {
                             'query': 'python',
-                            'type': 'phrase',
                             'zero_terms_query': 'none',
                         },
                     },
@@ -622,7 +735,6 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
                     'match': {
                         'life': {
                             'query': 'bryan',
-                            'type': 'phrase',
                             'zero_terms_query': 'none',
                         },
                     },
@@ -635,7 +747,7 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
         tree = parser.parse("spam:eggs OR monty:{2 TO 4]")
         result = self.transformer(tree)
         expected = {'bool': {'should': [
-            {'match': {'spam': {'query': 'eggs', 'type': 'phrase', 'zero_terms_query': 'none'}}},
+            {'match': {'spam': {'query': 'eggs', 'zero_terms_query': 'none'}}},
             {'range': {'monty': {'lte': '4', 'gt': '2'}}},
         ]}}
         self.assertDictEqual(result, expected)
@@ -655,7 +767,7 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
         expected = {'bool': {'should': [
             {'term': {'pays': {'value': 'FR'}}},
             {'range': {'monty': {'lte': '4', 'gt': '2'}}},
-            {'match': {'text': {'query': 'python', 'type': 'phrase', 'zero_terms_query': 'none'}}},
+            {'match': {'text': {'query': 'python', 'zero_terms_query': 'none'}}},
         ]}}
         self.assertDictEqual(result, expected)
 
@@ -711,7 +823,8 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
 
         tree = parser.parse('spam:"monthy\r\n python"')
         result = self.transformer(tree)
-        expected = {'match_phrase': {'spam': {'query': 'monthy python'}}}
+        expected = {
+            'match_phrase': {'spam': {'query': 'monthy python', 'zero_terms_query': 'none'}}}
         self.assertDictEqual(result, expected)
 
 
@@ -775,7 +888,7 @@ class NestedAndObjectFieldsTestCase(TestCase):
                 "path": "author",
                 "query": {
                     "match_phrase": {
-                        "author.firstname": {"query": "François"}
+                        "author.firstname": {"query": "François", 'zero_terms_query': 'none'}
                     }
                 }
             }
@@ -794,7 +907,7 @@ class NestedAndObjectFieldsTestCase(TestCase):
                 "path": "author",
                 "query": {
                     "match_phrase": {
-                        "author.firstname": {"query": "François"}
+                        "author.firstname": {"query": "François", 'zero_terms_query': 'none'}
                     }
                 }
             }
@@ -812,7 +925,7 @@ class NestedAndObjectFieldsTestCase(TestCase):
                 "should": [
                     {
                         "match_phrase": {
-                            "manager.firstname": {"query": "François"},
+                            "manager.firstname": {"query": "François", 'zero_terms_query': 'none'},
                         },
                     },
                     {
@@ -859,7 +972,8 @@ class NestedAndObjectFieldsTestCase(TestCase):
                             "query": {
                                 "match_phrase": {
                                     "author.firstname": {
-                                        "query": "François"
+                                        "query": "François",
+                                        'zero_terms_query': 'none',
                                     }
                                 }
                             },
@@ -871,7 +985,8 @@ class NestedAndObjectFieldsTestCase(TestCase):
                             "query": {
                                 "match_phrase": {
                                     "author.lastname": {
-                                        "query": "Dupont"
+                                        "query": "Dupont",
+                                        'zero_terms_query': 'none',
                                     }
                                 }
                             },
@@ -921,12 +1036,16 @@ class NestedAndObjectFieldsTestCase(TestCase):
                         "must": [
                             {
                                 "match_phrase": {
-                                    "author.firstname": {"query": "François"}
+                                    "author.firstname": {
+                                        "query": "François",
+                                        'zero_terms_query': 'all'}
                                 }
                             },
                             {
                                 "match_phrase": {
-                                    "author.lastname": {"query": "Dupont"}
+                                    "author.lastname": {
+                                        "query": "Dupont",
+                                        'zero_terms_query': 'all'}
                                 }
 
                             }
@@ -952,6 +1071,7 @@ class NestedAndObjectFieldsTestCase(TestCase):
                     "match_phrase": {
                         "author.book.title": {
                             "query": "printemps",
+                            'zero_terms_query': 'none',
                         },
                     },
                 },
@@ -1074,7 +1194,8 @@ class NestedAndObjectFieldsTestCase(TestCase):
                             {
                                 "match_phrase": {
                                     "author.book.title": {
-                                        "query": "Hugo"
+                                        "query": "Hugo",
+                                        'zero_terms_query': 'all',
                                     }
                                 }
                             },
@@ -1151,7 +1272,8 @@ class NestedAndObjectFieldsTestCase(TestCase):
                                                             {
                                                                 "match_phrase": {
                                                                     "author.book.title": {
-                                                                        "query": "bar"
+                                                                        "query": "bar",
+                                                                        'zero_terms_query': 'all',
                                                                     }
                                                                 }
                                                             },
@@ -1164,6 +1286,7 @@ class NestedAndObjectFieldsTestCase(TestCase):
                                             "match_phrase": {
                                                 "author.lastname": {
                                                     "query": "baz",
+                                                    'zero_terms_query': 'none',
                                                 },
                                             },
                                         },
@@ -1186,6 +1309,7 @@ class NestedAndObjectFieldsTestCase(TestCase):
                                                         "match_phrase": {
                                                             "manager.subteams.supervisor.name": {
                                                                 "query": "John",
+                                                                'zero_terms_query': 'none',
                                                             },
                                                         },
                                                     },
@@ -1193,6 +1317,7 @@ class NestedAndObjectFieldsTestCase(TestCase):
                                                         "match_phrase": {
                                                             "manager.subteams.supervisor.name": {
                                                                 "query": "Paul",
+                                                                'zero_terms_query': 'none',
                                                             },
                                                         },
                                                     },

@@ -112,13 +112,10 @@ We may also pass default operator, and default fields::
     ...     query,
     ...     {'bool': {'must': [
     ...         {'bool': {'must': [
-    ...             {'match_phrase': {'title': {'query': 'brown fox'}}},
-    ...             {'match': {'title': {'query': 'quick',
-    ...                                  'type': 'phrase',
-    ...                                  'zero_terms_query': 'all'}}},
-    ...             {'bool': {'must_not': [{'match': {'title': {'query': 'dog',
-    ...                                                         'type': 'phrase',
-    ...                                                         'zero_terms_query': 'none'}}}]}}]}},
+    ...             {'match_phrase': {'title': {'query': 'brown fox', 'zero_terms_query': 'all'}}},
+    ...             {'match': {'title': {'query': 'quick', 'zero_terms_query': 'all'}}},
+    ...             {'bool': {'must_not': [
+    ...                 {'match': {'title': {'query': 'dog', 'zero_terms_query': 'none'}}}]}}]}},
     ...         {'range': {'published': {'lte': '1990-01-01T00:00:00.000Z'}}},
     ...         {'term': {'tag': {'value': 'fable'}}}]}})
 
@@ -135,7 +132,8 @@ You may also use nested fields or object fields::
     >>> t.assertDictEqual(
     ...     query,
     ...     {'bool': {'must': [
-    ...         {'match_phrase': {'title': {'query': 'quick brown fox'}}},
+    ...         {'match_phrase': {'title':
+    ...              {'query': 'quick brown fox', 'zero_terms_query': 'all'}}},
     ...         {'nested': {
     ...             'query': {'bool': {'must': [
     ...                 {'query_string': {
@@ -143,12 +141,12 @@ You may also use nested fields or object fields::
     ...                     'analyze_wildcard': True,
     ...                     'query': 'Ja*',
     ...                     'allow_leading_wildcard': True}},
-    ...                 {'match': {'authors.last_name': {
+    ...                 {'match': {
+    ...                     'authors.last_name': {
     ...                     'query': 'London',
-    ...                     'type': 'phrase',
     ...                     'zero_terms_query': 'all'}}},
     ...                 {'match_phrase': {'authors.city.name': {
-    ...                     'query': 'San Francisco'}}}]}},
+    ...                     'query': 'San Francisco', 'zero_terms_query': 'all'}}}]}},
     ...             'path': 'authors'}}]}})
 
 The easy way
@@ -209,7 +207,8 @@ That works::
     >>> t.assertDictEqual(
     ...     query,
     ...     {'bool': {'must': [
-    ...         {'match_phrase': {'message': {'query': 'exciting news'}}},
+    ...         {'match_phrase': {'message':
+    ...             {'query': 'exciting news', 'zero_terms_query': 'all'}}},
     ...         {'term': {'author.given_name': {'value': 'John'}}},
     ...         {'nested':
     ...             {'path': 'references',
@@ -324,10 +323,12 @@ when  building the query (see `elastic named queries`__)::
    ...         {'bool': {'must': [
    ...             {'match': {'text': {
    ...                 '_name': '0_1_0',
-   ...                 'query': 'bar', 'type': 'phrase', 'zero_terms_query': 'all'}}},
+   ...                 'query': 'bar',
+   ...                 'zero_terms_query': 'all'}}},
    ...             {'match': {'text': {
    ...                 '_name': '0_1_1',
-   ...                 'query': 'baz', 'type': 'phrase', 'zero_terms_query': 'all'}}}
+   ...                 'query': 'baz',
+   ...                 'zero_terms_query': 'all'}}}
    ...         ]}}
    ...     ]}}
    ... )
