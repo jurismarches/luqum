@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from decimal import Decimal
 from unittest import TestCase
 
 from luqum.exceptions import NestedSearchFieldException, ObjectSearchFieldException
@@ -6,7 +7,10 @@ from luqum.exceptions import NestedSearchFieldException, ObjectSearchFieldExcept
 from ..check import LuceneCheck, CheckNestedFields
 from ..parser import lexer, parser, ParseError
 from ..pretty import Prettifier, prettify
-from ..tree import *
+from ..tree import (
+    SearchField, FieldGroup, Group,
+    Term, Word, Phrase, Proximity, Fuzzy, Boost, Range,
+    Not, AndOperation, OrOperation, Plus, Prohibit, UnknownOperation)
 from ..utils import (
     LuceneTreeVisitor,
     LuceneTreeTransformer,
@@ -374,7 +378,7 @@ class TestPrettify(TestCase):
 
     def test_with_unknown_op(self):
         prettify = Prettifier(indent=8, max_len=20)
-        tree =  UnknownOperation(
+        tree = UnknownOperation(
             Group(
                 UnknownOperation(
                     Word("baaaaaaaaaar"),
@@ -716,9 +720,9 @@ class CheckVisitorTestCase(TestCase):
         },
         'collection.keywords': {  # nested field inside an object field
             'key': {},
-            'more_info.linked': { # again nested field inside an object field
+            'more_info.linked': {  # again nested field inside an object field
                 'key': {}
-            }, 
+            },
         },
     }
 
@@ -831,7 +835,7 @@ class CheckVisitorTestCase(TestCase):
         with self.assertRaises(NestedSearchFieldException) as e:
             self.strict_checker(tree)
         self.assertIn('"author.birth"', str(e.exception))
-        
+
 
 class UnknownOperationResolverTestCase(TestCase):
 
