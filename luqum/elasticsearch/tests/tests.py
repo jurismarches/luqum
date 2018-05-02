@@ -156,26 +156,26 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
     def test_should_transform_phrase(self):
         tree = SearchField("foo", Phrase('"spam eggs"'))
         result = self.transformer(tree)
-        expected = {"match_phrase": {"foo": {"query": 'spam eggs', 'zero_terms_query': 'none'}}}
+        expected = {"match_phrase": {"foo": {"query": 'spam eggs'}}}
         self.assertDictEqual(result, expected)
 
     def test_should_transform_empty_phrase(self):
         tree = SearchField("foo", Phrase('""'))
         result = self.transformer(tree)
-        expected = {"match_phrase": {"foo": {"query": '', 'zero_terms_query': 'none'}}}
+        expected = {"match_phrase": {"foo": {"query": ''}}}
         self.assertDictEqual(result, expected)
 
     def test_should_transform_phrase_with_custom_search_field(self):
         transformer = ElasticsearchQueryBuilder(default_field="custom")
         tree = Phrase('"spam eggs"')
         result = transformer(tree)
-        expected = {"match_phrase": {"custom": {"query": 'spam eggs', 'zero_terms_query': 'none'}}}
+        expected = {"match_phrase": {"custom": {"query": 'spam eggs'}}}
         self.assertDictEqual(result, expected)
 
     def test_should_transform_phrase_with_search_field(self):
         tree = SearchField('monthy', Phrase('"spam eggs"'))
         result = self.transformer(tree)
-        expected = {"match_phrase": {"monthy": {"query": 'spam eggs', 'zero_terms_query': 'none'}}}
+        expected = {"match_phrase": {"monthy": {"query": 'spam eggs'}}}
         self.assertDictEqual(result, expected)
 
     def test_should_transform_search_field(self):
@@ -315,7 +315,7 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
         tree = SearchField("foo", Proximity(Phrase('"spam and eggs"'), 1))
         result = self.transformer(tree)
         expected = {"match_phrase": {
-            "foo": {"query": "spam and eggs", "slop": 1.0, 'zero_terms_query': 'none'}
+            "foo": {"query": "spam and eggs", "slop": 1.0}
         }}
         self.assertDictEqual(result, expected)
 
@@ -323,7 +323,7 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
         tree = SearchField("spam", Proximity(Phrase('"Life of Bryan"'), 1))
         result = self.transformer(tree)
         expected = {"match_phrase": {
-            "spam": {"query": "Life of Bryan", "slop": 1.0, 'zero_terms_query': 'none'}
+            "spam": {"query": "Life of Bryan", "slop": 1.0}
         }}
         self.assertDictEqual(result, expected)
 
@@ -469,7 +469,6 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
                     "spam": {
                         "query": "foo bar",
                         "_name": "0",
-                        'zero_terms_query': 'none',
                     },
                 },
             },
@@ -570,7 +569,6 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
             {"match_prefix": {"foo": {
                 "query": "bar",
                 "max_expansions": 3,
-                "zero_terms_query": "none",
             }}},
         )
         # other fields not affected
@@ -616,7 +614,6 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
                 "match_prefix": {"author.name": {
                     "query": "bar",
                     "boost": 3.0,
-                    "zero_terms_query": "none",
                 }}
             }
         }}
@@ -824,7 +821,7 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
         tree = parser.parse('spam:"monthy\r\n python"')
         result = self.transformer(tree)
         expected = {
-            'match_phrase': {'spam': {'query': 'monthy python', 'zero_terms_query': 'none'}}}
+            'match_phrase': {'spam': {'query': 'monthy python'}}}
         self.assertDictEqual(result, expected)
 
 
@@ -888,7 +885,7 @@ class NestedAndObjectFieldsTestCase(TestCase):
                 "path": "author",
                 "query": {
                     "match_phrase": {
-                        "author.firstname": {"query": "François", 'zero_terms_query': 'none'}
+                        "author.firstname": {"query": "François"}
                     }
                 }
             }
@@ -907,7 +904,7 @@ class NestedAndObjectFieldsTestCase(TestCase):
                 "path": "author",
                 "query": {
                     "match_phrase": {
-                        "author.firstname": {"query": "François", 'zero_terms_query': 'none'}
+                        "author.firstname": {"query": "François"}
                     }
                 }
             }
@@ -925,7 +922,7 @@ class NestedAndObjectFieldsTestCase(TestCase):
                 "should": [
                     {
                         "match_phrase": {
-                            "manager.firstname": {"query": "François", 'zero_terms_query': 'none'},
+                            "manager.firstname": {"query": "François"},
                         },
                     },
                     {
@@ -973,7 +970,6 @@ class NestedAndObjectFieldsTestCase(TestCase):
                                 "match_phrase": {
                                     "author.firstname": {
                                         "query": "François",
-                                        'zero_terms_query': 'none',
                                     }
                                 }
                             },
@@ -986,7 +982,6 @@ class NestedAndObjectFieldsTestCase(TestCase):
                                 "match_phrase": {
                                     "author.lastname": {
                                         "query": "Dupont",
-                                        'zero_terms_query': 'none',
                                     }
                                 }
                             },
@@ -1037,15 +1032,13 @@ class NestedAndObjectFieldsTestCase(TestCase):
                             {
                                 "match_phrase": {
                                     "author.firstname": {
-                                        "query": "François",
-                                        'zero_terms_query': 'all'}
+                                        "query": "François"}
                                 }
                             },
                             {
                                 "match_phrase": {
                                     "author.lastname": {
-                                        "query": "Dupont",
-                                        'zero_terms_query': 'all'}
+                                        "query": "Dupont"}
                                 }
 
                             }
@@ -1071,7 +1064,6 @@ class NestedAndObjectFieldsTestCase(TestCase):
                     "match_phrase": {
                         "author.book.title": {
                             "query": "printemps",
-                            'zero_terms_query': 'none',
                         },
                     },
                 },
@@ -1195,7 +1187,6 @@ class NestedAndObjectFieldsTestCase(TestCase):
                                 "match_phrase": {
                                     "author.book.title": {
                                         "query": "Hugo",
-                                        'zero_terms_query': 'all',
                                     }
                                 }
                             },
@@ -1273,7 +1264,6 @@ class NestedAndObjectFieldsTestCase(TestCase):
                                                                 "match_phrase": {
                                                                     "author.book.title": {
                                                                         "query": "bar",
-                                                                        'zero_terms_query': 'all',
                                                                     }
                                                                 }
                                                             },
@@ -1286,7 +1276,6 @@ class NestedAndObjectFieldsTestCase(TestCase):
                                             "match_phrase": {
                                                 "author.lastname": {
                                                     "query": "baz",
-                                                    'zero_terms_query': 'none',
                                                 },
                                             },
                                         },
@@ -1309,7 +1298,6 @@ class NestedAndObjectFieldsTestCase(TestCase):
                                                         "match_phrase": {
                                                             "manager.subteams.supervisor.name": {
                                                                 "query": "John",
-                                                                'zero_terms_query': 'none',
                                                             },
                                                         },
                                                     },
@@ -1317,7 +1305,6 @@ class NestedAndObjectFieldsTestCase(TestCase):
                                                         "match_phrase": {
                                                             "manager.subteams.supervisor.name": {
                                                                 "query": "Paul",
-                                                                'zero_terms_query': 'none',
                                                             },
                                                         },
                                                     },

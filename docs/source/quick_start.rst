@@ -112,7 +112,7 @@ We may also pass default operator, and default fields::
     ...     query,
     ...     {'bool': {'must': [
     ...         {'bool': {'must': [
-    ...             {'match_phrase': {'title': {'query': 'brown fox', 'zero_terms_query': 'all'}}},
+    ...             {'match_phrase': {'title': {'query': 'brown fox'}}},
     ...             {'match': {'title': {'query': 'quick', 'zero_terms_query': 'all'}}},
     ...             {'bool': {'must_not': [
     ...                 {'match': {'title': {'query': 'dog', 'zero_terms_query': 'none'}}}]}}]}},
@@ -133,7 +133,7 @@ You may also use nested fields or object fields::
     ...     query,
     ...     {'bool': {'must': [
     ...         {'match_phrase': {'title':
-    ...              {'query': 'quick brown fox', 'zero_terms_query': 'all'}}},
+    ...              {'query': 'quick brown fox'}}},
     ...         {'nested': {
     ...             'query': {'bool': {'must': [
     ...                 {'query_string': {
@@ -146,7 +146,7 @@ You may also use nested fields or object fields::
     ...                     'query': 'London',
     ...                     'zero_terms_query': 'all'}}},
     ...                 {'match_phrase': {'authors.city.name': {
-    ...                     'query': 'San Francisco', 'zero_terms_query': 'all'}}}]}},
+    ...                     'query': 'San Francisco'}}}]}},
     ...             'path': 'authors'}}]}})
 
 The easy way
@@ -208,7 +208,7 @@ That works::
     ...     query,
     ...     {'bool': {'must': [
     ...         {'match_phrase': {'message':
-    ...             {'query': 'exciting news', 'zero_terms_query': 'all'}}},
+    ...             {'query': 'exciting news'}}},
     ...         {'term': {'author.given_name': {'value': 'John'}}},
     ...         {'nested':
     ...             {'path': 'references',

@@ -7,6 +7,19 @@ and this project tries to adhere to `Semantic Versioning`_.
 .. _`Keep a Changelog`: http://keepachangelog.com/en/1.0.0/
 .. _`Semantic Versioning`: http://semver.org/spec/v2.0.0.html
 
+UNRELEASED
+===================
+
+- adding the `zero_terms_query` to `match_phrase` was a mistake (introduced in 0.7.0)
+
+0.7.1 - 2018-03-20
+==================
+
+Fixed
+-----
+
+- version introduced because of a bad upload on pypi (Restructured description error)
+
 0.7.0 - 2018-03-20
 ==================
 

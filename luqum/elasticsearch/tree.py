@@ -52,7 +52,8 @@ class AbstractEItem(JsonSerializableMixin):
                 if key == 'q':
                     if self.method.startswith('match'):
                         inner_json['query'] = value
-                        inner_json['zero_terms_query'] = self.zero_terms_query
+                        if self.method == 'match':
+                            inner_json['zero_terms_query'] = self.zero_terms_query
                     elif self.method == 'query_string':
                         inner_json['query'] = value
                         inner_json['default_field'] = self.field
@@ -133,7 +134,7 @@ class EPhrase(AbstractEItem):
         >>> from unittest import TestCase
         >>> TestCase().assertDictEqual(
         ...     EPhrase(phrase='"another test"', fields=["text"]).json,
-        ...     {'match_phrase': {'text': {'query': 'another test', 'zero_terms_query': 'none'}}},
+        ...     {'match_phrase': {'text': {'query': 'another test'}}},
         ... )
     """
 
@@ -294,8 +295,8 @@ class EShould(EOperation):
         ...     json,
         ...     {'bool': {'should': [
         ...         {'match_phrase': {'text':
-        ...             {'query': 'monty python', 'zero_terms_query': 'none'}}},
-        ...         {'match_phrase': {'text': {'query': 'spam eggs', 'zero_terms_query': 'none'}}},
+        ...             {'query': 'monty python'}}},
+        ...         {'match_phrase': {'text': {'query': 'spam eggs'}}},
         ...     ]}}
         ... )
     """
@@ -325,9 +326,9 @@ class EMust(AbstractEMustOperation):
         ...     json,
         ...     {'bool': {'must': [
         ...         {'match_phrase': {'text':
-        ...             {'query': 'monty python', 'zero_terms_query': 'all'}}},
+        ...             {'query': 'monty python'}}},
         ...         {'match_phrase': {'text':
-        ...             {'query': 'spam eggs', 'zero_terms_query': 'all'}}},
+        ...             {'query': 'spam eggs'}}},
         ...     ]}}
         ... )
     """
@@ -345,7 +346,7 @@ class EMustNot(AbstractEMustOperation):
         ...     EMustNot(items=[EPhrase('"monty python"', fields=["text"])],).json,
         ...     {'bool': {'must_not': [
         ...         {'match_phrase': {'text':
-        ...             {'query': 'monty python', 'zero_terms_query': 'none'}}},
+        ...             {'query': 'monty python'}}},
         ...     ]}}
         ... )
     """
