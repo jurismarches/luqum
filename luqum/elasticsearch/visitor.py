@@ -1,3 +1,5 @@
+import warnings
+
 from luqum.elasticsearch.tree import ElasticSearchItemFactory
 from luqum.exceptions import OrAndAndOnSameLevel
 from luqum.tree import OrOperation, AndOperation, UnknownOperation
@@ -47,7 +49,7 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
 
     def __init__(self, default_operator=SHOULD, default_field='text',
                  not_analyzed_fields=None, nested_fields=None, object_fields=None,
-                 field_options=None):
+                 field_options=None, match_word_as_phrase=False):
         """
         :param default_operator: to replace blank operator (MUST or SHOULD)
         :param default_field: to search
@@ -75,6 +77,10 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         :param dict field_options: allows you to give defaults options for each fields.
           They will be applied unless, overwritten by generated parameters.
           For match query, the `type` parameter modifies the query type.
+        :param bool match_word_as_phrase: if True,
+          word expressions are matched using `match_phrase` instead of `match`.
+          This options mainly keeps stability with 0.6 version.
+          It may be removed in the future.
 
         .. note::
             some of the parameters above
@@ -103,6 +109,14 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         )
         self.nesting_checker = CheckNestedFields(
             nested_fields=self.nested_fields, object_fields=self.object_fields)
+        if match_word_as_phrase:
+            warnings.warn(
+                "match_word_as_phrase is a transient option " +
+                "to keep compatibility with previous versions.\n" +
+                "Consider wrapping your expressions in quotes (maybe using a transformer) " +
+                "or forcing type in field_options.",
+                PendingDeprecationWarning)
+        self.match_word_as_phrase = match_word_as_phrase
 
     def _field_prefix(self, context):
         return context.get(self.CONTEXT_FIELD_PREFIX, []) if context is not None else []
@@ -315,10 +329,17 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         return ephrase
 
     def visit_word(self, node, parents, context):
+        if self._is_analyzed(context):
+            if self.match_word_as_phrase:
+                method = "match_phrase"
+            else:
+                method = "match"
+        else:
+            method = "term"
         return self.es_item_factory.build(
             EWord,
             q=node.value,
-            method="match" if self._is_analyzed(context) else "term",
+            method=method,
             fields=self._fields(context),
             _name=get_name(node),
         )

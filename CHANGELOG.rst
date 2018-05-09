@@ -10,7 +10,25 @@ and this project tries to adhere to `Semantic Versioning`_.
 UNRELEASED
 ===================
 
-- adding the `zero_terms_query` to `match_phrase` was a mistake (introduced in 0.7.0)
+Fixed
+-----
+
+- adding the `zero_terms_query` to `match_phrase` was a mistake (introduced in 0.7.0).
+
+Added
+-----
+
+- 0.7.0 introduced the `match` query for queries with single words on analyzed fields,
+  whereas before it was using `match_phrase`.
+  Although this is more coherent,
+  this may cause difficulties on edge cases
+  as this may leads to results different from previous release.
+
+  This behaviour might be disabled using a new `match_word_as_phrase` parameter
+  to `luqum.elasticsearch.visitor.ElasticsearchQueryBuilder`.
+  Note that this parameter maybe removed in future release.
+  (the `field_options` might be used instead on a per field basis).
+
 
 0.7.1 - 2018-03-20
 ==================
@@ -32,6 +50,10 @@ Added
 - a new arg `field_options` on `luqum.elasticsearch.visitor.ElasticsearchQueryBuilder`
   allows to add parameters to field queries.
   It also permits to control the type of query for match queries.
+- now for a query with a single word, if the field is analyzed,
+  the transformation to elastic search query will use a "match" query instead of a "match_phrase".
+  This is more conform in behaviour to what the expression of "query_string" would produce.
+
 
 Fixed
 -----

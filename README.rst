@@ -1,7 +1,7 @@
 luqum - A lucene query parser in Python, using PLY
 #########################################################
 
-|pypi-version| |pypi-dls| |readthedocs| |travis| |coveralls|
+|pypi-version| |readthedocs| |travis| |coveralls|
 
 |logo| 
 
@@ -48,9 +48,6 @@ http://luqum.readthedocs.org/en/latest/
 .. |pypi-version| image:: https://img.shields.io/pypi/v/luqum.svg
     :target: https://pypi.python.org/pypi/luqum
     :alt: Latest PyPI version
-.. |pypi-dls| image:: https://img.shields.io/pypi/dm/luqum.svg
-    :target: https://pypi.python.org/pypi/luqum
-    :alt: Number of PyPI downloads
 .. |travis| image:: http://img.shields.io/travis/jurismarches/luqum/master.svg?style=flat
     :target: https://travis-ci.org/jurismarches/luqum
 .. |coveralls| image:: http://img.shields.io/coveralls/jurismarches/luqum/master.svg?style=flat

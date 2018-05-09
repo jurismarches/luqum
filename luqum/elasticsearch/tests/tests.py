@@ -546,6 +546,20 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
         result = self.transformer(tree)
         self.assertEqual(result, expected)
 
+    def test_match_word_as_phrase_option(self):
+        tree = AndOperation(
+            SearchField("foo", Word("bar")),
+            SearchField("spam", Word("ham")),
+        )
+        transformer = ElasticsearchQueryBuilder(match_word_as_phrase=True)
+        self.assertEqual(
+            transformer(tree),
+            {"bool": {"must": [
+                {"match_phrase": {"foo": {"query": "bar"}}},
+                {"match_phrase": {"spam": {"query": "ham"}}},
+            ]}},
+        )
+
     def test_options_match(self):
         tree = SearchField("foo", Word("bar"))
         transformer = ElasticsearchQueryBuilder(
@@ -556,13 +570,24 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
             {"match": {"foo": {
                 "query": "bar",
                 "zero_terms_query": "none",
-            }}}
+            }}},
         )
+
+        transformer = ElasticsearchQueryBuilder(
+            field_options={"foo": {"type": "match_phrase"}}
+        )
+        self.assertEqual(
+            transformer(tree),
+            {"match_phrase": {"foo": {
+                "query": "bar",
+            }}},
+        )
+
         transformer = ElasticsearchQueryBuilder(
             field_options={"foo": {
                 "type": "match_prefix",
                 "max_expansions": 3,
-            }}
+            }},
         )
         self.assertEqual(
             transformer(tree),
@@ -571,6 +596,7 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
                 "max_expansions": 3,
             }}},
         )
+
         # other fields not affected
         tree = SearchField("baz", Word("bar"))
         self.assertEqual(
