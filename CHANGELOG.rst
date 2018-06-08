@@ -7,6 +7,14 @@ and this project tries to adhere to `Semantic Versioning`_.
 .. _`Keep a Changelog`: http://keepachangelog.com/en/1.0.0/
 .. _`Semantic Versioning`: http://semver.org/spec/v2.0.0.html
 
+0.7.3 - 2018-06-08
+===================
+
+Fixed
+-----
+
+- On ElasticSearch query transformation, Luqum was interpreting wildcards in Phrases where as it should not
+
 0.7.2 - 2018-05-14
 ===================
 
