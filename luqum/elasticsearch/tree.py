@@ -155,6 +155,10 @@ class EPhrase(AbstractEItem):
     def _remove_double_quotes(self, phrase):
         return phrase[1:-1]
 
+    def _value_has_wildcard_char(self):
+        # Wildcard not active in Phrase
+        return False
+
     @property
     def slop(self):
         return self._proximity

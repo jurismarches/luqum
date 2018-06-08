@@ -153,6 +153,15 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
         expected = {"term": {"custom": {"value": 'spam'}}}
         self.assertDictEqual(result, expected)
 
+    def test_should_transform_phrase_with_wildcard(self):
+        # this test avoid a regression,
+        # where luqum would transform single word phrase with wildcard
+        # to query_string whereas it should remain match_phrase
+        tree = SearchField("foo", Phrase('"spam*"'))
+        result = self.transformer(tree)
+        expected = {"match_phrase": {"foo": {"query": 'spam*'}}}
+        self.assertDictEqual(result, expected)
+
     def test_should_transform_phrase(self):
         tree = SearchField("foo", Phrase('"spam eggs"'))
         result = self.transformer(tree)
