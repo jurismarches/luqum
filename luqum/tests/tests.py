@@ -148,14 +148,14 @@ class TestParser(TestCase):
         query = r'test\+\-\&\&\|\|\!\(\)\{\}\[\]\^\"\~\*\?\:\\test'
         parsed = parser.parse(query)
         self.assertEqual(str(parsed), query)
-        self.assertEqual(parsed, tree)        
+        self.assertEqual(parsed, tree)
 
     def test_escaping_phrase(self):
         tree = Phrase('"test "phrase"')
         query = r'"test \"phrase"'
         parsed = parser.parse(query)
         self.assertEqual(str(parsed), query)
-        self.assertEqual(parsed, tree)        
+        self.assertEqual(parsed, tree)
 
     def test_field_with_number(self):
         # non regression for issue #10
