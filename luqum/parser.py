@@ -89,9 +89,13 @@ TIME_RE = r'''
 
 TERM_RE = r'''
 (?P<term>  # group term
-  [^\s:^~(){{}}[\],"'+\-]  # first char is not a space neither some char which have meanings
-                           # note: escape of "-" and "]"
-                           #       and doubling of "{{}}" (because we use format)
+  (?:
+   [^\s:^~(){{}}[\],"'+\-\\] # first char is not a space neither some char which have meanings
+                             # note: escape of "-" and "]"
+                             #       and doubling of "{{}}" (because we use format)
+   |                         # but
+   \\.                       # we can start with an escaped character
+  )
   ([^\s:^\\~(){{}}[\]]       # following chars
    |                       # OR
    \\.                     # an escaped char

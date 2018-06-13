@@ -150,6 +150,15 @@ class TestParser(TestCase):
         self.assertEqual(str(parsed), query)
         self.assertEqual(parsed, tree)
 
+    def test_escaping_word_first_letter(self):
+        for letter in r'+-&|!(){}[]^"~*?:\\':
+            with self.subTest("letter %s" % letter):
+                tree = Word("%stest" % letter)
+                query = r"\%stest" % letter
+                parsed = parser.parse(query)
+                self.assertEqual(str(parsed), query)
+                self.assertEqual(parsed, tree)
+
     def test_escaping_phrase(self):
         tree = Phrase('"test "phrase"')
         query = r'"test \"phrase"'
