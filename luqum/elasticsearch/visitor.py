@@ -306,7 +306,7 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
     def visit_unknown_operation(self, *args, **kwargs):
         if self.default_operator == self.SHOULD:
             return self._should_operation(*args, **kwargs)
-        elif self.default_operator == self.MUST:
+        else:
             return self._must_operation(*args, **kwargs)
 
     def visit_boost(self, node, parents, context):
@@ -325,7 +325,7 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
             ephrase.slop = float(node.degree)
         else:
             # on a term query the ~ is always fuziness
-            ephrase.fuzzyness = float(node.degree)
+            ephrase.fuzziness = float(node.degree)
         return ephrase
 
     def visit_word(self, node, parents, context):

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import collections
 from decimal import Decimal
 from unittest import TestCase
 
@@ -392,6 +393,20 @@ class TestPrettify(TestCase):
 )
 fooooooooooo""")
 
+    def test_with_unknown_op_nested(self):
+        prettify = Prettifier(indent=8, max_len=20)
+        tree = OrOperation(
+            UnknownOperation(
+                Word("baaaaaaaaaar"),
+                Word("baaaaaaaaaaaaaz")),
+            Word("fooooooooooo"))
+        self.assertEqual(
+            "\n" + prettify(tree), """
+        baaaaaaaaaar
+        baaaaaaaaaaaaaz
+OR
+fooooooooooo""")
+
     def test_small(self):
         prettify = Prettifier(indent=8, max_len=20)
         self.assertEqual(
@@ -483,6 +498,9 @@ class TestCheck(TestCase):
         check = LuceneCheck()
         self.assertTrue(check(query))
         self.assertEqual(check.errors(query), [])
+        check = LuceneCheck(zeal=1)
+        self.assertTrue(check(query))
+        self.assertEqual(check.errors(query), [])
 
     def test_bad_fieldgroup(self):
         check = LuceneCheck()
@@ -505,10 +523,21 @@ class TestCheck(TestCase):
         self.assertEqual(len(check.errors(query)), 2)  # one for bad expr, one for misuse
         self.assertIn("Group misuse", "".join(check.errors(query)))
 
-    def test_zealous_or_not(self):
+    def test_zealous_or_not_prohibit(self):
         query = (
             OrOperation(
                 Prohibit(Word("foo")),
+                Word("bar")))
+        check_zealous = LuceneCheck(zeal=1)
+        self.assertFalse(check_zealous(query))
+        self.assertIn("inconsistent", check_zealous.errors(query)[0])
+        check_easy_going = LuceneCheck()
+        self.assertTrue(check_easy_going(query))
+
+    def test_zealous_or_not(self):
+        query = (
+            OrOperation(
+                Not(Word("foo")),
                 Word("bar")))
         check_zealous = LuceneCheck(zeal=1)
         self.assertFalse(check_zealous(query))
@@ -641,6 +670,16 @@ class TreeTransformerTestCase(TestCase):
         def visit_word(self, node, parent):
             return Word('lol')
 
+        def visit_phrase(self, node, parent):
+            return None
+
+    class OrListOperation(OrOperation):
+        """Dummy operation having list operands instead of tuple
+        """
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.operands = list(self.operands)
+
     def test_basic_traversal(self):
         tree = (
             AndOperation(
@@ -651,9 +690,80 @@ class TreeTransformerTestCase(TestCase):
         new_tree = transformer.visit(tree)
 
         self.assertEqual(
+            new_tree,
             (AndOperation(
                 Word("lol"),
-                Word("lol"))), new_tree)
+                Word("lol"))))
+
+    def test_no_transform(self):
+        tree = AndOperation()
+        transformer = self.BasicTransformer()
+        new_tree = transformer.visit(tree)
+        self.assertEqual(
+            new_tree,
+            AndOperation())
+
+    def test_one_word(self):
+        tree = Word("foo")
+        transformer = self.BasicTransformer()
+        new_tree = transformer.visit(tree)
+        self.assertEqual(
+            new_tree,
+            Word("lol"))
+
+    def test_removal(self):
+        tree = (
+            AndOperation(
+                AndOperation(
+                    Word("foo"),
+                    Phrase('"bar"')),
+                AndOperation(
+                    Phrase('"baz"'),
+                    Phrase('"biz"'))))
+
+        transformer = self.BasicTransformer()
+        new_tree = transformer.visit(tree)
+
+        self.assertEqual(
+            new_tree,
+            (AndOperation(
+                AndOperation(Word("lol")),
+                AndOperation())))
+
+    def test_operands_list(self):
+        OrListOperation = self.OrListOperation
+        tree = (
+            OrListOperation(
+                OrListOperation(
+                    Word("foo"),
+                    Phrase('"bar"')),
+                OrListOperation(
+                    Phrase('"baz"'))))
+
+        transformer = self.BasicTransformer()
+        new_tree = transformer.visit(tree)
+
+        self.assertEqual(
+            new_tree,
+            (OrListOperation(
+                OrListOperation(Word("lol")),
+                OrListOperation())))
+
+    def test_silent_value_error(self):
+        # in the case some attribute mislead the search for node do not raise
+        tree = AndOperation(Word("a"), Word("b"))
+        setattr(tree, "misleading1", ())
+        setattr(tree, "misleading2", [])
+        # hackishly patch __dict__ to be sure we have operands in right order for test
+        tree.__dict__ = collections.OrderedDict(tree.__dict__)
+        tree.__dict__['operands'] = tree.__dict__.pop('operands')  # operands are now last
+
+        transformer = self.BasicTransformer()
+        new_tree = transformer.visit(tree)
+
+        self.assertEqual(
+            new_tree,
+            AndOperation(Word("lol"), Word("lol")))
 
 
 class TreeVisitorV2TestCase(TestCase):

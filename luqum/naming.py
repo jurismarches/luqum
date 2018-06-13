@@ -78,7 +78,7 @@ class NameIndexer(LuceneTreeVisitorV2):
             idx = 0
             for (subname, sub_repr, sub_subnodes_pos) in sub_names:
                 pos = str_repr.find(sub_repr, idx)
-                if pos >= 0:
+                if pos >= 0:  # pragma: no branch
                     l = len(sub_repr)
                     subnodes_pos.append((subname, pos, l, sub_subnodes_pos))
                     idx = pos + l

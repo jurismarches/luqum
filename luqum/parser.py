@@ -143,7 +143,7 @@ def t_BOOST(t):
 
 
 # Error handling rule FIXME
-def t_error(t):
+def t_error(t):  # pragma: no cover
     print("Illegal character '%s'" % t.value[0])
     t.lexer.skip(1)
 

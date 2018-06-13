@@ -8,7 +8,8 @@ from luqum.tree import (
     UnknownOperation, Boost, Fuzzy, Proximity, Range, Group, FieldGroup,
     Plus)
 from ...naming import set_name
-from ..visitor import ElasticsearchQueryBuilder
+from ..tree import ElasticSearchItemFactory
+from ..visitor import EWord, ElasticsearchQueryBuilder
 
 
 class ElasticsearchTreeTransformerTestCase(TestCase):
@@ -141,6 +142,18 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
         tree = Word('spam')
         result = self.transformer(tree)
         expected = {"term": {"text": {"value": 'spam'}}}
+        self.assertDictEqual(result, expected)
+
+    def test_should_transform_start_to_exists(self):
+        tree = Word("*")
+        result = self.transformer(tree)
+        expected = {"exists": {"field": "text"}}
+        self.assertDictEqual(result, expected)
+        
+        tree = SearchField("foo", Word("*"))
+        result = self.transformer(tree)
+        expected = {"exists": {"field": "foo"}}
+       
         self.assertDictEqual(result, expected)
 
     def test_should_transform_word_with_custom_search_field(self):
@@ -336,6 +349,14 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
         }}
         self.assertDictEqual(result, expected)
 
+    def test_should_transform_proximity_in_fuzzy_for_term(self):
+        tree = SearchField("not_analyzed_field", Proximity(Phrase('"Life of Bryan"'), 2))
+        result = self.transformer(tree)
+        expected = {"fuzzy": {
+            "not_analyzed_field": {"value": "Life of Bryan", "fuzziness": 2.0}
+        }}
+        self.assertDictEqual(result, expected)
+
     def test_should_transform_range_lte_gte(self):
         tree = Range(
             low=Word('1'),
@@ -345,6 +366,17 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
         )
         result = self.transformer(tree)
         expected = {"range": {"text": {"lte": '10', "gte": '1'}}}
+        self.assertDictEqual(result, expected)
+
+    def test_should_transform_range_gte_only(self):
+        tree = Range(
+            low=Word('1'),
+            high=Word('*'),
+            include_low=True,
+            include_high=True,
+        )
+        result = self.transformer(tree)
+        expected = {"range": {"text": {"gte": '1'}}}
         self.assertDictEqual(result, expected)
 
     def test_should_transform_range_lt_gt(self):
@@ -1372,3 +1404,15 @@ class NestedAndObjectFieldsTestCase(TestCase):
         self.assertDictEqual(result, expected)
 
         # FIXME more object tests
+
+
+class TestElasticSearchItemFactory(TestCase):
+
+    def test_build_field_options_overwrite(self):
+        # this is for coverage completeness
+        factory = ElasticSearchItemFactory(
+            no_analyze=[], nested_fields={}, field_options={"foo": {"type": "phrase"}})
+        word = factory.build(EWord, q="bar")
+        self.assertDictEqual(word.field_options, {"foo": {"type": "phrase"}})
+        word = factory.build(EWord, q="bar", field_options={"foo": {"type": "term"}})
+        self.assertDictEqual(word.field_options, {"foo": {"type": "term"}})

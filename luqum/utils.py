@@ -84,7 +84,7 @@ class LuceneTreeTransformer(LuceneTreeVisitor):
     """
 
     def replace_node(self, old_node, new_node, parent):
-        for k, v in parent.__dict__.items():
+        for k, v in parent.__dict__.items():  # pragma: no branch
             if v == old_node:
                 parent.__dict__[k] = new_node
                 break
@@ -97,7 +97,7 @@ class LuceneTreeTransformer(LuceneTreeVisitor):
                         v[i] = new_node
                     break
                 except ValueError:
-                    pass
+                    pass  # this was not the attribute containing old_node
             elif isinstance(v, tuple):
                 try:
                     i = v.index(old_node)
@@ -109,7 +109,7 @@ class LuceneTreeTransformer(LuceneTreeVisitor):
                     parent.__dict__[k] = tuple(v)
                     break
                 except ValueError:
-                    pass
+                    pass  # this was not the attribute containing old_node
 
     def generic_visit(self, node, parent=None):
         return node
@@ -125,8 +125,9 @@ class LuceneTreeTransformer(LuceneTreeVisitor):
         if parents:
             self.replace_node(node, new_node, parents[-1])
         node = new_node
-        for child in node.children:
-            self.visit(child, parents + [node])
+        if node is not None:
+            for child in node.children:
+                self.visit(child, parents + [node])
         return node
 
 
