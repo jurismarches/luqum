@@ -7,6 +7,17 @@ and this project tries to adhere to `Semantic Versioning`_.
 .. _`Keep a Changelog`: http://keepachangelog.com/en/1.0.0/
 .. _`Semantic Versioning`: http://semver.org/spec/v2.0.0.html
 
+Unreleased
+==========
+
+Fixed
+-----
+
+- fixed bug in `luqum.utils.LuceneTreeTransformer` when removing node
+- fixed bug in handling approx operator on multiple words in
+  `luqum.elasticsearch.visitor.ElasticsearchQueryBuilder`
+- test coverage now check branch
+
 0.7.3 - 2018-06-08
 ===================
 
