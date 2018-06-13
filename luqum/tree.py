@@ -4,6 +4,7 @@
 You may use these items to build a tree representing a query,
 or get a tree as the result of parsing a query string.
 """
+import re
 from decimal import Decimal
 
 _MARKER = object()
@@ -150,6 +151,10 @@ class Term(Item):
     def __init__(self, value):
         self.value = value
 
+    @property
+    def escaped_value(self):
+        raise NotImplementedError("implement in children")
+
     def is_wildcard(self):
         """:return bool: True if value is the wildcard ``*``
         """
@@ -161,10 +166,10 @@ class Term(Item):
         return self.WILDCARD in self.value
 
     def __str__(self):
-        return self.value
+        return self.escaped_value
 
     def __repr__(self):
-        return "%s(%r)" % (self.__class__.__name__, self.value)
+        return "%s(%r)" % (self.__class__.__name__, str(self))
 
 
 class Word(Term):
@@ -172,7 +177,11 @@ class Word(Term):
 
     :param str value: the value
     """
-    pass
+    CHARS_TO_ESCAPE = re.compile(r'([+\-&|!(){}[\]^"~*?:\\])')
+
+    @property
+    def escaped_value(self):
+        return self.CHARS_TO_ESCAPE.sub(r"\\\1", self.value)
 
 
 class Phrase(Term):
@@ -185,6 +194,10 @@ class Phrase(Term):
         super(Phrase, self).__init__(value)
         assert self.value.endswith('"') and self.value.startswith('"'), (
                "Phrase value must contain the quotes")
+
+    @property
+    def escaped_value(self):
+        return '"{}"'.format(self.value[1:-1].replace('"', r'\"'))
 
 
 class BaseApprox(Item):

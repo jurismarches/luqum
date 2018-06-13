@@ -149,11 +149,11 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
         result = self.transformer(tree)
         expected = {"exists": {"field": "text"}}
         self.assertDictEqual(result, expected)
-        
+
         tree = SearchField("foo", Word("*"))
         result = self.transformer(tree)
         expected = {"exists": {"field": "foo"}}
-       
+
         self.assertDictEqual(result, expected)
 
     def test_should_transform_word_with_custom_search_field(self):
