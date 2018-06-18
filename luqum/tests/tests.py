@@ -26,15 +26,36 @@ class TestTree(TestCase):
         self.assertTrue(Term("ba*").has_wildcard())
         self.assertTrue(Term("b*r").has_wildcard())
         self.assertTrue(Term("*ar").has_wildcard())
+        self.assertTrue(Term("ba?").has_wildcard())
+        self.assertTrue(Term("b?r").has_wildcard())
+        self.assertTrue(Term("?ar").has_wildcard())
+        self.assertTrue(Term("?a*").has_wildcard())
+        self.assertTrue(Term(r"\?a*").has_wildcard())
+        self.assertTrue(Term(r"?a\*").has_wildcard())
+        self.assertTrue(Term("*").has_wildcard())
+        self.assertTrue(Term("?").has_wildcard())
 
     def test_term_wildcard_false(self):
         self.assertFalse(Term("bar").has_wildcard())
+        self.assertFalse(Term(r"bar\*").has_wildcard())
+        self.assertFalse(Term(r"b\?r\*").has_wildcard())
 
     def test_term_is_only_a_wildcard(self):
         self.assertTrue(Term('*').is_wildcard())
         self.assertFalse(Term('*o').is_wildcard())
         self.assertFalse(Term('b*').is_wildcard())
         self.assertFalse(Term('b*o').is_wildcard())
+        self.assertFalse(Term('?').is_wildcard())
+
+    def test_term_iter_wildcard(self):
+        self.assertListEqual(
+            list(Term(r"a?b\*or*and\?").iter_wildcards()),
+            [((1, 2), "?"), ((7, 8), "*")],
+            )
+        self.assertListEqual(
+            list(Term(r"\**\**").iter_wildcards()),
+            [((2, 3), "*"), ((5, 6), "*")],
+            )
 
     def test_equality_approx(self):
         """
@@ -144,27 +165,33 @@ class TestParser(TestCase):
         self.assertEqual(parsed, tree)
 
     def test_escaping_word(self):
-        tree = Word(r'test+-&&||!(){}[]^"~*?:\test')
         query = r'test\+\-\&\&\|\|\!\(\)\{\}\[\]\^\"\~\*\?\:\\test'
+        tree = Word(query)
+        unescaped = r'test+-&&||!(){}[]^"~*?:\test'
         parsed = parser.parse(query)
         self.assertEqual(str(parsed), query)
         self.assertEqual(parsed, tree)
+        self.assertEqual(parsed.unescaped_value, unescaped)
 
     def test_escaping_word_first_letter(self):
         for letter in r'+-&|!(){}[]^"~*?:\\':
             with self.subTest("letter %s" % letter):
-                tree = Word("%stest" % letter)
                 query = r"\%stest" % letter
+                tree = Word(query)
+                unescaped = "%stest" % letter
                 parsed = parser.parse(query)
                 self.assertEqual(str(parsed), query)
                 self.assertEqual(parsed, tree)
+                self.assertEqual(parsed.unescaped_value, unescaped)
 
     def test_escaping_phrase(self):
-        tree = Phrase('"test "phrase"')
         query = r'"test \"phrase"'
+        tree = Phrase(query)
+        unescaped = '"test "phrase"'
         parsed = parser.parse(query)
         self.assertEqual(str(parsed), query)
         self.assertEqual(parsed, tree)
+        self.assertEqual(parsed.unescaped_value, unescaped)
 
     def test_field_with_number(self):
         # non regression for issue #10

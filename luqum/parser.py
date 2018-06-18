@@ -125,10 +125,6 @@ def t_SEPARATOR(t):
     r'\s+'
     pass  # discard separators
 
-# see https://lucene.apache.org/core/3_6_0/queryparsersyntax.html#Escaping%20Special%20Characters
-WORD_ESCAPED_CHARS = re.compile(r'\\([+\-&|!(){}[\]^"~*?:\\])')
-
-
 @lex.TOKEN(TERM_RE)
 def t_TERM(t):
     # check if it is not a reserved term (an operation)
@@ -137,8 +133,6 @@ def t_TERM(t):
     if t.type == 'TERM':
         m = re.match(TERM_RE, t.value, re.VERBOSE)
         value = m.group("term")
-        # remove '\' that serve 
-        value = WORD_ESCAPED_CHARS.sub(r'\1', value)
         t.value = Word(value)
     return t
 
@@ -147,8 +141,6 @@ def t_TERM(t):
 def t_PHRASE(t):
     m = re.match(PHRASE_RE, t.value, re.VERBOSE)
     value = m.group("phrase")
-    # remove eventual escapes of quotes
-    value = value.replace(r'\"', '"')
     t.value = Phrase(value)
     return t
 

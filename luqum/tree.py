@@ -144,7 +144,10 @@ class Term(Item):
 
     :param str value: the value
     """
-    WILDCARD = "*"
+    WILDCARDS_PATTERN = re.compile(r"((?<=[^\\])[?*]|^[?*])")  # non escaped * and ?
+    # see
+    # https://lucene.apache.org/core/3_6_0/queryparsersyntax.html#Escaping%20Special%20Characters
+    WORD_ESCAPED_CHARS = re.compile(r'\\([+\-&|!(){}[\]^"~*?:\\])')
 
     _equality_attrs = ['value']
 
@@ -152,21 +155,28 @@ class Term(Item):
         self.value = value
 
     @property
-    def escaped_value(self):
-        raise NotImplementedError("implement in children")
+    def unescaped_value(self):
+        # remove '\' that escape characters
+        return self.WORD_ESCAPED_CHARS.sub(r'\1', self.value)
 
     def is_wildcard(self):
         """:return bool: True if value is the wildcard ``*``
         """
-        return self.value == self.WILDCARD
+        return self.value == "*"
+
+    def iter_wildcards(self):
+        """list wildcards contained in value and their positions
+        """
+        for matched in self.WILDCARDS_PATTERN.finditer(self.value):
+            yield matched.span(), matched.group()
 
     def has_wildcard(self):
-        """:return bool: True if value contains a wildcard ``*``
+        """:return bool: True if value contains a wildcards
         """
-        return self.WILDCARD in self.value
+        return any(self.iter_wildcards())
 
     def __str__(self):
-        return self.escaped_value
+        return self.value
 
     def __repr__(self):
         return "%s(%r)" % (self.__class__.__name__, str(self))
@@ -177,11 +187,6 @@ class Word(Term):
 
     :param str value: the value
     """
-    CHARS_TO_ESCAPE = re.compile(r'([+\-&|!(){}[\]^"~*?:\\])')
-
-    @property
-    def escaped_value(self):
-        return self.CHARS_TO_ESCAPE.sub(r"\\\1", self.value)
 
 
 class Phrase(Term):
@@ -189,15 +194,10 @@ class Phrase(Term):
 
     :param str value: the value, including the quotes. Eg. ``'"my phrase"'``
     """
-
     def __init__(self, value):
         super(Phrase, self).__init__(value)
         assert self.value.endswith('"') and self.value.startswith('"'), (
                "Phrase value must contain the quotes")
-
-    @property
-    def escaped_value(self):
-        return '"{}"'.format(self.value[1:-1].replace('"', r'\"'))
 
 
 class BaseApprox(Item):
