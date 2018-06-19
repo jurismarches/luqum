@@ -6,6 +6,7 @@ python:
 install:
   - pip install .
   - pip install -r requirements-dev.txt
+  - pip install coveralls
 script:
   - make tests
   - make quality
