@@ -170,6 +170,11 @@ class Term(Item):
         for matched in self.WILDCARDS_PATTERN.finditer(self.value):
             yield matched.span(), matched.group()
 
+    def split_wildcards(self):
+        """split term on wildcards
+        """
+        return self.WILDCARDS_PATTERN.split(self.value)
+
     def has_wildcard(self):
         """:return bool: True if value contains a wildcards
         """

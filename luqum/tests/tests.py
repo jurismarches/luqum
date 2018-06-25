@@ -57,6 +57,16 @@ class TestTree(TestCase):
             [((2, 3), "*"), ((5, 6), "*")],
             )
 
+    def test_term_split_wildcard(self):
+        self.assertListEqual(
+            Term(r"a??b\*or*and\?").split_wildcards(),
+            ["a", "?", "", "?", r"b\*or", "*", r"and\?"],
+            )
+        self.assertListEqual(
+            Term(r"\**\**").split_wildcards(),
+            [r"\*", "*", r"\*", "*", ""],
+            )
+
     def test_equality_approx(self):
         """
         Regression test for a bug on approx equalities.
