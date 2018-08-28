@@ -203,6 +203,24 @@ class TestParser(TestCase):
         self.assertEqual(parsed, tree)
         self.assertEqual(parsed.unescaped_value, unescaped)
 
+    def test_escaping_column(self):
+        # non regression for issue #30
+        query = r'ip:1000\:\:1000\:\:1/24'
+        tree = SearchField('ip', Word(r'1000\:\:1000\:\:1/24'))
+        parsed = parser.parse(query)
+        self.assertEqual(parsed, tree)
+        self.assertEqual(str(parsed), query)
+        self.assertEqual(parsed.children[0].unescaped_value, "1000::1000::1/24")
+
+    def test_escaping_single_column(self):
+        # non regression for issue #30
+        query = r'1000\:1000\:\:1/24'
+        tree = Word(r'1000\:1000\:\:1/24')
+        parsed = parser.parse(query)
+        self.assertEqual(parsed, tree)
+        self.assertEqual(str(parsed), query)
+        self.assertEqual(parsed.unescaped_value, "1000:1000::1/24")
+
     def test_field_with_number(self):
         # non regression for issue #10
         tree = (
