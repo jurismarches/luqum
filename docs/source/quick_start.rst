@@ -227,7 +227,7 @@ but also use it to build a query with `elasticsearch_dsl`_.
    Please, refers to the API :ref:`elasticsearch-api`
 
 
-Note that under the hood, the operation is too fold:
+Note that under the hood, the operation is two fold:
 it first create a new specific tree from the luqum tree.
 This tree is then capable of giving it's JSON like represetation
 (that is JSON compatible python objects).
