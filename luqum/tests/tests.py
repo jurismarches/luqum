@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import collections
+import copy
 from decimal import Decimal
 from unittest import TestCase
 
@@ -85,6 +86,12 @@ class TestTree(TestCase):
 
         self.assertNotEqual(f1, f2)
         self.assertEqual(f1, f3)
+
+    def test_not_equality(self):
+        # non regression test, adding a child should trigger non equality
+        tree1 = OrOperation(Word("bar"))
+        tree2 = OrOperation(Word("bar"), Word("foo"))
+        self.assertNotEqual(tree1, tree2)
 
 
 class TestLexer(TestCase):
@@ -842,6 +849,16 @@ class TreeTransformerTestCase(TestCase):
         self.assertEqual(
             new_tree,
             AndOperation(Word("lol"), Word("lol")))
+
+    def test_repeating_expression(self):
+        # non regression test
+        tree = AndOperation(
+            Group(OrOperation(Word('bar'), Word('foo'))),
+            Group(OrOperation(Word('bar'), Word('foo'), Word('spam'))),
+        )
+        # basic transformer should not change tree
+        same_tree = LuceneTreeTransformer().visit(copy.deepcopy(tree))
+        self.assertEqual(same_tree, tree)
 
 
 class TreeVisitorV2TestCase(TestCase):

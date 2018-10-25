@@ -7,6 +7,15 @@ and this project tries to adhere to `Semantic Versioning`_.
 .. _`Keep a Changelog`: http://keepachangelog.com/en/1.0.0/
 .. _`Semantic Versioning`: http://semver.org/spec/v2.0.0.html
 
+UNRELEASED
+==========
+
+Fixed
+-----
+
+- fixed bug on equality, having more children in one tree than in the other,
+  was not triggering inequality if first nodes were the same !
+
 0.7.4 - 2018-08-28
 ==================
 

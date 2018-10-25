@@ -46,6 +46,7 @@ class Item(object):
         """a basic equal operation
         """
         return (self.__class__ == other.__class__ and
+                len(self.children) == len(other.children) and
                 all(getattr(self, a, _MARKER) == getattr(other, a, _MARKER)
                     for a in self._equality_attrs) and
                 all(c.__eq__(d) for c, d in zip(self.children, other.children)))
