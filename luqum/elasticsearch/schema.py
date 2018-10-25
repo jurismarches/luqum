@@ -22,22 +22,31 @@ class SchemaAnalyzer:
         except KeyError:
             return "*"
 
-    def _walk_properties(self, properties, parents=None):
+    def _walk_properties(self, properties, parents=None, subfields=False):
         if parents is None:
             parents = []
         for fname, fdef in properties.items():
             yield fname, fdef, parents
+            if subfields and "fields" in fdef:
+                subfield_parents = parents + [(fname, fdef)]
+                subdef = dict(fdef)  # sub field definition overload their parents one
+                subfield_defs = subdef.pop("fields")
+                for fname, fdef in subfield_defs.items():
+                    fdef = dict(subdef, **fdef)
+                    yield fname, fdef, subfield_parents
             inner_properties = fdef.get("properties", {})
             if inner_properties:
-                yield from self._walk_properties(inner_properties, parents + [(fname, fdef)])
+                new_parents = parents + [(fname, fdef)]
+                yield from self._walk_properties(inner_properties, new_parents, subfields)
 
-    def iter_fields(self):
+    def iter_fields(self, subfields=False):
         for name, mapping in self.mappings.items():
-            for fname, fdef, parents in self._walk_properties(mapping.get("properties", {})):
+            walk_iter = self._walk_properties(mapping.get("properties", {}), subfields=subfields)
+            for fname, fdef, parents in walk_iter:
                 yield fname, fdef, parents
 
     def not_analyzed_fields(self):
-        for fname, fdef, parents in self.iter_fields():
+        for fname, fdef, parents in self.iter_fields(subfields=True):
             not_analyzed = (
                 (fdef.get("type") == "string" and fdef.get("index", "") == "not_analyzed") or
                 fdef.get("type") == "keyword"
@@ -69,6 +78,17 @@ class SchemaAnalyzer:
             pdef = parents[-1][1] if parents else {}
             if pdef.get("type") == "object" and fdef.get("type") not in ("object", "nested"):
                 yield self._dot_name(fname, parents)
+
+    def sub_fields(self):
+        """return all known subfields
+        """
+        # we do not ask subfields, for they would be lost in the mass
+        for fname, fdef, parents in self.iter_fields():
+            subfields = fdef.get("fields")
+            if subfields:
+                subfield_parents = parents + [(fname, fdef)]
+                for subname in subfields:
+                    yield self._dot_name(subname, subfield_parents)
 
     def query_builder_options(self):
         """return options suitable for

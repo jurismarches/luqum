@@ -935,10 +935,18 @@ class CheckVisitorTestCase(TestCase):
         'author.birth.city',
         'collection.title', 'collection.ref', 'collection.keywords.more_info.revision']
 
+    SUB_FIELDS = [
+        'foo.english',
+        'author.book.title.raw',
+    ]
+
     def setUp(self):
         self.checker = CheckNestedFields(nested_fields=self.NESTED_FIELDS)
         self.strict_checker = CheckNestedFields(
-            nested_fields=self.NESTED_FIELDS, object_fields=self.OBJECT_FIELDS)
+            nested_fields=self.NESTED_FIELDS,
+            object_fields=self.OBJECT_FIELDS,
+            sub_fields=self.SUB_FIELDS,
+        )
 
     def test_correct_nested_lucene_query_column_not_raise(self):
         tree = parser.parse('author:book:title:"foo" AND '
@@ -952,6 +960,11 @@ class CheckVisitorTestCase(TestCase):
         self.checker(tree)
         self.assertIsNotNone(tree)
 
+    def test_correct_subfield_lucene_query_column_not_raises(self):
+        tree = parser.parse('foo:english:"foo" AND '
+                            'author:book:title:raw:"pdf"')
+        self.strict_checker(tree)
+
     def test_correct_nested_lucene_query_with_point_not_raise(self):
         tree = parser.parse('author.book.title:"foo" AND '
                             'author.book.format.type:"pdf"')
@@ -964,6 +977,11 @@ class CheckVisitorTestCase(TestCase):
         self.strict_checker(tree)
         self.checker(tree)
         self.assertIsNotNone(tree)
+
+    def test_correct_subfield_lucene_query_with_point_not_raises(self):
+        tree = parser.parse('foo.english:"foo" AND '
+                            'author.book.title.raw:"pdf"')
+        self.strict_checker(tree)
 
     def test_correct_object_mix_do_not_raise(self):
         tree = parser.parse('author:(birth.city:"foo" AND book.title:"bar")')
@@ -988,6 +1006,12 @@ class CheckVisitorTestCase(TestCase):
     def test_correct_nested_lucene_query_with_and_column_not_raise(self):
         tree = parser.parse(
             'author:(book.title:"foo" OR book.title:"bar")')
+        self.checker(tree)
+        self.assertIsNotNone(tree)
+
+    def test_complex_subfield_not_raises(self):
+        tree = parser.parse(
+            'author:(book.title.raw:"foo" OR book.title.raw:"bar")')
         self.checker(tree)
         self.assertIsNotNone(tree)
 

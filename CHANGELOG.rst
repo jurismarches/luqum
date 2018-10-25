@@ -8,7 +8,14 @@ and this project tries to adhere to `Semantic Versioning`_.
 .. _`Semantic Versioning`: http://semver.org/spec/v2.0.0.html
 
 UNRELEASED
-==========
+==================
+
+Added
+-----
+
+- handling sub fields (aka `multi-fields`__)
+
+__ https://www.elastic.co/guide/en/elasticsearch/reference/6.3/multi-fields.html
 
 Fixed
 -----

@@ -16,7 +16,14 @@ class SchemaAnalyzerTestCase(TestCase):
                     "author": {
                         "type": "nested",
                         "properties": {
-                            "firstname": {"type": "text"},
+                            "firstname": {
+                                "type": "text",
+                                "fields": {
+                                    # sub fields
+                                    "english": {"analyzer": "english"},
+                                    "raw": {"type": "keyword"},
+                                }
+                            },
                             "lastname": {"type": "text"},
                             "book": {
                                 "type": "nested",
@@ -25,7 +32,9 @@ class SchemaAnalyzerTestCase(TestCase):
                                     "isbn": {  # an object field in deep nested field
                                         "type": "object",
                                         "properties": {
-                                            "ref": {"type": "keyword"},
+                                            "ref": {
+                                                "type": "keyword",
+                                            },
                                         },
                                     },
                                     "format": {
@@ -60,7 +69,11 @@ class SchemaAnalyzerTestCase(TestCase):
                                     "supervisor": {  # with an object field inside
                                         "type": "object",
                                         "properties": {
-                                            "name": {"type": "text"}
+                                            "name": {
+                                                "type": "text",
+                                                # sub field
+                                                "fields": {"raw": {"type": "keyword"}},
+                                            },
                                         },
                                     },
                                 },
@@ -83,7 +96,9 @@ class SchemaAnalyzerTestCase(TestCase):
             [
                 'author.book.format.ftype',
                 'author.book.isbn.ref',
+                'author.firstname.raw',
                 'manager.address.zipcode',
+                'manager.subteams.supervisor.name.raw',
                 'publish.site',
             ],
         )
@@ -122,6 +137,17 @@ class SchemaAnalyzerTestCase(TestCase):
                 'manager.address.zipcode',
                 'manager.firstname',
                 'manager.subteams.supervisor.name',
+            ]
+        )
+
+    def test_sub_fields(self):
+        s = SchemaAnalyzer(self.INDEX_SETTINGS)
+        self.assertEqual(
+            sorted(s.sub_fields()),
+            [
+                'author.firstname.english',
+                'author.firstname.raw',
+                'manager.subteams.supervisor.name.raw',
             ]
         )
 

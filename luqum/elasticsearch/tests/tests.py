@@ -22,6 +22,7 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
                 'author': ['name', 'tag']
             },
             object_fields=["book.title", "author.rewards.name"],
+            sub_fields=["book.title.raw"],
         )
 
     def test_should_raise_when_nested_search_field(self):
@@ -713,9 +714,7 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
             "bool": {"should": [
                 {"bool": {"must": [
                     {"match": {"foo": {"query": "bar", "boost": 2.0, "zero_terms_query": "all"}}},
-                    {"match": {"foo":
-                        {"query": "baz", "boost": 4.0, "zero_terms_query": "all"}
-                    }},
+                    {"match": {"foo": {"query": "baz", "boost": 4.0, "zero_terms_query": "all"}}},
                 ]}},
                 {"bool": {"must": [
                     {"match": {"foo": {"query": "oof", "boost": 2.0, "zero_terms_query": "all"}}},
@@ -725,7 +724,7 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
         }
         result = transformer(tree)
         self.assertEqual(result, expected)
-        
+
 
 class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
     """Those are tests issued from bugs found thanks to jurismarches requests
@@ -901,6 +900,7 @@ class NestedAndObjectFieldsTestCase(TestCase):
         NO_ANALYZE = [
             'author.book.format.type',
             'author.book.isbn.ref',
+            'author.book.isbn.ref.lower',
             'publish.site',
             'manager.address.zipcode',
         ]
@@ -932,13 +932,62 @@ class NestedAndObjectFieldsTestCase(TestCase):
             'manager.subteams.supervisor.name',
         ]
 
+        SUB_FIELDS = [
+            # classic case like sub field with different analyzer
+            'text.english',
+            # inside a nested inside an object
+            'author.book.isbn.ref.lower',
+        ]
+
         self.transformer = ElasticsearchQueryBuilder(
             default_field="text",
             not_analyzed_fields=NO_ANALYZE,
             nested_fields=NESTED_FIELDS,
             object_fields=OBJECT_FIELDS,
+            sub_fields=SUB_FIELDS,
             default_operator=ElasticsearchQueryBuilder.MUST,
         )
+
+    def test_query_sub_field_with_column(self):
+        """
+        Can query a sub field using column
+        """
+
+        tree = parser.parse('text:(english:"Spanish Cow")')
+        result = self.transformer(tree)
+        expected = {
+            "match_phrase": {
+                "text.english": {"query": "Spanish Cow"}
+            }
+        }
+        self.assertDictEqual(result, expected)
+
+    def test_query_sub_field_with_dot(self):
+        """
+        Can query a sub field using dot
+        """
+
+        tree = parser.parse('text.english:"Spanish Cow"')
+        result = self.transformer(tree)
+        expected = {
+            "match_phrase": {
+                "text.english": {"query": "Spanish Cow"}
+            }
+        }
+        self.assertDictEqual(result, expected)
+
+    def test_query_sub_field_not_analyzed(self):
+        """
+        Can query a sub field using dot
+        """
+
+        tree = parser.parse('author.book.isbn.ref.lower:thebiglebowski')
+        result = self.transformer(tree)
+        expected = {'nested': {
+            'path': 'author.book',
+            'query': {"term": {"author.book.isbn.ref.lower": {"value": "thebiglebowski"}}}
+        }}
+        self.assertDictEqual(result, expected)
 
     def test_query_nested_field_with_column(self):
         """

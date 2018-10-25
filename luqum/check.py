@@ -152,12 +152,13 @@ class CheckNestedFields(LuceneTreeVisitorV2):
         or a dict of sub-nested fields (like nested_fields)
     """
 
-    def __init__(self, nested_fields, object_fields=None):
+    def __init__(self, nested_fields, object_fields=None, sub_fields=None):
         assert(isinstance(nested_fields, dict))
         self.object_fields = normalize_object_fields_specs(object_fields)
         self.object_prefixes = set(k.rsplit(".", 1)[0] for k in self.object_fields or [])
         self.nested_fields = flatten_nested_fields_specs(nested_fields)
         self.nested_prefixes = set(k.rsplit(".", 1)[0] for k in self.nested_fields)
+        self.sub_fields = normalize_object_fields_specs(sub_fields)
 
     def generic_visit(self, node, parents, context):
         """
@@ -189,9 +190,13 @@ class CheckNestedFields(LuceneTreeVisitorV2):
                     ('''"{expr}" can't be directly attributed to "{field}"''' +
                      ''' as it is an object field''')
                     .format(expr=str(node), field=fullname))
+            # note : the above check do not stand for subfield,
+            # as their field can have an expression
             elif len(prefix) > 1:
                 unknown_field = (
+                    self.sub_fields is not None and
                     self.object_fields is not None and
+                    fullname not in self.sub_fields and
                     fullname not in self.object_fields and
                     fullname not in self.nested_fields)
                 if unknown_field:
