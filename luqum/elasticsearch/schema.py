@@ -49,7 +49,7 @@ class SchemaAnalyzer:
         for fname, fdef, parents in self.iter_fields(subfields=True):
             not_analyzed = (
                 (fdef.get("type") == "string" and fdef.get("index", "") == "not_analyzed") or
-                fdef.get("type") == "keyword"
+                fdef.get("type") not in ("text", "string", "nested", "object")
             )
             if not_analyzed:
                 yield self._dot_name(fname, parents)

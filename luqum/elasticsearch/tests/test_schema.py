@@ -51,6 +51,7 @@ class SchemaAnalyzerTestCase(TestCase):
                         "type": "nested",
                         "properties": {
                             "site": {"type": "keyword"},
+                            "idnum": {"type": "long"},
                         },
                     },
                     "manager": {
@@ -99,6 +100,7 @@ class SchemaAnalyzerTestCase(TestCase):
                 'author.firstname.raw',
                 'manager.address.zipcode',
                 'manager.subteams.supervisor.name.raw',
+                'publish.idnum',
                 'publish.site',
             ],
         )
@@ -120,7 +122,8 @@ class SchemaAnalyzerTestCase(TestCase):
                     },
                 },
                 'publish': {
-                    'site': {}
+                    'site': {},
+                    'idnum': {},
                 },
                 'manager.subteams': {  # FIXME !!!!
                     'supervisor': {},
