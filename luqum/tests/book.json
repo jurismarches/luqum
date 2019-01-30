@@ -1,0 +1,182 @@
+{
+    "books": [
+        {
+            "title": "Harry Potter and the Philosopher's Stone",
+            "edition": "Bloomsbury",
+            "author": {
+                "name": "J. K. Rowling",
+                "birthdate": "1965-07-31"
+            },
+            "illustrators": [
+                {
+                    "name": "Thomas Taylor",
+                    "nationality": "UK",
+                    "birthdate": "1973-05-22"
+                },
+                {
+                    "name": "Mary GrandPré",
+                    "nationality":"US",
+                    "birthdate": "1954-02-13"
+                }
+            ],
+            "publication_date": "1997-06-26",
+            "n_pages": "223"
+        },
+        {
+            "title": "Harry Potter and the Chamber of Secrets",
+            "edition": "Bloomsbury",
+            "author": {
+                "name": "J. K. Rowling",
+                "birthdate": "1965-07-31"
+            },
+            "illustrators": [
+                {
+                    "name": "Cliff Wright",
+                    "nationality": "UK",
+                    "birthdate": "1953-10-24"
+                },
+                {
+                    "name": "Mary GrandPré",
+                    "nationality": "US",
+                    "birthdate": "1954-02-13"
+                }
+            ],
+            "publication_date": "1998-07-02",
+            "n_pages": "251"
+        },
+        {
+            "title": "Harry Potter and the Prisoner of Azkaban",
+            "edition": "Bloomsbury",
+            "author": {
+                "name": "J. K. Rowling",
+                "birthdate": "1965-07-31"
+            },
+            "illustrators": [
+                {
+                    "name": "Cliff Wright",
+                    "nationality": "UK",
+                    "birthdate": "1953-10-24"
+                },
+                {
+                    "name": "Mary GrandPré",
+                    "nationality": "US",
+                    "birthdate": "1954-02-13"
+                }
+            ],
+            "publication_date": "1999-07-08",
+            "n_pages": "317"
+        },
+        {
+            "title": "Harry Potter and the Goblet of Fire",
+            "edition": "Bloomsbury",
+            "author": {
+                "name": "J. K. Rowling",
+                "birthdate": "1965-07-31"
+            },
+            "illustrators": [
+                {
+                    "name": "Giles Greenfield",
+                    "nationality": "UK"
+                },
+                {
+                    "name": "Mary GrandPré",
+                    "nationality": "US",
+                    "birthdate": "1954-02-13"
+                }
+            ],
+            "publication_date": "2000-07-08",
+            "n_pages": "636"
+        },
+        {
+            "title": "Harry Potter and the Order of the Phoenix",
+            "edition": "Bloomsbury",
+            "author": {
+                "name": "J. K. Rowling",
+                "birthdate": "1965-07-31"
+            },
+            "illustrators": [
+                {
+                    "name":"Jason Cockcroft",
+                    "nationality":"UK"
+                },
+                {
+                    "name": "Mary GrandPré",
+                    "nationality": "US",
+                    "birthdate": "1954-02-13"
+                }
+            ],
+            "publication_date": "2003-06-21",
+            "n_pages": "766"
+        },
+        {
+            "title": "Harry Potter and the Half-Blood Prince",
+            "edition": "Bloomsbury",
+            "author": {
+                "name": "J. K. Rowling",
+                "birthdate": "1965-07-31"
+            },
+            "illustrators": [
+                {
+                    "name": "Jason Cockcroft",
+                    "nationality": "UK"
+                },
+                {
+                    "name": "Mary GrandPré",
+                    "nationality": "US",
+                    "birthdate": "1954-02-13"
+                }
+            ],
+            "publication_date": "2005-07-16",
+            "n_pages": "607"
+        },
+        {
+            "title": "Harry Potter and the Deathly Hallows",
+            "edition": "Bloomsbury",
+            "author": {
+                "name": "J. K. Rowling",
+                "birthdate": "1965-07-31"
+            },
+            "illustrators": [
+                {
+                    "name": "Jason Cockcroft",
+                    "nationality": "UK"
+                },
+                {
+                    "name": "Mary GrandPré",
+                    "nationality": "US",
+                    "birthdate": "1954-02-13"
+                }
+            ],
+            "publication_date": "2007-07-21",
+            "n_pages": "607"
+        },
+        {
+            "title": "Harry Potter and the Cursed Child",
+            "edition": "Little, Brown and Company",
+            "author": {
+                "name": "J. K. Rowling",
+                "birthdate": "1965-07-31"
+            },
+            "illustrators": [],
+            "publication_date": "2016-07-30",
+            "n_pages": "360"
+        },
+        {
+            "title": "The Tales of Beedle the Bard",
+            "edition": "Lumos (charity)",
+            "author": {
+                "name": "J. K. Rowling",
+                "birthdate": "1965-07-31"
+            },
+            "illustrators": [
+                {
+                    "name":"J. K. Rowling",
+                    "nationality": "UK",
+                    "birthdate": "1965-07-31"
+                }
+            ],
+            "publication_date": "2008-12-04",
+            "n_pages": "157"
+        }
+    ]
+}

@@ -1,21 +1,56 @@
 language: python
-# Existing Python versions
-python:
-  - 3.4
-  - 3.5
-  - 3.6
-# Enable 3.7 without globally enabling sudo and dist: xenial for other build jobs
+
 matrix:
   include:
-    - python: 3.7
+    - env: ES_APT_URL=https://packages.elastic.co/elasticsearch/2.x/debian ES_DSL_VERS=2.2.0 ES_VERS=2.2.1
+      python: 3.4
+    - env: ES_APT_URL=https://artifacts.elastic.co/packages/5.x/apt ES_DSL_VERS=5.3.0 ES_VERS=5.6.0
+      python: 3.4
+    - env: ES_APT_URL=https://artifacts.elastic.co/packages/6.x/apt ES_DSL_VERS=6.3.1 ES_VERS=6.4.3
+      python: 3.4
+    - env: ES_APT_URL=https://packages.elastic.co/elasticsearch/2.x/debian ES_DSL_VERS=2.2.0 ES_VERS=2.2.1
+      python: 3.5
+    - env: ES_APT_URL=https://artifacts.elastic.co/packages/5.x/apt ES_DSL_VERS=5.3.0 ES_VERS=5.6.0
+      python: 3.5
+    - env: ES_APT_URL=https://artifacts.elastic.co/packages/6.x/apt ES_DSL_VERS=6.3.1 ES_VERS=6.4.3
+      python: 3.5
+    - env: ES_APT_URL=https://packages.elastic.co/elasticsearch/2.x/debian ES_DSL_VERS=2.2.0 ES_VERS=2.2.1
+      python: 3.6
+    - env: ES_APT_URL=https://artifacts.elastic.co/packages/5.x/apt ES_DSL_VERS=5.3.0 ES_VERS=5.6.0
+      python: 3.6
+    - env: ES_APT_URL=https://artifacts.elastic.co/packages/6.x/apt ES_DSL_VERS=6.3.1 ES_VERS=6.4.3
+      python: 3.6
+    - env: ES_APT_URL=https://packages.elastic.co/elasticsearch/2.x/debian ES_DSL_VERS=2.2.0 ES_VERS=2.2.1
+      python: 3.7
+      sudo: true
+      dist: xenial
+    - env: ES_APT_URL=https://artifacts.elastic.co/packages/5.x/apt ES_DSL_VERS=5.3.0 ES_VERS=5.6.0
+      python: 3.7
+      sudo: true
+      dist: xenial
+    - env: ES_APT_URL=https://artifacts.elastic.co/packages/6.x/apt ES_DSL_VERS=6.3.1 ES_VERS=6.4.3
+      python: 3.7
       dist: xenial
       sudo: true
+
+before_install:
+  - sudo rm /etc/apt/sources.list; sudo touch /etc/apt/sources.list
+  - wget -qO - https://packages.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
+  - echo "deb $ES_APT_URL stable main" | sudo tee -a /etc/apt/sources.list.d/elastic.list
+  - sudo apt-get update && sudo apt-get install elasticsearch=$ES_VERS -y --allow-downgrades
+  - sudo service elasticsearch start
+  - while ! curl -XGET "localhost:9200";do sleep 1; done
+  - curl localhost:9200
+
 install:
   - pip install .
   - pip install -r requirements-dev.txt
   - pip install coveralls
+  - pip install elasticsearch-dsl==$ES_DSL_VERS
+
 script:
   - make tests
   - make quality
+
 after_success:
   - coveralls
