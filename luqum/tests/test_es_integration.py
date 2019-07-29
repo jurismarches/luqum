@@ -4,7 +4,7 @@ from unittest import TestCase
 import elasticsearch_dsl
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
-from elasticsearch_dsl import Date, Index, Integer, Nested, Object, Search
+from elasticsearch_dsl import Date, Index, Integer, Nested, Object, Search, analyzer
 from elasticsearch_dsl.connections import connections
 from luqum.elasticsearch import ElasticsearchQueryBuilder, SchemaAnalyzer
 from luqum.parser import parser
@@ -37,7 +37,12 @@ if MAJOR_ES > 2:
 
 
 class Book(Document):
-    title = Text()
+    title = Text(fields={
+        "no_vowels": Text(
+            analyzer=analyzer("no_vowels", "pattern", pattern="[\Waeiouy]"),
+            search_analyzer="standard"
+        )
+    })
     edition = Text()
     author = Object(properties={"name": Text(), "birthdate": Date()})
     publication_date = Date()
@@ -88,9 +93,16 @@ class LuqumRequestTestCase(TestCase):
         cls.search = Search(using=client, index="bk")
         MESSAGES_SCHEMA = {"mappings": Book._doc_type.mapping.to_dict()}
         schema_analizer = SchemaAnalyzer(MESSAGES_SCHEMA)
-        cls.es_builder = ElasticsearchQueryBuilder(
-            **schema_analizer.query_builder_options()
-        )
+
+        builder_options = schema_analizer.query_builder_options()
+        builder_options['field_options'] = {
+            'title.no_vowels': {
+                'match_type': 'multi_match',
+                'type': 'most_fields',
+                'fields': ('title', 'title.no_vowels')
+            }
+        }
+        cls.es_builder = ElasticsearchQueryBuilder(**builder_options)
         add_data()
 
     def _ask_luqum(self, req):
@@ -211,6 +223,12 @@ class LuqumRequestTestCase(TestCase):
                     )
                 """
             ),
+            ["Harry Potter and the Order of the Phoenix"],
+        )
+
+    def test_subfield_multi_match_search(self):
+        self.assertListEqual(
+            self._ask_luqum("title.no_vowels:Potter AND title.no_vowels:x"),
             ["Harry Potter and the Order of the Phoenix"],
         )
 
