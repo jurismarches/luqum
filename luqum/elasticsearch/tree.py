@@ -38,8 +38,10 @@ class AbstractEItem(JsonSerializableMixin):
     def json(self):
         field = self.field
         inner_json = dict(self.field_options.get(field, {}))
-        inner_json.pop('type', None)  # remove "type" key
-        if self.method == 'query_string':
+        result = inner_json.pop('match_type', None)  # remove "match_type" key
+        if not result:  # conditionally remove "type" (for backward compatibility)
+            inner_json.pop('type', None)
+        if self.method in ['query_string', 'multi_match']:
             json = {self.method: inner_json}
         else:
             json = {self.method: {field: inner_json}}
@@ -50,7 +52,7 @@ class AbstractEItem(JsonSerializableMixin):
             value = getattr(self, key, None)
             if value is not None:
                 if key == 'q':
-                    if self.method.startswith('match'):
+                    if 'match' in self.method:
                         inner_json['query'] = value
                         if self.method == 'match':
                             inner_json['zero_terms_query'] = self.zero_terms_query
@@ -94,7 +96,9 @@ class AbstractEItem(JsonSerializableMixin):
             if self._value_has_wildcard_char():
                 return 'query_string'
             elif self._method.startswith("match"):
-                return self.field_options.get(self.field, {}).get("type", self._method)
+                options = self.field_options.get(self.field, {})
+                # Support the type opiton for backward compatibility
+                return options.get("match_type", options.get("type", self._method))
         return self._method
 
 

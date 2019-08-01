@@ -79,7 +79,7 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
           None, will accept all non nested fields or object fields as sub fields.
         :param dict field_options: allows you to give defaults options for each fields.
           They will be applied unless, overwritten by generated parameters.
-          For match query, the `type` parameter modifies the query type.
+          For match query, the `match_type` parameter modifies the type of match query.
         :param bool match_word_as_phrase: if True,
           word expressions are matched using `match_phrase` instead of `match`.
           This options mainly keeps stability with 0.6 version.
