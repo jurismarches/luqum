@@ -605,7 +605,7 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
     def test_options_match(self):
         tree = SearchField("foo", Word("bar"))
         transformer = ElasticsearchQueryBuilder(
-            field_options={"foo": {"type": "match"}}
+            field_options={"foo": {"match_type": "match"}}
         )
         self.assertEqual(
             transformer(tree),
@@ -616,7 +616,7 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
         )
 
         transformer = ElasticsearchQueryBuilder(
-            field_options={"foo": {"type": "match_phrase"}}
+            field_options={"foo": {"match_type": "match_phrase"}}
         )
         self.assertEqual(
             transformer(tree),
@@ -627,7 +627,7 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
 
         transformer = ElasticsearchQueryBuilder(
             field_options={"foo": {
-                "type": "match_prefix",
+                "match_type": "match_prefix",
                 "max_expansions": 3,
             }},
         )
@@ -647,6 +647,39 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
                 "query": "bar",
                 "zero_terms_query": "none",
             }}}
+        )
+
+    def test_options_match_backward_compatible_type(self):
+        tree = SearchField("foo", Word("bar"))
+        transformer = ElasticsearchQueryBuilder(
+            # using type instead of match_type
+            field_options={"foo": {"type": "match_phrase"}}
+        )
+        self.assertEqual(
+            transformer(tree),
+            {"match_phrase": {"foo": {
+                "query": "bar",
+            }}},
+        )
+
+    def test_options_multi_match(self):
+        tree = SearchField("foo", Word("bar"))
+        transformer = ElasticsearchQueryBuilder(
+            field_options={
+                "foo": {
+                    "match_type": "multi_match",
+                    "type": "most_fields",
+                    "fields": ["foo", "spam"],
+                },
+            },
+        )
+        self.assertEqual(
+            transformer(tree),
+            {"multi_match": {
+                "type": "most_fields",
+                "fields": ["foo", "spam"],
+                "query": "bar",
+            }},
         )
 
     def test_options_term(self):
@@ -673,7 +706,7 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
     def test_options_nested(self):
         transformer = ElasticsearchQueryBuilder(
             nested_fields={'author': ['name']},
-            field_options={"author.name": {"type": "match_prefix", "boost": 3.0}}
+            field_options={"author.name": {"match_type": "match_prefix", "boost": 3.0}}
         )
         tree = SearchField("author.name", Word("bar"))
         expected = {"nested": {
@@ -694,7 +727,7 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
         transformer = ElasticsearchQueryBuilder(
             default_field="foo",
             not_analyzed_fields=["spam"],
-            field_options={"foo": {"type": "match", "boost": 2.0}}
+            field_options={"foo": {"match_type": "match", "boost": 2.0}}
         )
         tree = (
             OrOperation(
@@ -1460,8 +1493,8 @@ class TestElasticSearchItemFactory(TestCase):
     def test_build_field_options_overwrite(self):
         # this is for coverage completeness
         factory = ElasticSearchItemFactory(
-            no_analyze=[], nested_fields={}, field_options={"foo": {"type": "phrase"}})
+            no_analyze=[], nested_fields={}, field_options={"foo": {"match_type": "phrase"}})
         word = factory.build(EWord, q="bar")
-        self.assertDictEqual(word.field_options, {"foo": {"type": "phrase"}})
-        word = factory.build(EWord, q="bar", field_options={"foo": {"type": "term"}})
-        self.assertDictEqual(word.field_options, {"foo": {"type": "term"}})
+        self.assertDictEqual(word.field_options, {"foo": {"match_type": "phrase"}})
+        word = factory.build(EWord, q="bar", field_options={"foo": {"match_type": "term"}})
+        self.assertDictEqual(word.field_options, {"foo": {"match_type": "term"}})

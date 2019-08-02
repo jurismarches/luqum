@@ -7,13 +7,22 @@ and this project tries to adhere to `Semantic Versioning`_.
 .. _`Keep a Changelog`: http://keepachangelog.com/en/1.0.0/
 .. _`Semantic Versioning`: http://semver.org/spec/v2.0.0.html
 
-UNRELEASED
-===========
+0.8.0
+=====
+
+Added
+-----
+
+- support for `multi_match` query in `ElasticsearchQueryBuilder`.
 
 Fixed
 -----
 
 - SchemaAnalyzer, should count non text fields as not_analyzed
+- `ElasticsearchQueryBuilder`'s `field_options` parameter
+  can accept `match_type` instead of `type` to change request type.
+  This is now the prefered way over `type`
+  which may more easily conflict with request parameters.
 
 0.7.5 - 2018-10-29
 ==================
