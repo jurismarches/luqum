@@ -18,6 +18,8 @@ Thanks to luqum, your users may continue to write queries like:
 and you will be able to leverage ElasticSearch query DSL,
 and control the precise meaning of each search terms.
 
+Luqum is dual licensed under Apache2.0 and LGPLv3.
+
 Compatible with Python 3.4+
 
 Installation

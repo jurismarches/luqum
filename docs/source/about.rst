@@ -29,6 +29,8 @@ You may use this to:
 
 The parser is built using `PLY`_.
 
+Luqum is dual licensed under Apache2.0 and LGPLv3.
+
 .. warning::
 
    While used in production by our team for some time,
