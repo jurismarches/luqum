@@ -7,6 +7,14 @@ and this project tries to adhere to `Semantic Versioning`_.
 .. _`Keep a Changelog`: http://keepachangelog.com/en/1.0.0/
 .. _`Semantic Versioning`: http://semver.org/spec/v2.0.0.html
 
+0.8.1 - 2019-11-01
+==================
+
+Added
+-----
+
+- added Apache 2 license, while maintaining LGPLv3+
+
 0.8.0 - 2019-08-02
 ==================
 
