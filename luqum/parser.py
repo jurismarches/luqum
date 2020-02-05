@@ -33,7 +33,6 @@ tokens = (
      'APPROX',
      'BOOST',
      'MINUS',
-     'SEPARATOR',
      'PLUS',
      'COLUMN',
      'LPAREN',
