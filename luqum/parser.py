@@ -120,6 +120,10 @@ APPROX_RE = r'~(?P<degree>[0-9.]+)?'
 BOOST_RE = r'\^(?P<force>[0-9.]+)?'
 
 
+def t_SEPARATOR(t):
+    r'\s+'
+    pass  # discard separators
+
 @lex.TOKEN(TERM_RE)
 def t_TERM(t):
     # check if it is not a reserved term (an operation)
