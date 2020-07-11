@@ -206,6 +206,17 @@ class Phrase(Term):
                "Phrase value must contain the quotes")
 
 
+class Regex(Term):
+    """A regex term, that is a sequence of words enclose in slashes
+
+    :param str value: the value, including the slashes. Eg. ``'/my regex/'``
+    """
+    def __init__(self, value):
+        super(Regex, self).__init__(value)
+        assert value.endswith('/') and value.startswith('/'), (
+               "Regex value must contain the slashes")
+
+
 class BaseApprox(Item):
     """Base for approximations, that is fuzziness and proximity
     """

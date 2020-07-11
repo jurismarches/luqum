@@ -30,6 +30,7 @@ reserved = {
 tokens = (
     ['TERM',
      'PHRASE',
+     'REGEX',
      'APPROX',
      'BOOST',
      'MINUS',
@@ -66,6 +67,7 @@ precedence = (
     ('nonassoc', 'BOOST'),
     ('nonassoc', 'LPAREN', 'RPAREN'),
     ('nonassoc', 'LBRACKET', 'TO', 'RBRACKET'),
+    ('nonassoc', 'REGEX'),
     ('nonassoc', 'PHRASE'),
     ('nonassoc', 'TERM'),
 )
@@ -89,17 +91,17 @@ TIME_RE = r'''
 TERM_RE = r'''
 (?P<term>  # group term
   (?:
-   [^\s:^~(){{}}[\],"'+\-\\] # first char is not a space neither some char which have meanings
-                             # note: escape of "-" and "]"
-                             #       and doubling of "{{}}" (because we use format)
-   |                         # but
-   \\.                       # we can start with an escaped character
+   [^\s:^~(){{}}[\]/,"'+\-\\] # first char is not a space neither some char which have meanings
+                              # note: escape of "-" and "]"
+                              #       and doubling of "{{}}" (because we use format)
+   |                          # but
+   \\.                        # we can start with an escaped character
   )
-  ([^\s:^\\~(){{}}[\]]       # following chars
-   |                       # OR
-   \\.                     # an escaped char
-   |                       # OR
-   {time_re}               # a time expression
+  ([^\s:^\\~(){{}}[\]]        # following chars
+   |                          # OR
+   \\.                        # an escaped char
+   |                          # OR
+   {time_re}                  # a time expression
   )*
 )
 '''.format(time_re=TIME_RE)
@@ -119,6 +121,17 @@ PHRASE_RE = r'''
 APPROX_RE = r'~(?P<degree>[0-9.]+)?'
 BOOST_RE = r'\^(?P<force>[0-9.]+)?'
 
+# regex
+REGEX_RE = r'''
+(?P<regex>  # regex
+  /         # open slash
+  (?:       # repeating
+    [^\\/]  # - a char which is not escape or end of regex
+    |       # OR
+    \\.     # an escaped char
+  )*
+  /         # closing slash
+)'''
 
 def t_SEPARATOR(t):
     r'\s+'
@@ -141,6 +154,13 @@ def t_PHRASE(t):
     m = re.match(PHRASE_RE, t.value, re.VERBOSE)
     value = m.group("phrase")
     t.value = Phrase(value)
+    return t
+
+@lex.TOKEN(REGEX_RE)
+def t_REGEX(t):
+    m = re.match(REGEX_RE, t.value, re.VERBOSE)
+    value = m.group("regex")
+    t.value = Regex(value)
     return t
 
 
@@ -246,6 +266,9 @@ def p_fuzzy(p):
     '''unary_expression : TERM APPROX'''
     p[0] = Fuzzy(p[1], p[2])
 
+def p_regex(p):
+    '''unary_expression : REGEX'''
+    p[0] = p[1]
 
 # handling a special case, TO is reserved only in range
 def p_to_as_term(p):
