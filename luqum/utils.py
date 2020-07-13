@@ -4,7 +4,12 @@
 Include base classes to implement a visitor pattern.
 
 """
+import elasticsearch_dsl
+
 from .tree import BaseOperation, OrOperation, AndOperation
+
+
+ES_6 = elasticsearch_dsl.VERSION[0] >= 6
 
 
 def camel_to_lower(name):

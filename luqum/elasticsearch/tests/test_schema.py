@@ -1,81 +1,75 @@
 from unittest import TestCase
 
+from luqum.utils import ES_6
 from ..schema import SchemaAnalyzer
 
 
 class SchemaAnalyzerTestCase(TestCase):
 
-    INDEX_SETTINGS = {
-        "settings": {
-            "query": {"default_field": "text"},
-        },
-        "mappings": {
-            "type1": {
+    MAPPING = {
+        "properties": {
+            "text": {"type": "text"},
+            "author": {
+                "type": "nested",
                 "properties": {
-                    "text": {"type": "text"},
-                    "author": {
+                    "firstname": {
+                        "type": "text",
+                        "fields": {
+                            # sub fields
+                            "english": {"analyzer": "english"},
+                            "raw": {"type": "keyword"},
+                        }
+                    },
+                    "lastname": {"type": "text"},
+                    "book": {
                         "type": "nested",
                         "properties": {
-                            "firstname": {
-                                "type": "text",
-                                "fields": {
-                                    # sub fields
-                                    "english": {"analyzer": "english"},
-                                    "raw": {"type": "keyword"},
-                                }
-                            },
-                            "lastname": {"type": "text"},
-                            "book": {
-                                "type": "nested",
-                                "properties": {
-                                    "title": {"type": "text"},
-                                    "isbn": {  # an object field in deep nested field
-                                        "type": "object",
-                                        "properties": {
-                                            "ref": {
-                                                "type": "keyword",
-                                            },
-                                        },
-                                    },
-                                    "format": {
-                                        "type": "nested",
-                                        "properties": {
-                                            "ftype": {"type": "keyword"},
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                    "publish": {
-                        "type": "nested",
-                        "properties": {
-                            "site": {"type": "keyword"},
-                            "idnum": {"type": "long"},
-                        },
-                    },
-                    "manager": {
-                        "type": "object",
-                        "properties": {
-                            "firstname": {"type": "text"},
-                            "address": {  # an object field in an object field
+                            "title": {"type": "text"},
+                            "isbn": {  # an object field in deep nested field
                                 "type": "object",
                                 "properties": {
-                                    "zipcode": {"type": "keyword"},
+                                    "ref": {
+                                        "type": "keyword",
+                                    },
                                 },
                             },
-                            "subteams": {  # a nested in an object field
+                            "format": {
                                 "type": "nested",
                                 "properties": {
-                                    "supervisor": {  # with an object field inside
-                                        "type": "object",
-                                        "properties": {
-                                            "name": {
-                                                "type": "text",
-                                                # sub field
-                                                "fields": {"raw": {"type": "keyword"}},
-                                            },
-                                        },
+                                    "ftype": {"type": "keyword"},
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            "publish": {
+                "type": "nested",
+                "properties": {
+                    "site": {"type": "keyword"},
+                    "idnum": {"type": "long"},
+                },
+            },
+            "manager": {
+                "type": "object",
+                "properties": {
+                    "firstname": {"type": "text"},
+                    "address": {  # an object field in an object field
+                        "type": "object",
+                        "properties": {
+                            "zipcode": {"type": "keyword"},
+                        },
+                    },
+                    "subteams": {  # a nested in an object field
+                        "type": "nested",
+                        "properties": {
+                            "supervisor": {  # with an object field inside
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "text",
+                                        # sub field
+                                        "fields": {"raw": {"type": "keyword"}},
                                     },
                                 },
                             },
@@ -85,6 +79,20 @@ class SchemaAnalyzerTestCase(TestCase):
             },
         },
     }
+
+    INDEX_SETTINGS = {
+        "settings": {
+            "query": {"default_field": "text"},
+        },
+        "mappings": {},
+    }
+
+    def setUp(self):
+        super().setUp()
+        if ES_6:
+            self.INDEX_SETTINGS["mappings"] = self.MAPPING
+        else:
+            self.INDEX_SETTINGS["mappings"]["type1"] = self.MAPPING
 
     def test_default_field(self):
         s = SchemaAnalyzer(self.INDEX_SETTINGS)
