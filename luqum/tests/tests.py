@@ -11,7 +11,7 @@ from ..parser import lexer, parser, ParseError
 from ..pretty import Prettifier, prettify
 from ..tree import (
     SearchField, FieldGroup, Group,
-    Term, Word, Phrase, Proximity, Fuzzy, Boost, Range,
+    Term, Word, Phrase, Regex, Proximity, Fuzzy, Boost, Range,
     Not, AndOperation, OrOperation, Plus, Prohibit, UnknownOperation)
 from ..utils import (
     LuceneTreeVisitor,
@@ -269,6 +269,15 @@ class TestParser(TestCase):
                 Phrase('"a phrase (AND a complicated~ one)"'),
                 Phrase('"Another one"')))
         parsed = parser.parse('"a phrase (AND a complicated~ one)" AND "Another one"')
+        self.assertEqual(str(parsed), str(tree))
+        self.assertEqual(parsed, tree)
+
+    def test_regex(self):
+        tree = (
+            AndOperation(
+                Regex('/a regex (with some.*match+ing)?/'),
+                Regex('/Another one/')))
+        parsed = parser.parse('/a regex (with some.*match+ing)?/ AND /Another one/')
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
 
