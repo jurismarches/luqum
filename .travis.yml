@@ -8,17 +8,23 @@ matrix:
       python: 3.4
     - env: ES_APT_URL=https://artifacts.elastic.co/packages/6.x/apt ES_DSL_VERS=6.3.1 ES_VERS=6.4.3
       python: 3.4
+    - env: ES_APT_URL=https://artifacts.elastic.co/packages/7.x/apt ES_DSL_VERS=7.2.1 ES_VERS=7.8.0
+      python: 3.4
     - env: ES_APT_URL=https://packages.elastic.co/elasticsearch/2.x/debian ES_DSL_VERS=2.2.0 ES_VERS=2.2.1
       python: 3.5
     - env: ES_APT_URL=https://artifacts.elastic.co/packages/5.x/apt ES_DSL_VERS=5.3.0 ES_VERS=5.6.0
       python: 3.5
     - env: ES_APT_URL=https://artifacts.elastic.co/packages/6.x/apt ES_DSL_VERS=6.3.1 ES_VERS=6.4.3
       python: 3.5
+    - env: ES_APT_URL=https://artifacts.elastic.co/packages/7.x/apt ES_DSL_VERS=7.2.1 ES_VERS=7.8.0
+      python: 3.5
     - env: ES_APT_URL=https://packages.elastic.co/elasticsearch/2.x/debian ES_DSL_VERS=2.2.0 ES_VERS=2.2.1
       python: 3.6
     - env: ES_APT_URL=https://artifacts.elastic.co/packages/5.x/apt ES_DSL_VERS=5.3.0 ES_VERS=5.6.0
       python: 3.6
     - env: ES_APT_URL=https://artifacts.elastic.co/packages/6.x/apt ES_DSL_VERS=6.3.1 ES_VERS=6.4.3
+      python: 3.6
+    - env: ES_APT_URL=https://artifacts.elastic.co/packages/7.x/apt ES_DSL_VERS=7.2.1 ES_VERS=7.8.0
       python: 3.6
     - env: ES_APT_URL=https://packages.elastic.co/elasticsearch/2.x/debian ES_DSL_VERS=2.2.0 ES_VERS=2.2.1
       python: 3.7
@@ -29,6 +35,10 @@ matrix:
       sudo: true
       dist: xenial
     - env: ES_APT_URL=https://artifacts.elastic.co/packages/6.x/apt ES_DSL_VERS=6.3.1 ES_VERS=6.4.3
+      python: 3.7
+      dist: xenial
+      sudo: true
+    - env: ES_APT_URL=https://artifacts.elastic.co/packages/7.x/apt ES_DSL_VERS=7.2.1 ES_VERS=7.8.0
       python: 3.7
       dist: xenial
       sudo: true
@@ -38,7 +48,8 @@ before_install:
   - wget -qO - https://packages.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
   - echo "deb $ES_APT_URL stable main" | sudo tee -a /etc/apt/sources.list.d/elastic.list
   - sudo apt-get update && sudo apt-get install elasticsearch=$ES_VERS -y --allow-downgrades
-  - sudo service elasticsearch start
+  - sudo chown -R elasticsearch:elasticsearch /etc/default/elasticsearch 
+  - sudo systemctl start elasticsearch.service
   - while ! curl -XGET "localhost:9200";do sleep 1; done
   - curl localhost:9200
 
