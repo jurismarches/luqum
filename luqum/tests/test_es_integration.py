@@ -14,7 +14,7 @@ if MAJOR_ES > 2:
     from elasticsearch_dsl import Keyword
 
 ES6 = False
-if MAJOR_ES == 6:
+if MAJOR_ES >= 6:
     from elasticsearch_dsl import Text, Document, InnerDoc
 
     ES6 = True
@@ -79,12 +79,15 @@ def add_data():
         {"_op_type": "index", "_id": i, "_source": d}
         for i, d in enumerate(datas["books"])
     )
-    if ES6:
-        doc_type = "doc"
+    if MAJOR_ES >= 7:
+        bulk(search, actions, index="bk", refresh=True)
     else:
-        doc_type = "book"
+        if ES6:
+            doc_type = "doc"
+        else:
+            doc_type = "book"
 
-    bulk(search, actions, index="bk", doc_type=doc_type, refresh=True)
+        bulk(search, actions, index="bk", doc_type=doc_type, refresh=True)
 
 
 class LuqumRequestTestCase(TestCase):
@@ -123,7 +126,7 @@ class LuqumRequestTestCase(TestCase):
         )
 
     def test_or_condition_search(self):
-        self.assertListEqual(
+        self.assertCountEqual(
             self._ask_luqum(
                 'illustrators:(name:"Giles Greenfield" OR name:"Cliff Wright")'
             ),
@@ -135,7 +138,7 @@ class LuqumRequestTestCase(TestCase):
         )
 
     def test_and_condition_search(self):
-        self.assertListEqual(
+        self.assertCountEqual(
             self._ask_luqum(
                 'illustrators:(name:"Cliff Wright") AND illustrators:(name:"Mary GrandPré")'
             ),
@@ -146,7 +149,7 @@ class LuqumRequestTestCase(TestCase):
         )
 
     def test_date_range_search(self):
-        self.assertListEqual(
+        self.assertCountEqual(
             self._ask_luqum("publication_date:[2005-01-01 TO 2010-12-31]"),
             [
                 "Harry Potter and the Half-Blood Prince",
@@ -156,7 +159,7 @@ class LuqumRequestTestCase(TestCase):
         )
 
     def test_int_range_search(self):
-        self.assertListEqual(
+        self.assertCountEqual(
             self._ask_luqum("n_pages:[500 TO *]"),
             [
                 "Harry Potter and the Half-Blood Prince",

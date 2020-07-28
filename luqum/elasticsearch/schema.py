@@ -11,7 +11,13 @@ class SchemaAnalyzer:
 
     def __init__(self, schema):
         self.settings = schema.get("settings", {})
-        self.mappings = schema.get("mappings", {})
+        mappings = schema.get("mappings", {})
+        if mappings.get("properties"):
+            # ES >= 6 : one document type per index
+            self.mappings = {"_doc": mappings}
+        else:
+            # ES < 6 : multiple document types per index allowed
+            self.mappings = mappings
 
     def _dot_name(self, fname, parents):
         return ".".join([p[0] for p in parents] + [fname])
@@ -40,10 +46,8 @@ class SchemaAnalyzer:
                 yield from self._walk_properties(inner_properties, new_parents, subfields)
 
     def iter_fields(self, subfields=False):
-        for name, mapping in self.mappings.items():
-            walk_iter = self._walk_properties(mapping.get("properties", {}), subfields=subfields)
-            for fname, fdef, parents in walk_iter:
-                yield fname, fdef, parents
+        for mapping in self.mappings.values():
+            yield from self._walk_properties(mapping.get("properties", {}), subfields=subfields)
 
     def not_analyzed_fields(self):
         for fname, fdef, parents in self.iter_fields(subfields=True):
