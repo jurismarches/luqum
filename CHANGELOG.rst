@@ -7,6 +7,14 @@ and this project tries to adhere to `Semantic Versioning`_.
 .. _`Keep a Changelog`: http://keepachangelog.com/en/1.0.0/
 .. _`Semantic Versioning`: http://semver.org/spec/v2.0.0.html
 
+0.9.0 - 2020-07-29
+==================
+
+Added
+-----
+
+- support for elasticsearch 7
+
 0.8.1 - 2019-11-01
 ==================
 
