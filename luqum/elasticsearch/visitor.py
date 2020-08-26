@@ -252,7 +252,9 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
             [Word('yo'), OrOperation(Word('lo'), Word('py'))]
 
 
-            >>> op = OrOperation(Word('yo', tail=" "), AndOperation(Word('lo', tail=" "), Word('py', head=" "), head=" "))
+            >>> op = OrOperation(
+            ...     Word('yo', tail=" "),
+            ...     AndOperation(Word('lo', tail=" "), Word('py', head=" "), head=" "))
             >>> list(builder._yield_nested_children(op, op.children))
             Traceback (most recent call last):
                 ...
