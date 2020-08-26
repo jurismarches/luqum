@@ -3,7 +3,7 @@
 """
 
 # TODO : add reserved chars and escaping, regex
-# see : https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html
+# see : https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html  # noqa: E501
 # https://lucene.apache.org/core/3_6_0/queryparsersyntax.html
 import re
 
@@ -11,7 +11,12 @@ import ply.lex as lex
 import ply.yacc as yacc
 
 from .head_tail import TokenValue, head_tail, token_headtail
-from .tree import *
+from .tree import (
+    AndOperation, Boost, Fuzzy, Group, Not,
+    OrOperation, Phrase, Plus, Prohibit, Proximity,
+    Range, Regex, SearchField, UnknownOperation, Word,
+    create_operation, group_to_fieldgroup,
+)
 
 
 class ParseError(ValueError):
@@ -104,7 +109,7 @@ PHRASE_RE = r'''
   )*
   "          # closing quote
 )'''
-#r'(?P<phrase>"(?:[^\\"]|\\"|\\[^"])*")' # this is quite complicated to handle \"
+# r'(?P<phrase>"(?:[^\\"]|\\"|\\[^"])*")' # this is quite complicated to handle \"
 # modifiers after term or phrase
 APPROX_RE = r'~(?P<degree>[0-9.]+)?'
 BOOST_RE = r'\^(?P<force>[0-9.]+)?'
@@ -125,7 +130,7 @@ REGEX_RE = r'''
 def t_SEPARATOR(t):
     r'\s+'
     token_headtail(t)
-    return None # discard separators
+    return None  # discard separators
 
 
 # standard function for simple text tokens
@@ -134,42 +139,52 @@ def simple_token(t):
     token_headtail(t)
     return t
 
+
 # text of some simple tokens
 def t_PLUS(t):
     r'\+'
     return simple_token(t)
 
+
 def t_MINUS(t):
     r'\-'
     return simple_token(t)
 
+
 def t_NOT(t):
-    r'NOT'
+    r'\bNOT\b'
     return simple_token(t)
+
 
 def t_AND_OP(t):
-    r'AND'
+    r'\bAND\b'
     return simple_token(t)
 
+
 def t_OR_OP(t):
-    r'OR'
+    r'\bOR\b'
     return simple_token(t)
+
 
 def t_COLUMN(t):
     r':'
     return simple_token(t)
 
+
 def t_LPAREN(t):
     r'\('
     return simple_token(t)
+
 
 def t_RPAREN(t):
     r'\)'
     return simple_token(t)
 
+
 def t_LBRACKET(t):
     r'(\[|\{)'
     return simple_token(t)
+
 
 def t_RBRACKET(t):
     r'(\]|\})'

@@ -484,6 +484,7 @@ class TestParser(TestCase):
             "Syntax error in input : unexpected  ']' at position 8!",
         )
 
+
 class TestPrint(TestCase):
 
     def test_unknown_operation(self):
