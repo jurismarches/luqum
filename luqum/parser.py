@@ -137,6 +137,7 @@ def t_SEPARATOR(t):
 
 @lex.TOKEN(TERM_RE)
 def t_TERM(t):
+    # note: it also handles NOT, OR, AND, TO
     # check if it is not a reserved term (an operation)
     t.type = reserved.get(t.value, 'TERM')
     # it's not, make it a Word
@@ -165,21 +166,6 @@ def t_PLUS(t):
 
 def t_MINUS(t):
     r'\-'
-    return simple_token(t)
-
-
-def t_NOT(t):
-    r'\bNOT\b'
-    return simple_token(t)
-
-
-def t_AND_OP(t):
-    r'\bAND\b'
-    return simple_token(t)
-
-
-def t_OR_OP(t):
-    r'\bOR\b'
     return simple_token(t)
 
 

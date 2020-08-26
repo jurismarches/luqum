@@ -157,8 +157,8 @@ class TestParser(TestCase):
     def test_simplest(self):
         tree = (
             AndOperation(
-                Word("foo"),
-                Word("bar")))
+                Word("foo", tail=" "),
+                Word("bar", head=" ")))
         parsed = parser.parse("foo AND bar")
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
@@ -166,7 +166,7 @@ class TestParser(TestCase):
     def test_implicit_operations(self):
         tree = (
             UnknownOperation(
-                Word("foo"),
+                Word("foo", tail=" "),
                 Word("bar")))
         parsed = parser.parse("foo bar")
         self.assertEqual(str(parsed), str(tree))
@@ -242,11 +242,11 @@ class TestParser(TestCase):
         tree = (
             AndOperation(
                 Prohibit(
-                    Word("test")),
+                    Word("test", tail=" ")),
                 Prohibit(
-                    Word("foo")),
+                    Word("foo", tail=" "), head=" "),
                 Not(
-                    Word("bar"))))
+                    Word("bar", head=" "), head=" ")))
         parsed = parser.parse("-test AND -foo AND NOT bar")
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
@@ -255,10 +255,10 @@ class TestParser(TestCase):
         tree = (
             AndOperation(
                 Plus(
-                    Word("test")),
-                Word("foo"),
+                    Word("test", tail=" ")),
+                Word("foo", head=" ", tail=" "),
                 Plus(
-                    Word("bar"))))
+                    Word("bar"), head=" ")))
         parsed = parser.parse("+test AND foo AND +bar")
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
@@ -266,8 +266,8 @@ class TestParser(TestCase):
     def test_phrase(self):
         tree = (
             AndOperation(
-                Phrase('"a phrase (AND a complicated~ one)"'),
-                Phrase('"Another one"')))
+                Phrase('"a phrase (AND a complicated~ one)"', tail=" "),
+                Phrase('"Another one"', head=" ")))
         parsed = parser.parse('"a phrase (AND a complicated~ one)" AND "Another one"')
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
@@ -275,8 +275,8 @@ class TestParser(TestCase):
     def test_regex(self):
         tree = (
             AndOperation(
-                Regex('/a regex (with some.*match+ing)?/'),
-                Regex('/Another one/')))
+                Regex('/a regex (with some.*match+ing)?/', tail=" "),
+                Regex('/Another one/', head=" ")))
         parsed = parser.parse('/a regex (with some.*match+ing)?/ AND /Another one/')
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
@@ -286,13 +286,16 @@ class TestParser(TestCase):
             UnknownOperation(
                 Proximity(
                     Phrase('"foo bar"'),
-                    3),
+                    3,
+                    tail=" "),
                 Proximity(
                     Phrase('"foo baz"'),
-                    1),
+                    1,
+                    tail=" "),
                 Fuzzy(
                     Word('baz'),
-                    Decimal("0.3")),
+                    Decimal("0.3"),
+                    tail=" "),
                 Fuzzy(
                     Word('fou'),
                     Decimal("0.5"))))
@@ -305,12 +308,13 @@ class TestParser(TestCase):
             UnknownOperation(
                 Boost(
                     Phrase('"foo bar"'),
-                    Decimal("3.0")),
+                    Decimal("3.0"),
+                    tail=" "),
                 Boost(
                     Group(
                         AndOperation(
-                            Word('baz'),
-                            Word('bar'))),
+                            Word('baz', tail=" "),
+                            Word('bar', head=" "))),
                     Decimal("2.1"))))
         parsed = parser.parse('"foo bar"^3 (baz AND bar)^2.1')
         self.assertEqual(str(parsed), str(tree))
@@ -319,16 +323,18 @@ class TestParser(TestCase):
     def test_groups(self):
         tree = (
            OrOperation(
-               Word('test'),
+               Word('test', tail=" "),
                Group(
                    AndOperation(
                        SearchField(
                            "subject",
                            FieldGroup(
                                OrOperation(
-                                   Word('foo'),
-                                   Word('bar')))),
-                       Word('baz')))))
+                                   Word('foo', tail=" "),
+                                   Word('bar', head=" "))),
+                            tail=" "),
+                       Word('baz', head=" ")),
+                    head=" ")))
         parsed = parser.parse('test OR (subject:(foo OR bar) AND baz)')
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
@@ -338,10 +344,12 @@ class TestParser(TestCase):
             AndOperation(
                 SearchField(
                     "foo",
-                    Range(Word("10"), Word("100"), True, True)),
+                    Range(Word("10", tail=" "), Word("100", head=" "), True, True),
+                    tail=" "),
                 SearchField(
                     "bar",
-                    Range(Word("a*"), Word("*"), True, False))))
+                    Range(Word("a*", tail=" "), Word("*", head=" "), True, False),
+                    head=" ")))
         parsed = parser.parse('foo:[10 TO 100] AND bar:[a* TO *}')
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
@@ -349,7 +357,7 @@ class TestParser(TestCase):
     def test_flavours(self):
         tree = SearchField(
             "somedate",
-            Range(Word("now/d-1d+7H"), Word("now/d+7H"), True, True))
+            Range(Word("now/d-1d+7H", tail=" "), Word("now/d+7H", head=" "), True, True))
         parsed = parser.parse('somedate:[now/d-1d+7H TO now/d+7H]')
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
@@ -360,18 +368,22 @@ class TestParser(TestCase):
             UnknownOperation(
                 SearchField(
                     "subject",
-                    Word("test")),
+                    Word("test"),
+                    tail=" "),
                 AndOperation(
                     SearchField(
                         "desc",
                         FieldGroup(
                             OrOperation(
-                                Word("house"),
-                                Word("car")))),
+                                Word("house", tail=" "),
+                                Word("car", head=" "))),
+                        tail=" "),
                     Not(
                         Proximity(
                             Phrase('"approximatly this"'),
-                            3)))))
+                            3,
+                            head=" "),
+                        head=" "))))
         parsed = parser.parse('subject:test desc:(house OR car) AND NOT "approximatly this"~3')
 
         self.assertEqual(str(parsed), str(tree))
@@ -427,7 +439,9 @@ class TestParser(TestCase):
 
     def test_date_in_range(self):
         # juste one funky expression
-        tree = SearchField("foo", Range(Word(r"2015-12-19||+2\d"), Word(r"now+3d+12h\h")))
+        tree = SearchField(
+            "foo",
+            Range(Word(r"2015-12-19||+2\d", tail=" "), Word(r"now+3d+12h\h", head=" ")))
         parsed = parser.parse(r'foo:[2015-12-19||+2\d TO now+3d+12h\h]')
         self.assertEqual(str(tree), str(parsed))
         self.assertEqual(tree, parsed)
@@ -488,7 +502,7 @@ class TestParser(TestCase):
 class TestPrint(TestCase):
 
     def test_unknown_operation(self):
-        tree = UnknownOperation(Word("foo"), Word("bar"), Word("baz"))
+        tree = UnknownOperation(Word("foo", tail=" "), Word("bar", tail=" "), Word("baz"))
         self.assertEqual(str(tree), "foo bar baz")
 
 

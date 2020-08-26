@@ -189,7 +189,7 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
         :return: str
 
         ::
-            >>> operation = OrOperation(Word('Python'), Word('Monty'))
+            >>> operation = OrOperation(Word('Python', tail=" "), Word('Monty', head=" "))
             >>> builder = ElasticsearchQueryBuilder()
             >>> builder._get_operator_extract(operation, 3)
             'hon OR Mon'
@@ -252,7 +252,7 @@ class ElasticsearchQueryBuilder(LuceneTreeVisitorV2):
             [Word('yo'), OrOperation(Word('lo'), Word('py'))]
 
 
-            >>> op = OrOperation(Word('yo'), AndOperation(Word('lo'), Word('py')))
+            >>> op = OrOperation(Word('yo', tail=" "), AndOperation(Word('lo', tail=" "), Word('py', head=" "), head=" "))
             >>> list(builder._yield_nested_children(op, op.children))
             Traceback (most recent call last):
                 ...
