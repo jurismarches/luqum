@@ -133,6 +133,23 @@ def t_SEPARATOR(t):
     return None  # discard separators
 
 
+# Warning: PLY is sensible to the order in wich we define terms…
+
+@lex.TOKEN(TERM_RE)
+def t_TERM(t):
+    # check if it is not a reserved term (an operation)
+    t.type = reserved.get(t.value, 'TERM')
+    # it's not, make it a Word
+    if t.type == 'TERM':
+        m = re.match(TERM_RE, t.value, re.VERBOSE)
+        value = m.group("term")
+        t.value = Word(value)
+    else:
+        t.value = TokenValue(t.value)  # gentle wrapper to hande pos, tail, head
+    token_headtail(t)
+    return t
+
+
 # standard function for simple text tokens
 def simple_token(t):
     t.value = TokenValue(t.value)
@@ -189,21 +206,6 @@ def t_LBRACKET(t):
 def t_RBRACKET(t):
     r'(\]|\})'
     return simple_token(t)
-
-
-@lex.TOKEN(TERM_RE)
-def t_TERM(t):
-    # check if it is not a reserved term (an operation)
-    t.type = reserved.get(t.value, 'TERM')
-    # it's not, make it a Word
-    if t.type == 'TERM':
-        m = re.match(TERM_RE, t.value, re.VERBOSE)
-        value = m.group("term")
-        t.value = Word(value)
-    else:
-        t.value = TokenValue(t.value)  # gentle wrapper to hande pos, tail, head
-    token_headtail(t)
-    return t
 
 
 @lex.TOKEN(PHRASE_RE)
