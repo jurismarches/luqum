@@ -1,8 +1,9 @@
 import json
-from unittest import TestCase
+from unittest import TestCase, skipIf
 
 import elasticsearch_dsl
 from elasticsearch import Elasticsearch
+from elasticsearch.exceptions import ConnectionError
 from elasticsearch.helpers import bulk
 from elasticsearch_dsl import Date, Index, Integer, Nested, Object, Search, analyzer
 from elasticsearch_dsl.connections import connections
@@ -25,8 +26,17 @@ else:
         InnerObjectWrapper as InnerDoc,
     )
 
-client = Elasticsearch()
-co = connections.create_connection(hosts=["localhost"], timeout=20)
+
+def get_es():
+    connections.create_connection(hosts=["localhost"], timeout=20)
+    client = Elasticsearch()
+    try:
+        # check ES runnig
+        client.cluster.health(wait_for_status='yellow')
+    except ConnectionError:
+        client = None
+    return client
+
 
 if MAJOR_ES > 2:
 
@@ -90,10 +100,15 @@ def add_data():
         bulk(search, actions, index="bk", doc_type=doc_type, refresh=True)
 
 
+@skipIf(get_es() is None, "Skipping ES test as I can't reach ES")
 class LuqumRequestTestCase(TestCase):
+
     @classmethod
     def setUpClass(cls):
-        cls.search = Search(using=client, index="bk")
+        cls.es_client = get_es()
+        if cls.es_client is None:
+            return
+        cls.search = Search(using=cls.es_client, index="bk")
         MESSAGES_SCHEMA = {"mappings": Book._doc_type.mapping.to_dict()}
         schema_analizer = SchemaAnalyzer(MESSAGES_SCHEMA)
 
@@ -237,6 +252,8 @@ class LuqumRequestTestCase(TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        if cls.es_client is None:
+            return
         if ES6:
             Book._index.delete()
         else:
