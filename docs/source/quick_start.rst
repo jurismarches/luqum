@@ -265,9 +265,9 @@ that will smartly replace ``UnkownOperation`` by ``AndOperation`` or ``OrOperati
 Pretty printing
 ---------------
 
-.. py:currentmodule:: 
+.. py:currentmodule:: luqum
 
-Luqum also comes with a query pretty printer in :py:mod:`luqum.pretty`.
+Luqum also comes with a query pretty printer in :py:mod:`pretty`.
 
 Say we got an expression::
 
