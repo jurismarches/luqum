@@ -435,17 +435,54 @@ class TestParser(TestCase):
     def test_reserved_ko(self):
         """Test reserved word hurt as they hurt lucene
         """
-        with self.assertRaises(ParseError):
+        with self.assertRaises(ParseError) as raised:
             parser.parse('foo:NOT')
-        with self.assertRaises(ParseError):
+        self.assertTrue(
+            str(raised.exception).startswith("Syntax error in input : unexpected end of expr"))
+        with self.assertRaises(ParseError) as raised:
             parser.parse('foo:AND')
-        with self.assertRaises(ParseError):
+        self.assertEqual(
+            str(raised.exception),
+            "Syntax error in input : unexpected  'AND' at position 4!",
+        )
+        with self.assertRaises(ParseError) as raised:
             parser.parse('foo:OR')
-        with self.assertRaises(ParseError):
+        self.assertEqual(
+            str(raised.exception),
+            "Syntax error in input : unexpected  'OR' at position 4!",
+        )
+        with self.assertRaises(ParseError) as raised:
             parser.parse('OR')
-        with self.assertRaises(ParseError):
+        self.assertEqual(
+            str(raised.exception),
+            "Syntax error in input : unexpected  'OR' at position 0!",
+        )
+        with self.assertRaises(ParseError) as raised:
             parser.parse('AND')
+        self.assertEqual(
+            str(raised.exception),
+            "Syntax error in input : unexpected  'AND' at position 0!",
+        )
 
+    def test_parse_error_on_unmatched_parenthesis(self):
+        with self.assertRaises(ParseError) as raised:
+            parser.parse('((foo bar) ')
+        self.assertTrue(
+            str(raised.exception).startswith("Syntax error in input : unexpected end of expr"))
+
+    def test_parse_error_on_unmatched_bracket(self):
+        with self.assertRaises(ParseError) as raised:
+            parser.parse('[foo TO bar')
+        self.assertTrue(
+            str(raised.exception).startswith("Syntax error in input : unexpected end of expr"))
+
+    def test_parse_error_on_range(self):
+        with self.assertRaises(ParseError) as raised:
+            parser.parse('[foo TO ]')
+        self.assertEqual(
+            str(raised.exception),
+            "Syntax error in input : unexpected  ']' at position 8!",
+        )
 
 class TestPrint(TestCase):
 
