@@ -405,3 +405,20 @@ class IntegrationTestCase(TestCase):
         self.assertEqual(foo.head, "\r")
         self.assertEqual(foo.tail, "\t")
         self.assertEqual(foo.pos, 1)
+
+
+class PrintTestCase(TestCase):
+
+    def test_complex(self):
+        # the scope of head / tail management is to be able to keep original structure
+        # event after tree transformation or so
+        query = "\rfoo AND bar  \nAND \t(\rbaz OR    spam\rOR ham\t\t)\r"
+        tree = parser.parse(query)
+        self.assertEqual(str(tree), query)
+
+    def test_head_on_topmost(self):
+        # if the head and tail is on topmost element, the str alone will strip
+        query = "\r(foo AND bar  \nAND \t(\rbaz OR    spam\rOR ham\t\t))\r"
+        tree = parser.parse(query)
+        self.assertEqual(str(tree), query.strip())
+        self.assertEqual(tree.__str__(head_tail=True), query)

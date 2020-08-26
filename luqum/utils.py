@@ -231,7 +231,11 @@ class UnknownOperationResolver(LuceneTreeTransformer):
                 operation = self.DEFAULT_OPERATION
         else:
             operation = self.resolve_to
-        return operation(*node.operands)
+        new_node = operation(*node.operands)
+        # add head to node to avoid x ANDsomething
+        for operand in new_node.operands[1:]:
+            operand.head = " " + operand.head
+        return new_node
 
     def __call__(self, tree):
         return self.visit(tree)

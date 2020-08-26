@@ -47,6 +47,12 @@ class Item(object):
         # empty by default
         return []
 
+    def _head_tail(self, value, head_tail):
+        if head_tail:
+            return self.head + value + self.tail
+        else:
+            return value
+
     def __repr__(self):
         children = ", ".join(c.__repr__() for c in self.children)
         return "%s(%s)" % (self.__class__.__name__, children)
@@ -76,8 +82,9 @@ class SearchField(Item):
         self.expr = expr
         super().__init__(**kwargs)
 
-    def __str__(self):
-        return self.name + ":" + self.expr.__str__()
+    def __str__(self, head_tail=False):
+        value = self.name + ":" + self.expr.__str__(head_tail=True)
+        return self._head_tail(value, head_tail)
 
     def __repr__(self):
         return "SearchField(%r, %s)" % (self.name, self.expr.__repr__())
@@ -97,8 +104,9 @@ class BaseGroup(Item):
         self.expr = expr
         super().__init__(**kwargs)
 
-    def __str__(self):
-        return "(%s)" % self.expr.__str__()
+    def __str__(self, head_tail=False):
+        value = "(%s)" % self.expr.__str__(head_tail=True)
+        return self._head_tail(value, head_tail)
 
     @property
     def children(self):
@@ -144,12 +152,13 @@ class Range(Item):
         """children are lower and higher bound expressions"""
         return [self.low, self.high]
 
-    def __str__(self):
-        return "%s%s TO %s%s" % (
+    def __str__(self, head_tail=False):
+        value = "%s%sTO%s%s" % (
             self.LOW_CHAR[self.include_low],
-            self.low.__str__(),
-            self.high.__str__(),
+            self.low.__str__(head_tail=True),
+            self.high.__str__(head_tail=True),
             self.HIGH_CHAR[self.include_high])
+        return self._head_tail(value, head_tail)
 
 
 class Term(Item):
@@ -194,8 +203,9 @@ class Term(Item):
         """
         return any(self.iter_wildcards())
 
-    def __str__(self):
-        return self.value
+    def __str__(self, head_tail=False):
+        value = self.value
+        return self._head_tail(value, head_tail)
 
     def __repr__(self):
         return "%s(%r)" % (self.__class__.__name__, str(self))
@@ -256,8 +266,9 @@ class Fuzzy(BaseApprox):
         self.degree = Decimal(degree).normalize()
         super().__init__(**kwargs)
 
-    def __str__(self):
-        return "%s~%s" % (self.term, self.degree)
+    def __str__(self, head_tail=False):
+        value = "%s~%s" % (self.term, self.degree)
+        return self._head_tail(value, head_tail)
 
 
 class Proximity(BaseApprox):
@@ -273,8 +284,9 @@ class Proximity(BaseApprox):
         self.degree = int(degree)
         super().__init__(**kwargs)
 
-    def __str__(self):
-        return "%s~" % self.term + ("%d" % self.degree if self.degree is not None else "")
+    def __str__(self, head_tail=False):
+        value = "%s~" % self.term + ("%d" % self.degree if self.degree is not None else "")
+        return self._head_tail(value, head_tail)
 
 
 class Boost(Item):
@@ -294,8 +306,9 @@ class Boost(Item):
         """
         return [self.expr]
 
-    def __str__(self):
-        return "%s^%s" % (self.expr.__str__(), self.force)
+    def __str__(self, head_tail=False):
+        value = "%s^%s" % (self.expr.__str__(head_tail=True), self.force)
+        return self._head_tail(value, head_tail)
 
 
 class BaseOperation(Item):
@@ -309,8 +322,9 @@ class BaseOperation(Item):
         self.operands = operands
         super().__init__(**kwargs)
 
-    def __str__(self):
-        return (" %s " % self.op).join(str(o) for o in self.operands)
+    def __str__(self, head_tail=False):
+        value = ("%s" % self.op).join(o.__str__(head_tail=True) for o in self.operands)
+        return self._head_tail(value, head_tail)
 
     @property
     def children(self):
@@ -333,9 +347,6 @@ class UnknownOperation(BaseOperation):
         the :py:class:`.utils.UnknownOperationResolver` to resolve those nodes to OR and AND
     """
     op = ''
-
-    def __str__(self):
-        return " ".join(str(o) for o in self.operands)
 
 
 class OrOperation(BaseOperation):
@@ -375,8 +386,9 @@ class Unary(Item):
         self.a = a
         super().__init__(**kwargs)
 
-    def __str__(self):
-        return "%s%s" % (self.op, self.a.__str__())
+    def __str__(self, head_tail=False):
+        value = "%s%s" % (self.op, self.a.__str__(head_tail=True))
+        return self._head_tail(value, head_tail)
 
     @property
     def children(self):
