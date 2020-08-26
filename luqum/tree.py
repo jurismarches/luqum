@@ -53,6 +53,16 @@ class Item(object):
         else:
             return value
 
+    def span(self, head_tail=False):
+        """return (sart, end) position of this element in global expression
+        """
+        length = len(self.__str__(head_tail=head_tail))
+        start = self.pos
+        if head_tail:
+            start -= len(self.head)
+        end = start + length
+        return start, end
+
     def __repr__(self):
         children = ", ".join(c.__repr__() for c in self.children)
         return "%s(%s)" % (self.__class__.__name__, children)

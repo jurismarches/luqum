@@ -94,6 +94,46 @@ class TestTree(TestCase):
         self.assertNotEqual(tree1, tree2)
 
 
+class TestTreeSpan(TestCase):
+
+    def test_simple(self):
+        self.assertEqual(Word("foo", pos=0).span(), (0, 3))
+        self.assertEqual(Word("foo", head="\r", tail="\t\t", pos=1).span(), (1, 4))
+        self.assertEqual(Word("foo", head="\r", tail="\t\t", pos=1).span(head_tail=True), (0, 6))
+
+    def test_complex(self):
+        tree = parser.parse(" foo:bar OR baz OR ([20 TO 2000] AND more:(yee AND yii)) ")
+        self.assertEqual(tree.span(), (0, 57))
+        self.assertEqual(tree.span(head_tail=True), (0, 57))
+        foo, baz, group = tree.children
+        self.assertEqual(foo.span(), (1, 9))
+        self.assertEqual(foo.span(head_tail=True), (0, 9))
+        self.assertEqual(baz.span(), (12, 15))
+        self.assertEqual(baz.span(head_tail=True), (11, 16))
+        self.assertEqual(group.span(), (19, 56))
+        self.assertEqual(group.span(head_tail=True), (18, 57))
+        bar, = foo.children
+        self.assertEqual(bar.span(), (5, 8))
+        self.assertEqual(bar.span(head_tail=True), (5, 9))
+        andop, = group.children
+        self.assertEqual(andop.span(), (20, 55))
+        self.assertEqual(andop.span(head_tail=True), (20, 55))
+        range_, more = andop.children
+        self.assertEqual(range_.span(), (20, 32))
+        self.assertEqual(range_.span(head_tail=True), (20, 33))
+        self.assertEqual(more.span(), (37, 55))
+        self.assertEqual(more.span(head_tail=True), (36, 55))
+        field_group, = more.children
+        self.assertEqual(field_group.span(), (42, 55))
+        self.assertEqual(field_group.span(head_tail=True), (42, 55))
+        and_op2, = field_group.children
+        yee, yii = and_op2.children
+        self.assertEqual(yee.span(), (43, 46))
+        self.assertEqual(yee.span(head_tail=True), (43, 47))
+        self.assertEqual(yii.span(), (51, 54))
+        self.assertEqual(yii.span(head_tail=True), (50, 54))
+
+
 class TestLexer(TestCase):
     """Test lexer
     """
