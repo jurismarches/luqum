@@ -4,7 +4,11 @@ from unittest import TestCase
 
 from ..head_tail import HeadTailLexer, HeadTailManager, TokenValue
 from ..parser import parser
-from ..tree import *
+from ..tree import (
+    AndOperation, Boost, FieldGroup, Fuzzy, Group, Item, Not,
+    OrOperation, Phrase, Plus, Prohibit, Proximity,
+    Range, Regex, SearchField, UnknownOperation, Word,
+)
 
 
 class TokenValueTestCase(TestCase):
