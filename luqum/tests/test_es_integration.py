@@ -1,4 +1,5 @@
 import json
+import os
 from unittest import TestCase, skipIf
 
 import elasticsearch_dsl
@@ -28,8 +29,12 @@ else:
 
 
 def get_es():
-    connections.create_connection(hosts=["localhost"], timeout=20)
-    client = Elasticsearch()
+    # you may use ES_HOST environment variable to configure Elasticsearch
+    # launching something like
+    # docker run --rm -p "127.0.0.1:9200:9200" -e "discovery.type=single-node" elasticsearch:7.8.0
+    # is a simple way to get an instance
+    connections.configure(default=dict(hosts=os.environ.get("ES_HOST", "localhost"), timeout=20))
+    client = connections.get_connection("default")
     try:
         # check ES runnig
         client.cluster.health(wait_for_status='yellow')
