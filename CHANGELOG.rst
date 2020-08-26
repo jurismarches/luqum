@@ -14,6 +14,8 @@ Added
 -----
 
 - support for parsing Regular expressions like `/foo/` (no transformation to Elasticsearch DSL yet)
+- basic support for head and tail of expressions (the separators) 
+  and for their position in original text
 
 Changed
 -------
