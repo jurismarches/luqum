@@ -144,11 +144,11 @@ def t_MINUS(t):
     return simple_token(t)
 
 def t_NOT(t):
-    'NOT'
+    r'NOT'
     return simple_token(t)
 
 def t_AND_OP(t):
-    'AND'
+    r'AND'
     return simple_token(t)
 
 def t_OR_OP(t):
