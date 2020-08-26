@@ -3,7 +3,6 @@ import os
 from unittest import TestCase, skipIf
 
 import elasticsearch_dsl
-from elasticsearch import Elasticsearch
 from elasticsearch.exceptions import ConnectionError
 from elasticsearch.helpers import bulk
 from elasticsearch_dsl import Date, Index, Integer, Nested, Object, Search, analyzer

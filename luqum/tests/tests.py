@@ -372,9 +372,9 @@ class TestParser(TestCase):
                                OrOperation(
                                    Word('foo', tail=" "),
                                    Word('bar', head=" "))),
-                            tail=" "),
+                           tail=" "),
                        Word('baz', head=" ")),
-                    head=" ")))
+                   head=" ")))
         parsed = parser.parse('test OR (subject:(foo OR bar) AND baz)')
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
