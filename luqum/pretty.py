@@ -126,7 +126,7 @@ class Prettifier(object):
         elements = self._apply_stick(elements)
         prefix = self.prefix if level and not in_one_liner else ""
         join_char = " " if one_liner else ("\n" + prefix)
-        return prefix + join_char.join(l for c in elements for l in c.split("\n"))
+        return prefix + join_char.join(line for c in elements for line in c.split("\n"))
 
     def __call__(self, tree):
         """Pretty print the query represented by tree

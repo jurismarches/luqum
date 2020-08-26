@@ -7,6 +7,18 @@ and this project tries to adhere to `Semantic Versioning`_.
 .. _`Keep a Changelog`: http://keepachangelog.com/en/1.0.0/
 .. _`Semantic Versioning`: http://semver.org/spec/v2.0.0.html
 
+Not published
+=============
+
+Added
+-----
+
+- support for parsing Regular expressions like `/foo/` (no transformation to Elasticsearch DSL yet)
+
+Changed
+-------
+- support for python 3.8 added, support for python 3.4 and 3.5 dropped
+
 0.9.0 - 2020-07-29
 ==================
 
