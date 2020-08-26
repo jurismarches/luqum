@@ -345,11 +345,14 @@ def p_phrase_or_term(p):
 
 
 # Error rule for syntax errors
-# TODO : should report better
 def p_error(p):
     if p is None:
-        p = "(probably at end of input, may be unmatch parenthesis or so)"
-    raise ParseError("Syntax error in input at %r!" % p)
+        error = "unexpected end of expression (maybe due to unmatched parenthesis)"
+        pos = "the end"
+    else:
+        error = "unexpected  '%s'" % p.value
+        pos = "position %d" % p.lexpos
+    raise ParseError("Syntax error in input : %s at %s!" % (error, pos))
 
 
 parser = yacc.yacc()
