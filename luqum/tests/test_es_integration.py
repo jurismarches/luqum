@@ -39,7 +39,7 @@ if MAJOR_ES > 2:
 class Book(Document):
     title = Text(fields={
         "no_vowels": Text(
-            analyzer=analyzer("no_vowels", "pattern", pattern="[\Waeiouy]"),
+            analyzer=analyzer("no_vowels", "pattern", pattern="[\Waeiouy]"),  # noqa: W605
             search_analyzer="standard"
         )
     })
