@@ -14,6 +14,10 @@ class Item(object):
     """Base class for all items that compose the parse tree.
 
     An item is a part of a request.
+
+    :param int pos: position of element in orginal text (not accounting for tail)
+    :param str head: non meaningful text before this element
+    :param str tail: non meaningful text after this element
     """
 
     # /!\ Note on Item (and subclasses) __magic__ methods: /!\
@@ -31,6 +35,11 @@ class Item(object):
     # other we might add in the future).
 
     _equality_attrs = []
+
+    def __init__(self, pos=None, head="", tail=""):
+        self.pos = pos
+        self.head = head
+        self.tail = tail
 
     @property
     def children(self):
@@ -62,9 +71,10 @@ class SearchField(Item):
     """
     _equality_attrs = ['name']
 
-    def __init__(self, name, expr):
+    def __init__(self, name, expr, **kwargs):
         self.name = name
         self.expr = expr
+        super().__init__(**kwargs)
 
     def __str__(self):
         return self.name + ":" + self.expr.__str__()
@@ -83,8 +93,9 @@ class BaseGroup(Item):
 
     :param expr: the expression inside parenthesis
     """
-    def __init__(self, expr):
+    def __init__(self, expr, **kwargs):
         self.expr = expr
+        super().__init__(**kwargs)
 
     def __str__(self):
         return "(%s)" % self.expr.__str__()
@@ -106,7 +117,7 @@ class FieldGroup(BaseGroup):
 
 
 def group_to_fieldgroup(g):  # FIXME: no use !
-    return FieldGroup(g.expr)
+    return FieldGroup(g.expr, pos=g.pos, head=g.head, tail=g.tail)
 
 
 class Range(Item):
@@ -121,11 +132,12 @@ class Range(Item):
     LOW_CHAR = {True: '[', False: '{'}
     HIGH_CHAR = {True: ']', False: '}'}
 
-    def __init__(self, low, high, include_low=True, include_high=True):
+    def __init__(self, low, high, include_low=True, include_high=True, **kwargs):
         self.low = low
         self.high = high
         self.include_low = include_low
         self.include_high = include_high
+        super().__init__(**kwargs)
 
     @property
     def children(self):
@@ -152,8 +164,9 @@ class Term(Item):
 
     _equality_attrs = ['value']
 
-    def __init__(self, value):
+    def __init__(self, value, **kwargs):
         self.value = value
+        super().__init__(**kwargs)
 
     @property
     def unescaped_value(self):
@@ -200,8 +213,8 @@ class Phrase(Term):
 
     :param str value: the value, including the quotes. Eg. ``'"my phrase"'``
     """
-    def __init__(self, value):
-        super(Phrase, self).__init__(value)
+    def __init__(self, value, **kwargs):
+        super(Phrase, self).__init__(value, **kwargs)
         assert self.value.endswith('"') and self.value.startswith('"'), (
                "Phrase value must contain the quotes")
 
@@ -211,8 +224,8 @@ class Regex(Term):
 
     :param str value: the value, including the slashes. Eg. ``'/my regex/'``
     """
-    def __init__(self, value):
-        super(Regex, self).__init__(value)
+    def __init__(self, value, **kwargs):
+        super(Regex, self).__init__(value, **kwargs)
         assert value.endswith('/') and value.startswith('/'), (
                "Regex value must contain the slashes")
 
@@ -236,11 +249,12 @@ class Fuzzy(BaseApprox):
     :param Word term: the approximated term
     :param degree: the degree which will be converted to :py:class:`decimal.Decimal`.
     """
-    def __init__(self, term, degree=None):
+    def __init__(self, term, degree=None, **kwargs):
         self.term = term
         if degree is None:
             degree = 0.5
         self.degree = Decimal(degree).normalize()
+        super().__init__(**kwargs)
 
     def __str__(self):
         return "%s~%s" % (self.term, self.degree)
@@ -252,11 +266,12 @@ class Proximity(BaseApprox):
     :param Phrase term: the approximated phrase
     :param degree: the degree which will be converted to :py:func:`int`.
     """
-    def __init__(self, term, degree=None):
+    def __init__(self, term, degree=None, **kwargs):
         self.term = term
         if degree is None:
             degree = 1
         self.degree = int(degree)
+        super().__init__(**kwargs)
 
     def __str__(self):
         return "%s~" % self.term + ("%d" % self.degree if self.degree is not None else "")
@@ -268,9 +283,10 @@ class Boost(Item):
     :param expr: the boosted expression
     :param force: boosting force, will be converted to :py:class:`decimal.Decimal`
     """
-    def __init__(self, expr, force):
+    def __init__(self, expr, force, **kwargs):
         self.expr = expr
         self.force = Decimal(force).normalize()
+        super().__init__(**kwargs)
 
     @property
     def children(self):
@@ -289,8 +305,9 @@ class BaseOperation(Item):
 
     :param operands: expressions to apply operation on
     """
-    def __init__(self, *operands):
+    def __init__(self, *operands, **kwargs):
         self.operands = operands
+        super().__init__(**kwargs)
 
     def __str__(self):
         return (" %s " % self.op).join(str(o) for o in self.operands)
@@ -333,12 +350,18 @@ class AndOperation(BaseOperation):
     op = 'AND'
 
 
-def create_operation(cls, a, b):
+def create_operation(cls, a, b, op_tail=" "):
     """Create operation between a and b, merging if a or b is already an operation of same class
+
+    :param a: left operand
+    :param b: right operand
+    :param op_tail: tail of operation token
     """
     operands = []
     operands.extend(a.operands if isinstance(a, cls) else [a])
-    operands.extend(b.operands if isinstance(b, cls) else [b])
+    left_operands = b.operands if isinstance(b, cls) else [b]
+    left_operands[0].head += op_tail
+    operands.extend(left_operands)
     return cls(*operands)
 
 
@@ -348,8 +371,9 @@ class Unary(Item):
     :param a: the expression the operator applies on
     """
 
-    def __init__(self, a):
+    def __init__(self, a, **kwargs):
         self.a = a
+        super().__init__(**kwargs)
 
     def __str__(self):
         return "%s%s" % (self.op, self.a.__str__())
