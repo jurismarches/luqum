@@ -37,17 +37,53 @@ class Item(object):
     #: this attribute permits to list attributes that participate in telling equality of two item
     #: this exclude children (for generic `__eq__` methode will already recursively compare them)
     _equality_attrs = []
+    #: this attribute permits to list attributes that defines the children.
+    #: Order is important.
+    _children_attrs = []
 
     def __init__(self, pos=None, head="", tail=""):
         self.pos = pos
         self.head = head
         self.tail = tail
 
+    def clone_item(self):
+        """clone an item, but not its children !
+        """
+        return self._clone_item()
+
+    def _clone_item(self, *args, **kwargs):
+        """internal implementation of clone_item (for specific sub classes tweaks)
+
+        :param bool add_equality_attrs: add _equality_attrs to __init__ call.
+           This does the job most of the time.
+        :param kwargs: additionnal attributes to __init__ call
+        """
+        attrs = {"pos": self.pos, "head": self.head, "tail": self.tail}
+        # we can _equality_attrs as they normally correspond to what we need to copy
+        attrs.update((attr_name, getattr(self, attr_name)) for attr_name in self._equality_attrs)
+        # use NoneItem for children using _children_attrs
+        attrs.update((attr_name, NONE_ITEM) for attr_name in self._children_attrs)
+        # add optional kwargs
+        attrs.update(**kwargs)
+        return type(self)(*args, **attrs)
+
     @property
     def children(self):
         """As base of a tree structure, an item may have children"""
-        # empty by default
-        return []
+        return [getattr(self, attr) for attr in self._children_attrs]
+
+    @children.setter
+    def children(self, value):
+        """generic setter for children
+        """
+        if len(value) != len(self._children_attrs):
+            num_children = len(value) if value else "no"
+            raise ValueError(
+                f"{type(self)} accepts {num_children} children,"
+                f" and you try to set {len(value)} children"
+            )
+        for attr, v in zip(self._children_attrs, value):
+            setattr(self, attr, v)
 
     def _head_tail(self, value, head_tail):
         if head_tail:
@@ -75,11 +111,29 @@ class Item(object):
         It make uses of :py:attr:`Item._equality_attrs`,
         and also recursively compare children
         """
-        return (self.__class__ == other.__class__ and
-                len(self.children) == len(other.children) and
-                all(getattr(self, a, _MARKER) == getattr(other, a, _MARKER)
-                    for a in self._equality_attrs) and
-                all(c.__eq__(d) for c, d in zip(self.children, other.children)))
+        return (
+            self is other  # shortcut
+        ) or (
+            self.__class__ == other.__class__ and
+            len(self.children) == len(other.children) and
+            all(getattr(self, a, _MARKER) == getattr(other, a, _MARKER)
+                for a in self._equality_attrs) and
+            all(c.__eq__(d) for c, d in zip(self.children, other.children))
+        )
+
+
+class NoneItem(Item):
+    """This Item is a place holder, think to it as None.
+
+    It can be used, eg. to initialize an element childrens, until we feed in the real children.
+    """
+
+    def __str__(self, head_tail=False):
+        return ""
+
+
+#: an instanciation of NoneItem, as it is always the same
+NONE_ITEM = NoneItem()
 
 
 class SearchField(Item):
@@ -91,6 +145,7 @@ class SearchField(Item):
     :param expr: the searched expression
     """
     _equality_attrs = ['name']
+    _children_attrs = ["expr"]
 
     def __init__(self, name, expr, **kwargs):
         self.name = name
@@ -104,17 +159,14 @@ class SearchField(Item):
     def __repr__(self):
         return "SearchField(%r, %s)" % (self.name, self.expr.__repr__())
 
-    @property
-    def children(self):
-        """the only child is the expression"""
-        return [self.expr]
-
 
 class BaseGroup(Item):
     """Base class for group of expressions or field values
 
     :param expr: the expression inside parenthesis
     """
+    _children_attrs = ["expr"]
+
     def __init__(self, expr, **kwargs):
         self.expr = expr
         super().__init__(**kwargs)
@@ -122,11 +174,6 @@ class BaseGroup(Item):
     def __str__(self, head_tail=False):
         value = "(%s)" % self.expr.__str__(head_tail=True)
         return self._head_tail(value, head_tail)
-
-    @property
-    def children(self):
-        """the only child is the expression"""
-        return [self.expr]
 
 
 class Group(BaseGroup):
@@ -156,6 +203,7 @@ class Range(Item):
     HIGH_CHAR = {True: ']', False: '}'}
 
     _equality_attrs = ['include_high', 'include_low']
+    _children_attrs = ["low", "high"]
 
     def __init__(self, low, high, include_low=True, include_high=True, **kwargs):
         self.low = low
@@ -163,11 +211,6 @@ class Range(Item):
         self.include_low = include_low
         self.include_high = include_high
         super().__init__(**kwargs)
-
-    @property
-    def children(self):
-        """children are lower and higher bound expressions"""
-        return [self.low, self.high]
 
     def __str__(self, head_tail=False):
         value = "%s%sTO%s%s" % (
@@ -261,16 +304,13 @@ class BaseApprox(Item):
     """Base for approximations, that is fuzziness and proximity
     """
     _equality_attrs = ['degree']
+    _children_attrs = ["term"]
 
     def __init__(self, term, degree=None, **kwargs):
         self.term = term
         self._implicit_degree = degree is None  # this is just for display
         self.degree = self._normalize_degree(degree)
         super().__init__(**kwargs)
-
-    @property
-    def children(self):
-        return [self.term]
 
     def __repr__(self):  # pragma: no cover
         return "%s(%s, %s)" % (self.__class__.__name__, self.term.__repr__(), self.degree)
@@ -317,17 +357,12 @@ class Boost(Item):
     :param force: boosting force, will be converted to :py:class:`decimal.Decimal`
     """
     _equality_attrs = ['force']
+    _children_attrs = ["expr"]
 
     def __init__(self, expr, force, **kwargs):
         self.expr = expr
         self.force = Decimal(force).normalize()
         super().__init__(**kwargs)
-
-    @property
-    def children(self):
-        """The only child is the boosted expression
-        """
-        return [self.expr]
 
     def __str__(self, head_tail=False):
         value = "%s^%s" % (self.expr.__str__(head_tail=True), self.force)
@@ -341,6 +376,7 @@ class BaseOperation(Item):
 
     :param operands: expressions to apply operation on
     """
+
     def __init__(self, *operands, **kwargs):
         self.operands = operands
         super().__init__(**kwargs)
@@ -349,11 +385,26 @@ class BaseOperation(Item):
         value = ("%s" % self.op).join(o.__str__(head_tail=True) for o in self.operands)
         return self._head_tail(value, head_tail)
 
+    def _clone_item(self, **kwargs):
+        # give at least two operands, but empty ones
+        return super()._clone_item(NONE_ITEM, NONE_ITEM, **kwargs)
+
     @property
     def children(self):
         """children are left and right expressions
         """
         return self.operands
+
+    @children.setter
+    def children(self, value):
+        """Generic setter for children
+
+        :param iterable value: operands, must return at least 1 value
+        """
+        if len(value) < 2:
+            raise ValueError(
+                f"At least two operands for {type(self)}")
+        self.operands = tuple(value)
 
 
 class UnknownOperation(BaseOperation):
@@ -404,6 +455,7 @@ class Unary(Item):
 
     :param a: the expression the operator applies on
     """
+    _children_attrs = ["a"]
 
     def __init__(self, a, **kwargs):
         self.a = a
@@ -412,10 +464,6 @@ class Unary(Item):
     def __str__(self, head_tail=False):
         value = "%s%s" % (self.op, self.a.__str__(head_tail=True))
         return self._head_tail(value, head_tail)
-
-    @property
-    def children(self):
-        return [self.a]
 
 
 class Plus(Unary):
