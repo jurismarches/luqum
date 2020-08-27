@@ -19,7 +19,13 @@ Added
 
 Changed
 -------
+
 - support for python 3.8 added, support for python 3.4 and 3.5 dropped
+
+Fixed
+-----
+
+- Range item were not checking for bounds type on equality
 
 0.9.0 - 2020-07-29
 ==================

@@ -361,7 +361,7 @@ class IntegrationTestCase(TestCase):
 
     def test_range(self):
         tree = parser.parse("\r{\tfoo\nTO  bar\r\n]\t\t")
-        self.assertEqual(tree, Range(Word("foo"), Word("bar")))
+        self.assertEqual(tree, Range(Word("foo"), Word("bar"), include_low=False))
         self.assertEqual(tree.head, "\r")
         self.assertEqual(tree.tail, "\t\t")
         self.assertEqual(tree.pos, 1)

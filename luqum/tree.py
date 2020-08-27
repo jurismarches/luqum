@@ -34,6 +34,8 @@ class Item(object):
     # method. Same thing applies for all magic methods (__str__, __eq__, and any
     # other we might add in the future).
 
+    #: this attribute permits to list attributes that participate in telling equality of two item
+    #: this exclude children (for generic `__eq__` methode will already recursively compare them)
     _equality_attrs = []
 
     def __init__(self, pos=None, head="", tail=""):
@@ -68,7 +70,10 @@ class Item(object):
         return "%s(%s)" % (self.__class__.__name__, children)
 
     def __eq__(self, other):
-        """a basic equal operation
+        """a generic equal operation
+
+        It make uses of :py:attr:`Item._equality_attrs`,
+        and also recursively compare children
         """
         return (self.__class__ == other.__class__ and
                 len(self.children) == len(other.children) and
@@ -149,6 +154,8 @@ class Range(Item):
 
     LOW_CHAR = {True: '[', False: '{'}
     HIGH_CHAR = {True: ']', False: '}'}
+
+    _equality_attrs = ['include_high', 'include_low']
 
     def __init__(self, low, high, include_low=True, include_high=True, **kwargs):
         self.low = low
@@ -253,7 +260,7 @@ class Regex(Term):
 class BaseApprox(Item):
     """Base for approximations, that is fuzziness and proximity
     """
-    _equality_attrs = ['term', 'degree']
+    _equality_attrs = ['degree']
 
     def __repr__(self):  # pragma: no cover
         return "%s(%s, %s)" % (self.__class__.__name__, self.term.__repr__(), self.degree)

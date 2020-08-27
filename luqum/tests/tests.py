@@ -71,7 +71,8 @@ class TestTree(TestCase):
     def test_equality_approx(self):
         """
         Regression test for a bug on approx equalities.
-        Testing other tokens might be a good idea...
+
+        .. todo:: Testing other tokens might be a good idea...
         """
         a1 = Proximity(term='foo', degree=5)
         a2 = Proximity(term='bar', degree=5)
@@ -86,6 +87,31 @@ class TestTree(TestCase):
 
         self.assertNotEqual(f1, f2)
         self.assertEqual(f1, f3)
+
+    def test_equality_range(self):
+        r1 = Range(Word("20"), Word("40"), include_low=True, include_high=True)
+        r2 = Range(Word("20"), Word("40"), include_low=True, include_high=True)
+        self.assertEqual(r1, r2)
+
+    def test_equality_range_different_terms(self):
+        r1 = Range(Word("20"), Word("40"), include_low=True, include_high=True)
+        self.assertNotEqual(r1, Range(Word("30"), Word("40"), include_low=True, include_high=True))
+        self.assertNotEqual(r1, Range(Word("20"), Word("30"), include_low=True, include_high=True))
+
+    def test_equality_range_different_bounds(self):
+        """
+        Regression test for a bug on range equalities.
+        """
+        r1 = Range(Word("20"), Word("40"), include_low=True, include_high=True)
+        r2 = Range(Word("20"), Word("40"), include_low=False, include_high=True)
+        r3 = Range(Word("20"), Word("40"), include_low=True, include_high=False)
+        r4 = Range(Word("20"), Word("40"), include_low=False, include_high=False)
+        self.assertNotEqual(r1, r2)
+        self.assertNotEqual(r1, r3)
+        self.assertNotEqual(r1, r4)
+        self.assertNotEqual(r2, r3)
+        self.assertNotEqual(r2, r4)
+        self.assertNotEqual(r3, r4)
 
     def test_not_equality(self):
         # non regression test, adding a child should trigger non equality
