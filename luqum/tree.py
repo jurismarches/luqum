@@ -262,12 +262,25 @@ class BaseApprox(Item):
     """
     _equality_attrs = ['degree']
 
-    def __repr__(self):  # pragma: no cover
-        return "%s(%s, %s)" % (self.__class__.__name__, self.term.__repr__(), self.degree)
+    def __init__(self, term, degree=None, **kwargs):
+        self.term = term
+        self._implicit_degree = degree is None  # this is just for display
+        self.degree = self._normalize_degree(degree)
+        super().__init__(**kwargs)
 
     @property
     def children(self):
         return [self.term]
+
+    def __repr__(self):  # pragma: no cover
+        return "%s(%s, %s)" % (self.__class__.__name__, self.term.__repr__(), self.degree)
+
+    def __str__(self, head_tail=False):
+        value = "%s~%s" % (
+            self.term.__str__(head_tail=True),
+            self.degree if not self._implicit_degree else "",
+        )
+        return self._head_tail(value, head_tail)
 
 
 class Fuzzy(BaseApprox):
@@ -276,16 +289,12 @@ class Fuzzy(BaseApprox):
     :param Word term: the approximated term
     :param degree: the degree which will be converted to :py:class:`decimal.Decimal`.
     """
-    def __init__(self, term, degree=None, **kwargs):
-        self.term = term
+    def _normalize_degree(self, degree):
         if degree is None:
             degree = 0.5
-        self.degree = Decimal(degree).normalize()
-        super().__init__(**kwargs)
-
-    def __str__(self, head_tail=False):
-        value = "%s~%s" % (self.term, self.degree)
-        return self._head_tail(value, head_tail)
+        if not isinstance(degree, Decimal):
+            degree = Decimal(degree).normalize()
+        return degree
 
 
 class Proximity(BaseApprox):
@@ -294,16 +303,11 @@ class Proximity(BaseApprox):
     :param Phrase term: the approximated phrase
     :param degree: the degree which will be converted to :py:func:`int`.
     """
-    def __init__(self, term, degree=None, **kwargs):
-        self.term = term
+
+    def _normalize_degree(self, degree):
         if degree is None:
             degree = 1
-        self.degree = int(degree)
-        super().__init__(**kwargs)
-
-    def __str__(self, head_tail=False):
-        value = "%s~" % self.term + ("%d" % self.degree if self.degree is not None else "")
-        return self._head_tail(value, head_tail)
+        return int(degree)
 
 
 class Boost(Item):
@@ -312,6 +316,8 @@ class Boost(Item):
     :param expr: the boosted expression
     :param force: boosting force, will be converted to :py:class:`decimal.Decimal`
     """
+    _equality_attrs = ['force']
+
     def __init__(self, expr, force, **kwargs):
         self.expr = expr
         self.force = Decimal(force).normalize()

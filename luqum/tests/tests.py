@@ -68,25 +68,44 @@ class TestTree(TestCase):
             [r"\*", "*", r"\*", "*", ""],
             )
 
-    def test_equality_approx(self):
+    def test_equality_proximty(self):
         """
         Regression test for a bug on approx equalities.
 
         .. todo:: Testing other tokens might be a good idea...
         """
-        a1 = Proximity(term='foo', degree=5)
-        a2 = Proximity(term='bar', degree=5)
-        a3 = Proximity(term='foo', degree=5)
+        p1 = Proximity(term=Word('foo'), degree=5)
+        p2 = Proximity(term=Word('bar'), degree=5)
+        p3 = Proximity(term=Word('foo'), degree=5)
+        p4 = Proximity(term=Word('foo'), degree=1)
+        p5 = Proximity(term=Word('foo'), degree=None)
 
-        self.assertNotEqual(a1, a2)
-        self.assertEqual(a1, a3)
+        self.assertNotEqual(p1, p2)
+        self.assertEqual(p1, p3)
+        self.assertNotEqual(p1, p4)
+        self.assertEqual(p4, p5)
 
-        f1 = Fuzzy(term='foo', degree=5)
-        f2 = Fuzzy(term='bar', degree=5)
-        f3 = Fuzzy(term='foo', degree=5)
+    def test_equality_fuzzy(self):
+        f1 = Fuzzy(term=Word('foo'), degree=5)
+        f2 = Fuzzy(term=Word('bar'), degree=5)
+        f3 = Fuzzy(term=Word('foo'), degree=5)
+        f4 = Fuzzy(term=Word('foo'), degree=.5)
+        f5 = Fuzzy(term=Word('foo'), degree=None)
 
         self.assertNotEqual(f1, f2)
         self.assertEqual(f1, f3)
+        self.assertNotEqual(f1, f4)
+        self.assertEqual(f4, f5)
+
+    def test_equality_boost(self):
+        b1 = Boost(expr=Word('foo'), force=5)
+        b2 = Boost(expr=Word('bar'), force=5)
+        b3 = Boost(expr=Word('foo'), force=5)
+        b4 = Boost(expr=Word('foo'), force=.5)
+
+        self.assertNotEqual(b1, b2)
+        self.assertEqual(b1, b3)
+        self.assertNotEqual(b1, b4)
 
     def test_equality_range(self):
         r1 = Range(Word("20"), Word("40"), include_low=True, include_high=True)
@@ -356,7 +375,7 @@ class TestParser(TestCase):
                     tail=" "),
                 Proximity(
                     Phrase('"foo baz"'),
-                    1,
+                    None,
                     tail=" "),
                 Fuzzy(
                     Word('baz'),
@@ -364,7 +383,7 @@ class TestParser(TestCase):
                     tail=" "),
                 Fuzzy(
                     Word('fou'),
-                    Decimal("0.5"))))
+                    None)))
         parsed = parser.parse('"foo bar"~3 "foo baz"~ baz~0.3 fou~')
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
@@ -570,6 +589,42 @@ class TestPrint(TestCase):
     def test_unknown_operation(self):
         tree = UnknownOperation(Word("foo", tail=" "), Word("bar", tail=" "), Word("baz"))
         self.assertEqual(str(tree), "foo bar baz")
+
+    def test_fuzzy(self):
+        item = Fuzzy(Word("foo"), degree=None)
+        self.assertEqual(str(item), "foo~")
+        self.assertEqual(item.degree, Decimal(".5").normalize())
+        item = Fuzzy(Word("foo"), degree=".5")
+        self.assertEqual(str(item), "foo~0.5")
+        item = Fuzzy(Word("foo"), degree=str(1/3))
+        self.assertEqual(str(item), "foo~0.3333333333333333")
+        # head tail
+        item = Fuzzy(Word("foo", head="\t", tail="\n"), head="\r", tail="  ")
+        self.assertEqual(str(item), "\tfoo\n~")
+        self.assertEqual(item.__str__(head_tail=True), "\r\tfoo\n~  ")
+
+    def test_proximity(self):
+        item = Proximity(Word("foo"), degree=None)
+        self.assertEqual(str(item), "foo~")
+        self.assertEqual(item.degree, 1)
+        item = Proximity(Word("foo"), degree="1")
+        self.assertEqual(str(item), "foo~1")
+        item = Proximity(Word("foo"), degree="4")
+        self.assertEqual(str(item), "foo~4")
+        # head tail
+        item = Proximity(Word("foo", head="\t", tail="\n"), head="\r", tail="  ")
+        self.assertEqual(str(item), "\tfoo\n~")
+        self.assertEqual(item.__str__(head_tail=True), "\r\tfoo\n~  ")
+
+    def test_boost(self):
+        item = Boost(Word("foo"), force="3")
+        self.assertEqual(str(item), "foo^3")
+        item = Boost(Word("foo"), force=str(1/3))
+        self.assertEqual(str(item), "foo^0.3333333333333333")
+        # head tail
+        item = Boost(Word("foo", head="\t", tail="\n"), force=2, head="\r", tail="  ")
+        self.assertEqual(str(item), "\tfoo\n^2")
+        self.assertEqual(item.__str__(head_tail=True), "\r\tfoo\n^2  ")
 
 
 class TestPrettify(TestCase):
