@@ -16,6 +16,8 @@ Added
 - support for parsing Regular expressions like `/foo/` (no transformation to Elasticsearch DSL yet)
 - basic support for head and tail of expressions (the separators) 
   and for their position in original text
+- tree item now support a `clone_item` method and a setter for children.
+  This should help with making transformation pattern easier.
 
 Changed
 -------

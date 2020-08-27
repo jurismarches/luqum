@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+"""
+.. todo:: split this file in multiple file: tree, lexer, parser
+"""
 import collections
 import copy
 from decimal import Decimal
@@ -12,7 +15,7 @@ from ..pretty import Prettifier, prettify
 from ..tree import (
     SearchField, FieldGroup, Group,
     Term, Word, Phrase, Regex, Proximity, Fuzzy, Boost, Range,
-    Not, AndOperation, OrOperation, Plus, Prohibit, UnknownOperation)
+    NONE_ITEM, Not, AndOperation, OrOperation, Plus, Prohibit, UnknownOperation)
 from ..utils import (
     LuceneTreeVisitor,
     LuceneTreeTransformer,
@@ -137,6 +140,216 @@ class TestTree(TestCase):
         tree1 = OrOperation(Word("bar"))
         tree2 = OrOperation(Word("bar"), Word("foo"))
         self.assertNotEqual(tree1, tree2)
+
+
+class SetChildrenTestCase(TestCase):
+
+    def _test_set_children(self, item, children):
+        item.children = children
+        self.assertEqual(item.children, children)
+
+    def test_set_children(self):
+        test = self._test_set_children
+        test(Word("foo"), [])
+        test(Phrase('"foo"'), [])
+        test(Regex("/foo/"), [])
+        test(SearchField("foo", Word("bar")), [Word("baz")])
+        test(Group(Word("foo")), [Word("foo")])
+        test(FieldGroup(Word("foo")), [Word("foo")])
+        test(Range(Word("20"), Word("30")), [Word("40"), Word("50")])
+        test(Proximity(Word("foo")), [Word("foo")])
+        test(Fuzzy(Word("foo")), [Word("foo")])
+        test(Boost(Word("foo"), force=1), [Word("foo")])
+        many_terms = tuple(Word(f"foo_{i}") for i in range(5))
+        test(UnknownOperation(Word("foo"), Word("bar")), (Word("foo"), Word("bar")))
+        test(UnknownOperation(*many_terms), many_terms)
+        test(AndOperation(Word("foo"), Word("bar")), (Word("foo"), Word("bar")))
+        test(AndOperation(*many_terms), many_terms)
+        test(OrOperation(Word("foo"), Word("bar")), (Word("foo"), Word("bar")))
+        test(OrOperation(*many_terms), many_terms)
+        test(Plus(Word("foo")), [Word("foo")])
+        test(Not(Word("foo")), [Word("foo")])
+        test(Prohibit(Word("foo")), [Word("foo")])
+
+    def _test_set_children_raises(self, item, children):
+        with self.assertRaises(ValueError):
+            item.children = children
+
+    def test_set_children_raises(self):
+        test = self._test_set_children_raises
+        test(Word("foo"), [Word("foo")])
+        test(Phrase('"foo"'), [Word("foo")])
+        test(Regex("/foo/"), [Word("foo")])
+        test(SearchField("foo", Word("bar")), [])
+        test(SearchField("foo", Word("bar")), [Word("bar"), Word("baz")])
+        test(Group(Word("foo")), [])
+        test(Group(Word("foo")), [Word("foo"), Word("bar")])
+        test(FieldGroup(Word("foo")), [])
+        test(FieldGroup(Word("foo")), [Word("foo"), Word("bar")])
+        test(Range(Word("20"), Word("30")), [])
+        test(Range(Word("20"), Word("30")), [Word("20"), Word("30"), Word("40")])
+        test(Proximity(Word("foo")), [])
+        test(Proximity(Word("foo")), [Word("foo"), Word("bar")])
+        test(Fuzzy(Word("foo")), [])
+        test(Fuzzy(Word("foo")), [Word("foo"), Word("bar")])
+        test(Boost(Word("foo"), force=1), [])
+        test(Boost(Word("foo"), force=1), [Word("foo"), Word("bar")])
+        test(UnknownOperation(Word("foo"), Word("bar")), [])
+        test(UnknownOperation(Word("foo"), Word("bar")), [Word("foo")])
+        test(AndOperation(Word("foo"), Word("bar")), [])
+        test(AndOperation(Word("foo"), Word("bar")), [Word("foo")])
+        test(OrOperation(Word("foo"), Word("bar")), [])
+        test(OrOperation(Word("foo"), Word("bar")), [Word("foo")])
+        test(Plus(Word("foo")), [])
+        test(Plus(Word("foo")), [Word("foo"), Word("bar")])
+        test(Not(Word("foo")), [])
+        test(Not(Word("foo")), [Word("foo"), Word("bar")])
+        test(Prohibit(Word("foo")), [])
+        test(Prohibit(Word("foo")), [Word("foo"), Word("bar")])
+
+
+class CloneTestCase(TestCase):
+
+    def assert_equal_tail_head_pos(self, a, b):
+        self.assertEqual(a.pos, b.pos)
+        self.assertEqual(a.head, b.head)
+        self.assertEqual(a.tail, b.tail)
+
+    def test_word(self):
+        orig = Word("foo", pos=3, head="\n", tail="\t")
+        copy = orig.clone_item()
+        self.assert_equal_tail_head_pos(orig, copy)
+        self.assertEqual(orig.value, copy.value)
+        self.assertEqual(orig, copy)
+
+    def test_phrase(self):
+        orig = Phrase('"foo"', pos=3, head="\n", tail="\t")
+        copy = orig.clone_item()
+        self.assert_equal_tail_head_pos(orig, copy)
+        self.assertEqual(orig.value, copy.value)
+        self.assertEqual(orig, copy)
+
+    def test_regex(self):
+        orig = Regex("/foo/", pos=3, head="\n", tail="\t")
+        copy = orig.clone_item()
+        self.assert_equal_tail_head_pos(orig, copy)
+        self.assertEqual(orig.value, copy.value)
+        self.assertEqual(orig, copy)
+
+    def test_search_field(self):
+        orig = SearchField(name="foo", expr=Word("bar"), pos=3, head="\n", tail="\t")
+        copy = orig.clone_item()
+        self.assert_equal_tail_head_pos(orig, copy)
+        self.assertEqual(orig.name, copy.name)
+        self.assertEqual(copy.expr, NONE_ITEM)
+
+        self.assertNotEqual(orig, copy)
+        copy.children = [Word("bar")]
+        self.assertEqual(orig, copy)
+
+    def test_group(self):
+        orig = Group(Word("bar"), pos=3, head="\n", tail="\t")
+        copy = orig.clone_item()
+        self.assert_equal_tail_head_pos(orig, copy)
+        self.assertEqual(copy.expr, NONE_ITEM)
+
+        self.assertNotEqual(orig, copy)
+        copy.children = [Word("bar")]
+        self.assertEqual(orig, copy)
+
+    def test_field_group(self):
+        orig = FieldGroup(Word("bar"), pos=3, head="\n", tail="\t")
+        copy = orig.clone_item()
+        self.assert_equal_tail_head_pos(orig, copy)
+        self.assertEqual(copy.expr, NONE_ITEM)
+
+        self.assertNotEqual(orig, copy)
+        copy.children = [Word("bar")]
+        self.assertEqual(orig, copy)
+
+    def test_range(self):
+        orig = Range(Word("foo"), Word("bar"), include_low=False, pos=3, head="\n", tail="\t")
+        copy = orig.clone_item()
+        self.assert_equal_tail_head_pos(orig, copy)
+        self.assertEqual(orig.include_low, copy.include_low)
+        self.assertEqual(orig.include_high, copy.include_high)
+        self.assertEqual(copy.low, NONE_ITEM)
+        self.assertEqual(copy.high, NONE_ITEM)
+
+        self.assertNotEqual(orig, copy)
+        copy.children = [Word("foo"), Word("bar")]
+        self.assertEqual(orig, copy)
+
+    def test_proximity(self):
+        orig = Proximity(Word("bar"), degree=3, pos=3, head="\n", tail="\t")
+        copy = orig.clone_item()
+        self.assert_equal_tail_head_pos(orig, copy)
+        self.assertEqual(orig.degree, copy.degree)
+        self.assertEqual(copy.term, NONE_ITEM)
+
+        self.assertNotEqual(orig, copy)
+        copy.children = [Word("bar")]
+        self.assertEqual(orig, copy)
+
+    def test_fuzzy(self):
+        orig = Fuzzy(Word("bar"), degree=.3, pos=3, head="\n", tail="\t")
+        copy = orig.clone_item()
+        self.assert_equal_tail_head_pos(orig, copy)
+        self.assertEqual(orig.degree, copy.degree)
+        self.assertEqual(copy.term, NONE_ITEM)
+
+        self.assertNotEqual(orig, copy)
+        copy.children = [Word("bar")]
+        self.assertEqual(orig, copy)
+
+    def test_boost(self):
+        orig = Boost(Word("bar"), force=3.2, pos=3, head="\n", tail="\t")
+        copy = orig.clone_item()
+        self.assert_equal_tail_head_pos(orig, copy)
+        self.assertEqual(orig.force, copy.force)
+        self.assertEqual(copy.expr, NONE_ITEM)
+
+        self.assertNotEqual(orig, copy)
+        copy.children = [Word("bar")]
+        self.assertEqual(orig, copy)
+
+    def _test_operation(self, cls):
+        orig = cls(Word("foo"), Word("bar"), Word("baz"), pos=3, head="\n", tail="\t")
+        copy = orig.clone_item()
+        self.assert_equal_tail_head_pos(orig, copy)
+        self.assertEqual(copy.operands, (NONE_ITEM, NONE_ITEM))
+
+        self.assertNotEqual(orig, copy)
+        copy.children = [Word("foo"), Word("bar"), Word("baz")]
+        self.assertEqual(orig, copy)
+
+    def test_unknown_operation(self):
+        self._test_operation(UnknownOperation)
+
+    def test_and_operation(self):
+        self._test_operation(AndOperation)
+
+    def test_or_operation(self):
+        self._test_operation(OrOperation)
+
+    def _test_unary(self, cls):
+        orig = cls(Word("foo"), pos=3, head="\n", tail="\t")
+        copy = orig.clone_item()
+        self.assert_equal_tail_head_pos(orig, copy)
+        self.assertEqual(copy.a, NONE_ITEM)
+
+        self.assertNotEqual(orig, copy)
+        copy.children = [Word("foo")]
+        self.assertEqual(orig, copy)
+
+    def test_plus(self):
+        self._test_unary(Plus)
+
+    def test_not(self):
+        self._test_unary(Not)
+
+    def test_prohibit(self):
+        self._test_unary(Prohibit)
 
 
 class TestTreeSpan(TestCase):
