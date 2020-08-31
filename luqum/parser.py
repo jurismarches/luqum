@@ -129,7 +129,7 @@ REGEX_RE = r'''
 
 def t_SEPARATOR(t):
     r'\s+'
-    token_headtail(t)
+    token_headtail(t, t.value)
     return None  # discard separators
 
 
@@ -140,6 +140,7 @@ def t_TERM(t):
     # note: it also handles NOT, OR, AND, TO
     # check if it is not a reserved term (an operation)
     t.type = reserved.get(t.value, 'TERM')
+    orig_value = t.value
     # it's not, make it a Word
     if t.type == 'TERM':
         m = re.match(TERM_RE, t.value, re.VERBOSE)
@@ -147,14 +148,15 @@ def t_TERM(t):
         t.value = Word(value)
     else:
         t.value = TokenValue(t.value)  # gentle wrapper to hande pos, tail, head
-    token_headtail(t)
+    token_headtail(t, orig_value)
     return t
 
 
 # standard function for simple text tokens
 def simple_token(t):
+    orig_value = t.value
     t.value = TokenValue(t.value)
-    token_headtail(t)
+    token_headtail(t, orig_value)
     return t
 
 
@@ -196,35 +198,39 @@ def t_RBRACKET(t):
 
 @lex.TOKEN(PHRASE_RE)
 def t_PHRASE(t):
+    orig_value = t.value
     m = re.match(PHRASE_RE, t.value, re.VERBOSE)
     value = m.group("phrase")
     t.value = Phrase(value)
-    token_headtail(t)
+    token_headtail(t, orig_value)
     return t
 
 
 @lex.TOKEN(REGEX_RE)
 def t_REGEX(t):
+    orig_value = t.value
     m = re.match(REGEX_RE, t.value, re.VERBOSE)
     value = m.group("regex")
     t.value = Regex(value)
-    token_headtail(t)
+    token_headtail(t, orig_value)
     return t
 
 
 @lex.TOKEN(APPROX_RE)
 def t_APPROX(t):
+    orig_value = t.value
     m = re.match(APPROX_RE, t.value)
     t.value = TokenValue(m.group("degree"))
-    token_headtail(t)
+    token_headtail(t, orig_value)
     return t
 
 
 @lex.TOKEN(BOOST_RE)
 def t_BOOST(t):
+    orig_value = t.value
     m = re.match(BOOST_RE, t.value)
     t.value = TokenValue(m.group("force"))
-    token_headtail(t)
+    token_headtail(t, orig_value)
     return t
 
 
@@ -240,19 +246,19 @@ lexer = lex.lex()
 def p_expression_or(p):
     'expression : expression OR_OP expression'
     p[0] = create_operation(OrOperation, p[1], p[3], op_tail=p[2].tail)
-    head_tail.pos(p, head_transfer=False)
+    head_tail.binary_operation(p, op_tail=p[2].tail)
 
 
 def p_expression_and(p):
     '''expression : expression AND_OP expression'''
     p[0] = create_operation(AndOperation, p[1], p[3], op_tail=p[2].tail)
-    head_tail.pos(p, head_transfer=False)
+    head_tail.binary_operation(p, op_tail=p[2].tail)
 
 
 def p_expression_implicit(p):
     '''expression : expression expression'''
     p[0] = create_operation(UnknownOperation, p[1], p[2], op_tail="")
-    head_tail.pos(p, head_transfer=False)
+    head_tail.binary_operation(p, op_tail="")
 
 
 def p_expression_plus(p):
