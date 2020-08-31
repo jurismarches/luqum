@@ -6,7 +6,7 @@ and retrieve their positions in the query text.
 This module adds support for that.
 
 """
-from .utils import LuceneTreeVisitorV2
+from .visitor import TreeVisitor
 
 
 #: Names are added to tree items via an attribute named `_luqum_name`
@@ -21,35 +21,32 @@ def get_name(node):
     return getattr(node, NAME_ATTR, None)
 
 
-class TreeAutoNamer(LuceneTreeVisitorV2):
+class TreeAutoNamer(TreeVisitor):
     # helper for :py:func:`tree_name_index`
 
-    def visit_base_operation(self, node, parents=None, context=None):
+    def __init__(self):
+        super().__init__(track_parents=False)
+
+    def visit_base_operation(self, node, context):
         # operations are the splitting point, we name them and make children subnames
         names = context["names"]
         set_name(node, ("_".join(names)))
         for i, c in enumerate(node.children):
-            self.visit(c, context={"names": names + [str(i)]})
+            yield from self.visit_iter(c, context={"names": names + [str(i)]})
 
-    def visit_term(self, node, parents=None, context=None):
+    def visit_term(self, node, context=None):
         names = context["names"]
         set_name(node, ("_".join(names)))
+        return []
 
-    def visit_range(self, node, parents=None, context=None):
+    def visit_range(self, node, context=None):
         names = context["names"]
         set_name(node, ("_".join(names)))
         # no need to visit children
+        return []
 
-    def generic_visit(self, node, parents=None, context=None):
-        # just propagate to children
-        for c in node.children:
-            self.visit(c, context=context)
-
-    def visit(self, node, parents=None, context=None):
-        # just initialise context
-        if context is None:
-            context = {"names": ["0"]}
-        return super().visit(node, parents, context=context)
+    def visit(self, node):
+        return list(self.visit_iter(node, context={"names": ["0"]}))
 
 
 def auto_name(tree):
@@ -61,16 +58,17 @@ def auto_name(tree):
     TreeAutoNamer().visit(tree)
 
 
-class NameIndexer(LuceneTreeVisitorV2):
+class NameIndexer(TreeVisitor):
     # helper for :py:func:`tree_name_index`
 
-    def generic_visit(self, node, parents=None, context=None):
+    def __init__(self):
+        super().__init__(track_parents=True)
+
+    def generic_visit(self, node, context):
         # visit children
-        sub_names = []
-        for child in node.children:
-            sub_names.extend(self.visit(child, parents=True))
+        sub_names = list(super().generic_visit(node, context))
         name = get_name(node)
-        root_node = not parents
+        root_node = not context.get("parents")
         if name is not None or root_node:
             str_repr = str(node)
             # search for subnodes position
@@ -83,10 +81,10 @@ class NameIndexer(LuceneTreeVisitorV2):
                     subnodes_pos.append((subname, pos, length, sub_subnodes_pos))
                     idx = pos + length
             sub_names = [(name, str_repr, subnodes_pos)]
-        return sub_names
+        yield from sub_names
 
     def __call__(self, node):
-        subnames = self.visit(node, parents=False)
+        subnames = self.visit(node)
         # by construction, root node, only return one entry
         name, str_repr, subnodes_pos = subnames[0]
         if name is not None:

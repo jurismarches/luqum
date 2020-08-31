@@ -18,6 +18,9 @@ Added
   and for their position in original text
 - tree item now support a `clone_item` method and a setter for children.
   This should help with making transformation pattern easier.
+- New `visitor.TreeVisitor` and `visitor.TreeTransformer` classes to help in processing trees
+  `utils.LuceneTreeVisitor`, `utils.LuceneTreeVisitorV2` and `utils.LuceneTreeTransformer`
+  are warned as deprecated (but still works).
 
 Changed
 -------

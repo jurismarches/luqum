@@ -6,189 +6,24 @@ Include base classes to implement a visitor pattern.
 """
 import elasticsearch_dsl
 
-from .tree import BaseOperation, OrOperation, AndOperation
+# utils pending deprecation
+from . import visitor
+from .deprecated_utils import (  # noqa: F401
+    LuceneTreeTransformer, LuceneTreeVisitor, LuceneTreeVisitorV2)
+from .tree import AndOperation, BaseOperation, OrOperation
 
 
 ES_6 = elasticsearch_dsl.VERSION[0] >= 6
 
 
-def camel_to_lower(name):
-    return "".join(
-        "_" + w.lower() if w.isupper() else w.lower()
-        for w in name).lstrip("_")
-
-
-class LuceneTreeVisitor:
-    """
-    Tree Visitor base class, inspired by python's :class:`ast.NodeVisitor`.
-
-    This class is meant to be subclassed, with the subclass implementing
-    visitor methods for each Node type it is interested in.
-
-    By default, those visitor method should be named ``'visit_'`` + class
-    name of the node, converted to lower_case (ie: visit_search_node for a
-    SearchNode class).
-
-    You can tweak this behaviour by overriding the `visitor_method_prefix` &
-    `generic_visitor_method_name` class attributes.
-
-    If the goal is to modify the initial tree,
-    use :py:class:`LuceneTreeTranformer` instead.
-    """
-    visitor_method_prefix = 'visit_'
-    generic_visitor_method_name = 'generic_visit'
-
-    _get_method_cache = None
-
-    def _get_method(self, node):
-        if self._get_method_cache is None:
-            self._get_method_cache = {}
-        try:
-            meth = self._get_method_cache[type(node)]
-        except KeyError:
-            for cls in node.__class__.mro():
-                try:
-                    method_name = "{}{}".format(
-                        self.visitor_method_prefix,
-                        camel_to_lower(cls.__name__)
-                    )
-                    meth = getattr(self, method_name)
-                    break
-                except AttributeError:
-                    continue
-            else:
-                meth = getattr(self, self.generic_visitor_method_name)
-            self._get_method_cache[type(node)] = meth
-        return meth
-
-    def visit(self, node, parents=None):
-        """ Basic, recursive traversal of the tree. """
-        parents = parents or []
-        method = self._get_method(node)
-        yield from method(node, parents)
-        for child in node.children:
-            yield from self.visit(child, parents + [node])
-
-    def generic_visit(self, node, parents=None):
-        """
-        Default visitor function, called if nothing matches the current node.
-        """
-        return iter([])  # No-op
-
-
-class LuceneTreeTransformer(LuceneTreeVisitor):
-    """
-    A :class:`LuceneTreeVisitor` subclass that walks the abstract syntax tree
-    and allows modifications of traversed nodes.
-
-    The `LuceneTreeTransormer` will walk the AST and use the return value of the
-    visitor methods to replace or remove the old node. If the return value of
-    the visitor method is ``None``, the node will be removed from its location,
-    otherwise it is replaced with the return value. The return value may be the
-    original node, in which case no replacement takes place.
-    """
-
-    def replace_node(self, old_node, new_node, parent):
-        for k, v in parent.__dict__.items():  # pragma: no branch
-            if v == old_node:
-                parent.__dict__[k] = new_node
-                break
-            elif isinstance(v, list):
-                try:
-                    i = v.index(old_node)
-                    if new_node is None:
-                        del v[i]
-                    else:
-                        v[i] = new_node
-                    break
-                except ValueError:
-                    pass  # this was not the attribute containing old_node
-            elif isinstance(v, tuple):
-                try:
-                    i = v.index(old_node)
-                    v = list(v)
-                    if new_node is None:
-                        del v[i]
-                    else:
-                        v[i] = new_node
-                    parent.__dict__[k] = tuple(v)
-                    break
-                except ValueError:
-                    pass  # this was not the attribute containing old_node
-
-    def generic_visit(self, node, parent=None):
-        return node
-
-    def visit(self, node, parents=None):
-        """
-        Recursively traverses the tree and replace nodes with the appropriate
-        visitor method's return values.
-        """
-        parents = parents or []
-        method = self._get_method(node)
-        new_node = method(node, parents)
-        if parents:
-            self.replace_node(node, new_node, parents[-1])
-        node = new_node
-        if node is not None:
-            for child in node.children:
-                self.visit(child, parents + [node])
-        return node
-
-
-class LuceneTreeVisitorV2(LuceneTreeVisitor):
-    """
-    V2 of the LuceneTreeVisitor allowing to evaluate the AST
-
-    It differs from py:cls:`LuceneTreeVisitor`
-    because it's up to the visit method to recursively call children (or not)
-
-    This class is meant to be subclassed, with the subclass implementing
-    visitor methods for each Node type it is interested in.
-
-    By default, those visitor method should be named ``'visit_'`` + class
-    name of the node, converted to lower_case (ie: visit_search_node for a
-    SearchNode class).
-
-    You can tweak this behaviour by overriding the `visitor_method_prefix` &
-    `generic_visitor_method_name` class attributes.
-
-    If the goal is to modify the initial tree,
-    use :py:class:`LuceneTreeTranformer` instead.
-    """
-
-    def visit(self, node, parents=None, context=None):
-        """ Basic, recursive traversal of the tree.
-
-        :param list parents: the list of parents
-        :parma dict context: a dict of contextual variable for free use
-          to track states while traversing the tree
-        """
-        if parents is None:
-            parents = []
-
-        method = self._get_method(node)
-        return method(node, parents, context)
-
-    def generic_visit(self, node, parents=None, context=None):
-        """
-        Default visitor function, called if nothing matches the current node.
-        """
-        raise AttributeError(
-            "No visitor found for this type of node: {}".format(
-                node.__class__
-            )
-        )
-
-
-class UnknownOperationResolver(LuceneTreeTransformer):
+class UnknownOperationResolver(visitor.TreeTransformer):
     """Transform the UnknownOperation to OR or AND
     """
 
     VALID_OPERATIONS = frozenset([None, AndOperation, OrOperation])
     DEFAULT_OPERATION = AndOperation
 
-    def __init__(self, resolve_to=None):
+    def __init__(self, resolve_to=None, add_head=" "):
         """Initialize a new resolver
 
         :param resolve_to: must be either None, OrOperation or AndOperation.
@@ -200,42 +35,51 @@ class UnknownOperationResolver(LuceneTreeTransformer):
         if resolve_to not in self.VALID_OPERATIONS:
             raise ValueError("%r is not a valid value for resolve_to" % resolve_to)
         self.resolve_to = resolve_to
-        self.last_operation = {}
+        self.add_head = add_head
+        super().__init__(track_parents=True)
+
+    def _last_operation(self, context):
+        return context.setdefault("last_operation", {})
 
     def _first_nonop_parent(self, parents):
         for parent in parents:
             if not isinstance(parent, BaseOperation):
                 return id(parent)  # use id() because parent might not be hashable
-        return None
+        else:
+            return None
 
-    def visit_or_operation(self, node, parents=None):
+    def _track_last_op(self, node, context):
         if self.resolve_to is None:
-            # memorize last op
-            parent = self._first_nonop_parent(parents)
-            self.last_operation[parent] = OrOperation
-        return node
+            # next unknow operation at same level should resolve to my type of operation
+            # so track it
+            parent = self._first_nonop_parent(context.get("parents", []))
+            self._last_operation(context)[parent] = type(node)
 
-    def visit_and_operation(self, node, parents=None):
-        if self.resolve_to is None:
-            # memorize last op
-            parent = self._first_nonop_parent(parents)
-            self.last_operation[parent] = AndOperation
-        return node
+    def _get_last_op(self, node, context):
+        # search for last operation
+        parent = self._first_nonop_parent(context.get("parents", []))
+        return self._last_operation(context).get(parent, self.DEFAULT_OPERATION)
 
-    def visit_unknown_operation(self, node, parents=None):
+    def visit_or_operation(self, node, context):
+        self._track_last_op(node, context)
+        yield from self.generic_visit(node, context)
+
+    def visit_and_operation(self, node, context):
+        self._track_last_op(node, context)
+        yield from self.generic_visit(node, context)
+
+    def visit_unknown_operation(self, node, context):
         # resolve
         if self.resolve_to is None:
-            parent = self._first_nonop_parent(parents)
-            operation = self.last_operation.get(parent, None)
-            if operation is None:
-                operation = self.DEFAULT_OPERATION
+            operation = self._get_last_op(node, context)
         else:
             operation = self.resolve_to
-        new_node = operation(*node.operands)
-        # add head to node to avoid x ANDsomething
-        for operand in new_node.operands[1:]:
-            operand.head = " " + operand.head
-        return new_node
+        new_node = operation(pos=node.pos, head=node.head, tail=node.tail)
+        new_node.children = self.clone_children(node, new_node, context)
+        # add head to children but the first to separate element from operation (x y --> x AND y)
+        for child in new_node.children[1:]:
+            child.head = self.add_head + child.head
+        yield new_node
 
     def __call__(self, tree):
         return self.visit(tree)

@@ -46,10 +46,12 @@ class Item(object):
         self.head = head
         self.tail = tail
 
-    def clone_item(self):
+    def clone_item(self, **kwargs):
         """clone an item, but not its children !
+
+        :param dict **kwargs: those item will be added to __init__ call
         """
-        return self._clone_item()
+        return self._clone_item(**kwargs)
 
     def _clone_item(self, *args, **kwargs):
         """internal implementation of clone_item (for specific sub classes tweaks)
@@ -386,8 +388,7 @@ class BaseOperation(Item):
         return self._head_tail(value, head_tail)
 
     def _clone_item(self, **kwargs):
-        # give at least two operands, but empty ones
-        return super()._clone_item(NONE_ITEM, NONE_ITEM, **kwargs)
+        return super()._clone_item(**kwargs)
 
     @property
     def children(self):
@@ -399,11 +400,8 @@ class BaseOperation(Item):
     def children(self, value):
         """Generic setter for children
 
-        :param iterable value: operands, must return at least 1 value
+        :param iterable value: operands
         """
-        if len(value) < 2:
-            raise ValueError(
-                f"At least two operands for {type(self)}")
         self.operands = tuple(value)
 
 

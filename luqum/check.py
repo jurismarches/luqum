@@ -4,8 +4,8 @@ import math
 import re
 
 from . import tree
+from . import visitor
 from .exceptions import NestedSearchFieldException, ObjectSearchFieldException
-from .utils import LuceneTreeVisitorV2
 from .utils import flatten_nested_fields_specs, normalize_object_fields_specs
 
 
@@ -139,7 +139,7 @@ class LuceneCheck:
         return list(self.check(tree))
 
 
-class CheckNestedFields(LuceneTreeVisitorV2):
+class CheckNestedFields(visitor.TreeVisitor):
     """
     Visit the lucene tree to make some checks
 
@@ -159,22 +159,15 @@ class CheckNestedFields(LuceneTreeVisitorV2):
         self.nested_fields = flatten_nested_fields_specs(nested_fields)
         self.nested_prefixes = set(k.rsplit(".", 1)[0] for k in self.nested_fields)
         self.sub_fields = normalize_object_fields_specs(sub_fields)
+        super().__init__(track_parents=True)
 
-    def generic_visit(self, node, parents, context):
-        """
-        If nothing matches the current node, visit children
-        """
-        for child in node.children:
-            self.visit(child, parents + [node], context)
-
-    def visit_search_field(self, node, parents, context):
+    def visit_search_field(self, node, context):
         """
         On search field node, check nested fields logic
         """
         child_context = dict(context)  # copy
         child_context["prefix"] = context["prefix"] + node.name.split(".")
-        for child in node.children:
-            self.visit(child, parents + [node], child_context)
+        yield from self.generic_visit(node, child_context)
 
     def _check_final_operation(self, node, context):
         prefix = context["prefix"]
@@ -204,18 +197,17 @@ class CheckNestedFields(LuceneTreeVisitorV2):
                         '''"{expr}" attributed to unknown nested or object field "{field}"'''
                         .format(expr=str(node), field=fullname))
 
-    def visit_phrase(self, node, parents, context):
+    def visit_phrase(self, node, context):
         """
         On phrase field, verify term is in a final search field
         """
-        self._check_final_operation(node, context)
+        yield self._check_final_operation(node, context)
 
-    def visit_term(self, node, parents, context):
+    def visit_term(self, node, context):
         """
         On term field, verify term is in a final search field
         """
-        self._check_final_operation(node, context)
+        yield self._check_final_operation(node, context)
 
     def __call__(self, tree):
-        context = {"prefix": []}
-        return self.visit(tree, context=context)
+        return list(self.visit_iter(tree, context={"prefix": []}))
