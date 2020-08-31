@@ -14,7 +14,9 @@ from ..tree import (
 class TokenValueTestCase(TestCase):
 
     def test_tokenvalue_str(self):
+        self.assertEqual(repr(TokenValue("")), "TokenValue()")
         self.assertEqual(str(TokenValue("")), "")
+        self.assertEqual(repr(TokenValue("foo")), "TokenValue(foo)")
         self.assertEqual(str(TokenValue("foo")), "foo")
 
     def test_tokenvalue_head_tail_pos(self):
@@ -82,6 +84,18 @@ class HeadTailLexerTestCase(TestCase):
         self.assertEqual(c.value.head, "")
         self.assertEqual(c.value.tail, "")
         self.assertEqual(c.value.pos, 5)
+
+    def test_separator_last_elt_none(self):
+        # this is a robustness test
+        for value in (TokenValue("test"), Item()):
+            create_token = token_factory()
+            self.handle(create_token("SEPARATOR", "\t", 0))
+            self.handle(create_token("SEPARATOR", "\n", 1))
+            token = create_token("OTHER", value, 2)
+            self.handle(token)
+            self.assertEqual(token.value.head, "\t")
+            self.assertEqual(token.value.tail, "")
+            self.assertEqual(token.value.pos, 2)
 
     def test_tail_at_end(self):
         create_token = token_factory()

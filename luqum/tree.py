@@ -314,7 +314,7 @@ class BaseApprox(Item):
         self.degree = self._normalize_degree(degree)
         super().__init__(**kwargs)
 
-    def __repr__(self):  # pragma: no cover
+    def __repr__(self):
         return "%s(%s, %s)" % (self.__class__.__name__, self.term.__repr__(), self.degree)
 
     def __str__(self, head_tail=False):
@@ -365,6 +365,9 @@ class Boost(Item):
         self.expr = expr
         self.force = Decimal(force).normalize()
         super().__init__(**kwargs)
+
+    def __repr__(self):
+        return "%s(%s, %s)" % (self.__class__.__name__, self.expr.__repr__(), self.force)
 
     def __str__(self, head_tail=False):
         value = "%s^%s" % (self.expr.__str__(head_tail=True), self.force)
