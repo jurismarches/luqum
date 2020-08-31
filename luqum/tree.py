@@ -41,8 +41,9 @@ class Item(object):
     #: Order is important.
     _children_attrs = []
 
-    def __init__(self, pos=None, head="", tail=""):
+    def __init__(self, pos=None, size=None, head="", tail=""):
         self.pos = pos
+        self.size = size
         self.head = head
         self.tail = tail
 
@@ -60,7 +61,7 @@ class Item(object):
            This does the job most of the time.
         :param kwargs: additionnal attributes to __init__ call
         """
-        attrs = {"pos": self.pos, "head": self.head, "tail": self.tail}
+        attrs = {"pos": self.pos, "size": self.size, "head": self.head, "tail": self.tail}
         # we can _equality_attrs as they normally correspond to what we need to copy
         attrs.update((attr_name, getattr(self, attr_name)) for attr_name in self._equality_attrs)
         # use NoneItem for children using _children_attrs
@@ -96,11 +97,11 @@ class Item(object):
     def span(self, head_tail=False):
         """return (sart, end) position of this element in global expression
         """
-        length = len(self.__str__(head_tail=head_tail))
-        start = self.pos
-        if head_tail:
-            start -= len(self.head)
-        end = start + length
+        if self.pos is None:
+            start, end = None, None
+        else:
+            start = self.pos - (len(self.head) if head_tail else 0)
+            end = self.pos + self.size + (len(self.tail) if head_tail else 0)
         return start, end
 
     def __repr__(self):
@@ -188,8 +189,8 @@ class FieldGroup(BaseGroup):
     """
 
 
-def group_to_fieldgroup(g):  # FIXME: no use !
-    return FieldGroup(g.expr, pos=g.pos, head=g.head, tail=g.tail)
+def group_to_fieldgroup(g):
+    return FieldGroup(g.expr, pos=g.pos, size=g.size, head=g.head, tail=g.tail)
 
 
 class Range(Item):

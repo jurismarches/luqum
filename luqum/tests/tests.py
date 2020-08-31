@@ -11,7 +11,7 @@ from ..check import LuceneCheck, CheckNestedFields
 from ..parser import lexer, parser, ParseError
 from ..pretty import Prettifier, prettify
 from ..tree import (
-    SearchField, FieldGroup, Group,
+    SearchField, FieldGroup, Group, Item,
     Term, Word, Phrase, Regex, Proximity, Fuzzy, Boost, Range,
     NONE_ITEM, Not, AndOperation, OrOperation, Plus, Prohibit, UnknownOperation)
 from ..utils import UnknownOperationResolver
@@ -199,6 +199,7 @@ class CloneTestCase(TestCase):
 
     def assert_equal_tail_head_pos(self, a, b):
         self.assertEqual(a.pos, b.pos)
+        self.assertEqual(a.size, b.size)
         self.assertEqual(a.head, b.head)
         self.assertEqual(a.tail, b.tail)
 
@@ -342,11 +343,15 @@ class CloneTestCase(TestCase):
 class TestTreeSpan(TestCase):
 
     def test_simple(self):
-        self.assertEqual(Word("foo", pos=0).span(), (0, 3))
-        self.assertEqual(Word("foo", head="\r", tail="\t\t", pos=1).span(), (1, 4))
-        self.assertEqual(Word("foo", head="\r", tail="\t\t", pos=1).span(head_tail=True), (0, 6))
+        self.assertEqual(Item(pos=0, size=3).span(), (0, 3))
+        self.assertEqual(Item(head="\r", tail="\t\t", pos=1, size=3).span(), (1, 4))
+        self.assertEqual(Item(head="\r", tail="\t\t", pos=1, size=3).span(head_tail=True), (0, 6))
 
-    def test_complex(self):
+    def test_none(self):
+        self.assertEqual(Item(pos=None, size=3).span(), (None, None))
+        self.assertEqual(Item(pos=None, size=3).span(head_tail=True), (None, None))
+
+    def test_integration(self):
         tree = parser.parse(" foo:bar OR baz OR ([20 TO 2000] AND more:(yee AND yii)) ")
         self.assertEqual(tree.span(), (0, 57))
         self.assertEqual(tree.span(head_tail=True), (0, 57))
@@ -1349,12 +1354,15 @@ class UnknownOperationResolverTestCase(TestCase):
         transformed = resolver(tree)
         self.assertEqual(str(transformed), "\ra\nAND b AND (c\t AND (d AND e AND f)) ")
         self.assertEqual(transformed.pos, tree.pos)
+        self.assertEqual(transformed.size, tree.size)
         and_op, orig_op = transformed.children[2].children[0], tree.children[2].children[0]
         self.assertEqual(type(and_op), AndOperation)
         self.assertEqual(and_op.pos, orig_op.pos)
+        self.assertEqual(and_op.size, orig_op.size)
         and_op, orig_op = and_op.children[1].children[0], orig_op.children[1].children[0]
         self.assertEqual(type(and_op), AndOperation)
         self.assertEqual(and_op.pos, orig_op.pos)
+        self.assertEqual(and_op.size, orig_op.size)
 
         resolver = UnknownOperationResolver(resolve_to=OrOperation)
         transformed = resolver(tree)

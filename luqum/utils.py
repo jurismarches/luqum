@@ -74,7 +74,7 @@ class UnknownOperationResolver(visitor.TreeTransformer):
             operation = self._get_last_op(node, context)
         else:
             operation = self.resolve_to
-        new_node = operation(pos=node.pos, head=node.head, tail=node.tail)
+        new_node = operation(pos=node.pos, size=node.size, head=node.head, tail=node.tail)
         new_node.children = self.clone_children(node, new_node, context)
         # add head to children but the first to separate element from operation (x y --> x AND y)
         for child in new_node.children[1:]:
