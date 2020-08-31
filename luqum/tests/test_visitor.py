@@ -80,7 +80,7 @@ class TreeVisitorTestCase(TestCase):
         tree = AndOperation(Word('a'), Word('b'))
         result = visitor.visit(tree)
         self.assertEquals(list(result), ['a BASE_OP b', 'a', 'b'])
-        
+
 
 class TreeTransformerTestCase(TestCase):
 
@@ -178,4 +178,3 @@ class TreeTransformerTestCase(TestCase):
             "The visit of the tree should have produced exactly one element",
             str(raised.exception),
         )
-            

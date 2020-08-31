@@ -793,6 +793,7 @@ class TestPrint(TestCase):
     def test_fuzzy(self):
         item = Fuzzy(Word("foo"), degree=None)
         self.assertEqual(str(item), "foo~")
+        self.assertEqual(repr(item), "Fuzzy(Word('foo'), 0.5)")
         self.assertEqual(item.degree, Decimal(".5").normalize())
         item = Fuzzy(Word("foo"), degree=".5")
         self.assertEqual(str(item), "foo~0.5")
@@ -806,11 +807,14 @@ class TestPrint(TestCase):
     def test_proximity(self):
         item = Proximity(Word("foo"), degree=None)
         self.assertEqual(str(item), "foo~")
+        self.assertEqual(repr(item), "Proximity(Word('foo'), 1)")
         self.assertEqual(item.degree, 1)
         item = Proximity(Word("foo"), degree="1")
         self.assertEqual(str(item), "foo~1")
+        self.assertEqual(repr(item), "Proximity(Word('foo'), 1)")
         item = Proximity(Word("foo"), degree="4")
         self.assertEqual(str(item), "foo~4")
+        self.assertEqual(repr(item), "Proximity(Word('foo'), 4)")
         # head tail
         item = Proximity(Word("foo", head="\t", tail="\n"), head="\r", tail="  ")
         self.assertEqual(str(item), "\tfoo\n~")
@@ -819,12 +823,17 @@ class TestPrint(TestCase):
     def test_boost(self):
         item = Boost(Word("foo"), force="3")
         self.assertEqual(str(item), "foo^3")
+        self.assertEqual(repr(item), "Boost(Word('foo'), 3)")
         item = Boost(Word("foo"), force=str(1/3))
         self.assertEqual(str(item), "foo^0.3333333333333333")
         # head tail
         item = Boost(Word("foo", head="\t", tail="\n"), force=2, head="\r", tail="  ")
         self.assertEqual(str(item), "\tfoo\n^2")
         self.assertEqual(item.__str__(head_tail=True), "\r\tfoo\n^2  ")
+
+    def test_none_item(self):
+        self.assertEqual(str(NONE_ITEM), "")
+        self.assertEqual(str(AndOperation(NONE_ITEM, NONE_ITEM)), "AND")
 
 
 class TestPrettify(TestCase):
