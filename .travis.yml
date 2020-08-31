@@ -65,4 +65,5 @@ script:
   - make quality
 
 after_success:
-  - coveralls
+  # coveralls only for python3.8 and ES 7
+  -  python --version |grep 3.8 && [ $ES_DSL_VERS == "7.2.1" ] && coveralls
