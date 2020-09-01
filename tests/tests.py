@@ -7,14 +7,14 @@ from unittest import TestCase
 
 from luqum.exceptions import NestedSearchFieldException, ObjectSearchFieldException
 
-from ..check import LuceneCheck, CheckNestedFields
-from ..parser import lexer, parser, ParseError
-from ..pretty import Prettifier, prettify
-from ..tree import (
+from luqum.check import LuceneCheck, CheckNestedFields
+from luqum.parser import lexer, parser, ParseError
+from luqum.pretty import Prettifier, prettify
+from luqum.tree import (
     SearchField, FieldGroup, Group, Item,
     Term, Word, Phrase, Regex, Proximity, Fuzzy, Boost, Range,
     NONE_ITEM, Not, AndOperation, OrOperation, Plus, Prohibit, UnknownOperation)
-from ..utils import UnknownOperationResolver
+from luqum.utils import UnknownOperationResolver
 
 
 class TestTree(TestCase):

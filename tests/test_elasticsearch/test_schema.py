@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from luqum.utils import ES_6
-from ..schema import SchemaAnalyzer
+from luqum.elasticsearch.schema import SchemaAnalyzer
 
 
 class SchemaAnalyzerTestCase(TestCase):

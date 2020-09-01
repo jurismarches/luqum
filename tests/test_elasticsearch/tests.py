@@ -7,9 +7,9 @@ from luqum.tree import (
     AndOperation, Word, Prohibit, OrOperation, Not, Phrase, SearchField,
     UnknownOperation, Boost, Fuzzy, Proximity, Range, Group, FieldGroup,
     Plus)
-from ...naming import set_name
-from ..tree import ElasticSearchItemFactory
-from ..visitor import EWord, ElasticsearchQueryBuilder
+from luqum.naming import set_name
+from luqum.elasticsearch.tree import ElasticSearchItemFactory
+from luqum.elasticsearch.visitor import EWord, ElasticsearchQueryBuilder
 
 
 class ElasticsearchTreeTransformerTestCase(TestCase):

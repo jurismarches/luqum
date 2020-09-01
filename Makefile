@@ -9,3 +9,5 @@ distribute:
 	python3 setup.py bdist
 	python3 setup.py bdist_wheel
 	twine upload -u jurismarches -s dist/*
+
+.PHONY: tests quality distribute

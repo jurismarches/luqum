@@ -6,8 +6,8 @@ import collections
 import copy
 from unittest import TestCase
 
-from ..tree import Group, Word, Phrase, AndOperation, OrOperation
-from ..deprecated_utils import LuceneTreeVisitor, LuceneTreeTransformer, LuceneTreeVisitorV2
+from luqum.tree import Group, Word, Phrase, AndOperation, OrOperation
+from luqum.deprecated_utils import LuceneTreeVisitor, LuceneTreeTransformer, LuceneTreeVisitorV2
 
 
 class TreeVisitorTestCase(TestCase):

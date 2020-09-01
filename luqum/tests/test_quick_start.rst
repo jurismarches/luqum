@@ -1,1 +1,0 @@
-../../docs/source/quick_start.rst
