@@ -277,6 +277,8 @@ class IntegrationTestCase(TestCase):
         self.assertEqual(tree.tail, "\r")
         self.assertEqual(tree.pos, 1)
         self.assertEqual(tree.size, 3)
+        self.assertEqual(str(tree), "foo")
+        self.assertEqual(tree.__str__(head_tail=True), "\tfoo\r")
 
     def test_phrase(self):
         tree = parser.parse('\t"foo  bar"\r')
@@ -285,6 +287,8 @@ class IntegrationTestCase(TestCase):
         self.assertEqual(tree.tail, "\r")
         self.assertEqual(tree.pos, 1)
         self.assertEqual(tree.size, 10)
+        self.assertEqual(str(tree), '"foo  bar"')
+        self.assertEqual(tree.__str__(head_tail=True), '\t"foo  bar"\r')
 
     def test_regex(self):
         tree = parser.parse('\t/foo/\r')
@@ -293,6 +297,8 @@ class IntegrationTestCase(TestCase):
         self.assertEqual(tree.tail, "\r")
         self.assertEqual(tree.pos, 1)
         self.assertEqual(tree.size, 5)
+        self.assertEqual(str(tree), '/foo/')
+        self.assertEqual(tree.__str__(head_tail=True), '\t/foo/\r')
 
     def test_term_to(self):
         tree = parser.parse("\tTO\r")
@@ -301,6 +307,8 @@ class IntegrationTestCase(TestCase):
         self.assertEqual(tree.tail, "\r")
         self.assertEqual(tree.pos, 1)
         self.assertEqual(tree.size, 2)
+        self.assertEqual(str(tree), "TO")
+        self.assertEqual(tree.__str__(head_tail=True), "\tTO\r")
 
     def test_unknown_operator(self):
         tree = parser.parse("\tfoo\nbar\r")
@@ -318,6 +326,8 @@ class IntegrationTestCase(TestCase):
         self.assertEqual(bar.tail, "\r")
         self.assertEqual(bar.pos, 5)
         self.assertEqual(bar.size, 3)
+        self.assertEqual(str(tree), "\tfoo\nbar\r")
+        self.assertEqual(tree.__str__(head_tail=True), "\tfoo\nbar\r")
 
     def test_or_operator(self):
         tree = parser.parse("\tfoo\nOR  bar\rOR\t\nbaz\r\r")
@@ -339,6 +349,8 @@ class IntegrationTestCase(TestCase):
         self.assertEqual(baz.tail, "\r\r")
         self.assertEqual(baz.pos, 17)
         self.assertEqual(baz.size, 3)
+        self.assertEqual(str(tree), "\tfoo\nOR  bar\rOR\t\nbaz\r\r")
+        self.assertEqual(tree.__str__(head_tail=True), "\tfoo\nOR  bar\rOR\t\nbaz\r\r")
 
     def test_and_operator(self):
         tree = parser.parse("\tfoo\nAND  bar\rAND\t\nbaz\r\r")
@@ -360,6 +372,8 @@ class IntegrationTestCase(TestCase):
         self.assertEqual(baz.tail, "\r\r")
         self.assertEqual(baz.pos, 19)
         self.assertEqual(baz.size, 3)
+        self.assertEqual(str(tree), "\tfoo\nAND  bar\rAND\t\nbaz\r\r")
+        self.assertEqual(tree.__str__(head_tail=True), "\tfoo\nAND  bar\rAND\t\nbaz\r\r")
 
     def test_plus(self):
         tree = parser.parse("\t+\rfoo\n")
@@ -373,6 +387,8 @@ class IntegrationTestCase(TestCase):
         self.assertEqual(foo.tail, "\n")
         self.assertEqual(foo.pos, 3)
         self.assertEqual(foo.size, 3)
+        self.assertEqual(str(tree), "+\rfoo\n")
+        self.assertEqual(tree.__str__(head_tail=True), "\t+\rfoo\n")
 
     def test_minus(self):
         tree = parser.parse("\t-\rfoo\n")
@@ -386,6 +402,8 @@ class IntegrationTestCase(TestCase):
         self.assertEqual(foo.tail, "\n")
         self.assertEqual(foo.pos, 3)
         self.assertEqual(foo.size, 3)
+        self.assertEqual(str(tree), "-\rfoo\n")
+        self.assertEqual(tree.__str__(head_tail=True), "\t-\rfoo\n")
 
     def test_not(self):
         tree = parser.parse("\tNOT\rfoo\n")
@@ -399,6 +417,8 @@ class IntegrationTestCase(TestCase):
         self.assertEqual(foo.tail, "\n")
         self.assertEqual(foo.pos, 5)
         self.assertEqual(foo.size, 3)
+        self.assertEqual(str(tree), "NOT\rfoo\n")
+        self.assertEqual(tree.__str__(head_tail=True), "\tNOT\rfoo\n")
 
     def test_group(self):
         tree = parser.parse("\t(\rfoo  )\n")
@@ -412,6 +432,8 @@ class IntegrationTestCase(TestCase):
         self.assertEqual(foo.tail, "  ")
         self.assertEqual(foo.pos, 3)
         self.assertEqual(foo.size, 3)
+        self.assertEqual(str(tree), "(\rfoo  )")
+        self.assertEqual(tree.__str__(head_tail=True), "\t(\rfoo  )\n")
 
     def test_search_field(self):
         # FIXME handle space between field name and ':' ?
@@ -426,6 +448,8 @@ class IntegrationTestCase(TestCase):
         self.assertEqual(bar.tail, "\n")
         self.assertEqual(bar.pos, 6)
         self.assertEqual(bar.size, 3)
+        self.assertEqual(str(tree), "foo:\tbar\n")
+        self.assertEqual(tree.__str__(head_tail=True), "\rfoo:\tbar\n")
 
     def test_field_group(self):
         tree = parser.parse("\rfoo:\t(  bar\n)\t\n")
@@ -444,6 +468,8 @@ class IntegrationTestCase(TestCase):
         self.assertEqual(bar.tail, "\n")
         self.assertEqual(bar.pos, 9)
         self.assertEqual(bar.size, 3)
+        self.assertEqual(str(tree), "foo:\t(  bar\n)\t\n")
+        self.assertEqual(tree.__str__(head_tail=True), "\rfoo:\t(  bar\n)\t\n")
 
     def test_range(self):
         tree = parser.parse("\r{\tfoo\nTO  bar\r\n]\t\t")
@@ -461,6 +487,8 @@ class IntegrationTestCase(TestCase):
         self.assertEqual(bar.tail, "\r\n")
         self.assertEqual(bar.pos, 11)
         self.assertEqual(bar.size, 3)
+        self.assertEqual(str(tree), "{\tfoo\nTO  bar\r\n]")
+        self.assertEqual(tree.__str__(head_tail=True), "\r{\tfoo\nTO  bar\r\n]\t\t")
 
     def test_boosting(self):
         tree = parser.parse("\rfoo\t^2\n")
@@ -474,6 +502,8 @@ class IntegrationTestCase(TestCase):
         self.assertEqual(foo.tail, "\t")
         self.assertEqual(foo.pos, 1)
         self.assertEqual(foo.size, 3)
+        self.assertEqual(str(tree), "\rfoo\t^2")
+        self.assertEqual(tree.__str__(head_tail=True), "\rfoo\t^2\n")
 
     def test_fuzzy(self):
         tree = parser.parse("\rfoo\t~2\n")
@@ -487,6 +517,8 @@ class IntegrationTestCase(TestCase):
         self.assertEqual(foo.tail, "\t")
         self.assertEqual(foo.pos, 1)
         self.assertEqual(foo.size, 3)
+        self.assertEqual(str(tree), "\rfoo\t~2")
+        self.assertEqual(tree.__str__(head_tail=True), "\rfoo\t~2\n")
 
     def test_proximity(self):
         tree = parser.parse('\r"foo"\t~2\n')
@@ -500,9 +532,8 @@ class IntegrationTestCase(TestCase):
         self.assertEqual(foo.tail, "\t")
         self.assertEqual(foo.pos, 1)
         self.assertEqual(foo.size, 5)
-
-
-class PrintTestCase(TestCase):
+        self.assertEqual(str(tree), '\r"foo"\t~2')
+        self.assertEqual(tree.__str__(head_tail=True), '\r"foo"\t~2\n')
 
     def test_complex(self):
         # the scope of head / tail management is to be able to keep original structure
@@ -510,6 +541,7 @@ class PrintTestCase(TestCase):
         query = "\rfoo AND bar  \nAND \t(\rbaz OR    spam\rOR ham\t\t)\r"
         tree = parser.parse(query)
         self.assertEqual(str(tree), query)
+        self.assertEqual(tree.__str__(head_tail=True), query)
 
     def test_head_on_topmost(self):
         # if the head and tail is on topmost element, the str alone will strip

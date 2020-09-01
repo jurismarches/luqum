@@ -470,7 +470,7 @@ class Plus(Unary):
 
 
 class Not(Unary):
-    op = 'NOT '
+    op = 'NOT'
 
 
 class Prohibit(Unary):
