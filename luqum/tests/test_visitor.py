@@ -2,7 +2,9 @@ import collections
 import copy
 from unittest import TestCase
 
-from ..tree import Group, Word, Phrase, AndOperation, OrOperation, Proximity, NONE_ITEM
+from ..tree import (
+    NONE_ITEM, Group, Word, Phrase, AndOperation, OrOperation, Proximity, SearchField,
+)
 from ..visitor import TreeTransformer, TreeVisitor
 
 
@@ -39,6 +41,9 @@ class TreeVisitorTestCase(TestCase):
         tree = AndOperation(Word("foo"), Word("bar"))
         visitor = TreeVisitor()
         nodes = visitor.visit(tree)
+        self.assertEqual(nodes, [])
+        # with a context for coverage…
+        nodes = visitor.visit(tree, context={})
         self.assertEqual(nodes, [])
 
     def test_basic_traversal(self):
@@ -89,7 +94,7 @@ class TreeTransformerTestCase(TestCase):
         Dummy transformer that simply turn any Word node's value into "lol"
         """
         def visit_word(self, node, context):
-            yield Word('lol')
+            yield Word(context.get("replacement", 'lol'))
 
         def visit_phrase(self, node, context):
             yield from []
@@ -106,6 +111,14 @@ class TreeTransformerTestCase(TestCase):
                 # normal return
                 yield new_node
 
+    class TrackingParentsTransformer(TreeTransformer):
+
+        def visit_word(self, node, context):
+            new_node, = self.generic_visit(node, context)
+            if any(isinstance(p, SearchField) for p in context["new_parents"]):
+                new_node.value = "lol"
+            yield new_node
+
     class RaisingTreeTransformer(TreeTransformer):
 
         def generic_visit(self, node, context):
@@ -119,6 +132,13 @@ class TreeTransformerTestCase(TestCase):
         new_tree = transformer.visit(tree)
         self.assertEqual(new_tree, AndOperation(Word("lol"), Word("lol")))
 
+    def test_context_value(self):
+        tree = AndOperation(Word("foo"), Word("bar"))
+
+        transformer = self.BasicTransformer()
+        new_tree = transformer.visit(tree, context={"replacement": "rotfl"})
+        self.assertEqual(new_tree, AndOperation(Word("rotfl"), Word("rotfl")))
+
     def test_no_transform(self):
         tree = AndOperation(NONE_ITEM, NONE_ITEM)
         transformer = self.BasicTransformer()
@@ -130,6 +150,13 @@ class TreeTransformerTestCase(TestCase):
         transformer = self.BasicTransformer()
         new_tree = transformer.visit(tree)
         self.assertEqual(new_tree, Word("lol"))
+
+    def test_tracking_parents(self):
+        tree = OrOperation(Word("foo"), SearchField("test", Word("bar")))
+        expected = OrOperation(Word("foo"), SearchField("test", Word("lol")))
+        transformer = self.TrackingParentsTransformer(track_new_parents=True)
+        new_tree = transformer.visit(tree)
+        self.assertEqual(new_tree, expected)
 
     def test_removal(self):
         tree = AndOperation(
