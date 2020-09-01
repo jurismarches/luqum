@@ -210,12 +210,25 @@ class CloneTestCase(TestCase):
         self.assertEqual(orig.value, copy.value)
         self.assertEqual(orig, copy)
 
+    def test_clone_kwargs_overrides(self):
+        orig = Word("foo", pos=3, head="\n", tail="\t")
+        copy = orig.clone_item(value="bar")
+        self.assert_equal_tail_head_pos(orig, copy)
+        self.assertEqual(copy.value, "bar")
+
     def test_phrase(self):
         orig = Phrase('"foo"', pos=3, head="\n", tail="\t")
         copy = orig.clone_item()
         self.assert_equal_tail_head_pos(orig, copy)
         self.assertEqual(orig.value, copy.value)
         self.assertEqual(orig, copy)
+
+    def test_phrase_to_word(self):
+        orig = Phrase('"foo"', pos=3, head="\n", tail="\t")
+        copy = orig._clone_item(cls=Word)  # making the phase a word
+        self.assert_equal_tail_head_pos(orig, copy)
+        self.assertEqual(orig.value, copy.value)
+        self.assertTrue(isinstance(copy, Word))
 
     def test_regex(self):
         orig = Regex("/foo/", pos=3, head="\n", tail="\t")

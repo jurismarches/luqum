@@ -63,10 +63,21 @@ class TreeVisitor:
             self._get_method_cache[type(node)] = meth
         return meth
 
-    def visit(self, tree):
+    def visit(self, tree, context=None):
         """Traversal of tree
+
+        :param luqum.tree.Item tree: a tree representing a lucene expression
+        :param dict context: a dict with initial values for context
+
+        .. note:: the values in context, are not guaranteed to move up the hierachy,
+           because we do copy of context for children to have specific values.
+
+           A trick you can use if you need values to move up the hierachy
+           is to set a `"global"` key containing a dict, where you can store values.
         """
-        return list(self.visit_iter(tree, context={}))
+        if context is None:
+            context = {}
+        return list(self.visit_iter(tree, context=context))
 
     def visit_iter(self, node, context):
         """
@@ -104,9 +115,11 @@ class TreeTransformer(TreeVisitor):
         self.track_new_parents = track_new_parents
         super().__init__(**kwargs)
 
-    def visit(self, tree):
+    def visit(self, tree, context=None):
+        if context is None:
+            context = {}
         try:
-            value, = self.visit_iter(tree, context={})
+            value, = self.visit_iter(tree, context=context)
             return value
         except ValueError as e:
             exc = ValueError(
@@ -115,7 +128,7 @@ class TreeTransformer(TreeVisitor):
             )
             raise exc from e
 
-    def generic_visit(self, node, context=None):
+    def generic_visit(self, node, context):
         """
         Default visitor function, called if nothing matches the current node.
 

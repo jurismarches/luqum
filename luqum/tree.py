@@ -52,14 +52,12 @@ class Item(object):
 
         :param dict **kwargs: those item will be added to __init__ call
         """
-        return self._clone_item(**kwargs)
+        return self._clone_item(cls=type(self), **kwargs)
 
-    def _clone_item(self, *args, **kwargs):
+    def _clone_item(self, cls, *args, **kwargs):
         """internal implementation of clone_item (for specific sub classes tweaks)
 
-        :param bool add_equality_attrs: add _equality_attrs to __init__ call.
-           This does the job most of the time.
-        :param kwargs: additionnal attributes to __init__ call
+        :param type cls: the new class
         """
         attrs = {"pos": self.pos, "size": self.size, "head": self.head, "tail": self.tail}
         # we can _equality_attrs as they normally correspond to what we need to copy
@@ -68,7 +66,7 @@ class Item(object):
         attrs.update((attr_name, NONE_ITEM) for attr_name in self._children_attrs)
         # add optional kwargs
         attrs.update(**kwargs)
-        return type(self)(*args, **attrs)
+        return cls(*args, **attrs)
 
     @property
     def children(self):
@@ -390,9 +388,6 @@ class BaseOperation(Item):
     def __str__(self, head_tail=False):
         value = ("%s" % self.op).join(o.__str__(head_tail=True) for o in self.operands)
         return self._head_tail(value, head_tail)
-
-    def _clone_item(self, **kwargs):
-        return super()._clone_item(**kwargs)
 
     @property
     def children(self):
