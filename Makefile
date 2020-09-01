@@ -2,7 +2,7 @@ tests:
 	nosetests
 
 quality:
-	flake8 luqum
+	flake8 luqum tests
 
 distribute:
 	[ -z $(ls dist/) ] || rm dist/*
