@@ -2,10 +2,10 @@ import collections
 import copy
 from unittest import TestCase
 
-from ..tree import (
+from luqum.tree import (
     NONE_ITEM, Group, Word, Phrase, AndOperation, OrOperation, Proximity, SearchField,
 )
-from ..visitor import TreeTransformer, TreeVisitor
+from luqum.visitor import TreeTransformer, TreeVisitor
 
 
 class TreeVisitorTestCase(TestCase):

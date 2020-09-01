@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 from unittest import TestCase
 
-from ..naming import get_name, set_name, auto_name, name_index, extract
-from ..parser import parser
-from ..tree import (
+from luqum.naming import get_name, set_name, auto_name, name_index, extract
+from luqum.parser import parser
+from luqum.tree import (
     AndOperation, OrOperation, UnknownOperation, SearchField,
     Fuzzy, Proximity, Word, Phrase, Range, Group)
 

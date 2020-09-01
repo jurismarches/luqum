@@ -86,7 +86,7 @@ class Book(Document):
 def add_data():
     search = connections.get_connection()
     Book.init()
-    with open("luqum/tests/book.json") as f:
+    with open(os.path.join(os.path.dirname(__file__), "book.json")) as f:
         datas = json.load(f)
 
     actions = (
