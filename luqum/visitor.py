@@ -122,11 +122,14 @@ class TreeTransformer(TreeVisitor):
             value, = self.visit_iter(tree, context=context)
             return value
         except ValueError as e:
-            exc = ValueError(
-                "The visit of the tree should have produced exactly one element "
-                "(the transformed tree)"
-            )
-            raise exc from e
+            if str(e).startswith(("too many values to unpack", "not enough values to unpack")):
+                exc = ValueError(
+                    "The visit of the tree should have produced exactly one element "
+                    "(the transformed tree)"
+                )
+                raise exc from e
+            else:
+                raise
 
     def generic_visit(self, node, context):
         """
