@@ -125,6 +125,11 @@ class TreeTransformerTestCase(TestCase):
             yield node
             yield node
 
+    class RaisingTreeTransformer2(TreeTransformer):
+
+        def generic_visit(self, node, context):
+            raise ValueError("Random error")
+
     def test_basic_traversal(self):
         tree = AndOperation(Word("foo"), Word("bar"))
 
@@ -205,3 +210,10 @@ class TreeTransformerTestCase(TestCase):
             "The visit of the tree should have produced exactly one element",
             str(raised.exception),
         )
+
+    def test_value_error_pass_through(self):
+        # raising a value error that is not related to unpacking passed through
+        tree = Word("foo")
+        with self.assertRaises(ValueError) as raised:
+            self.RaisingTreeTransformer2().visit(tree)
+        self.assertEqual("Random error", str(raised.exception))
