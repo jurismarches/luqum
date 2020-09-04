@@ -69,10 +69,10 @@ to do such things.
 
 .. py:currentmodule:: luqum.utils
 
-Luqum does provide some helpers like :py:class:`LuceneTreeTransformer` for this::
+Luqum does provide some helpers like :py:class:`TreeTransformer` for this::
 
-    >>> from luqum.utils import LuceneTreeTransformer
-    >>> class MyTransformer(LuceneTreeTransformer):
+    >>> from luqum.utils import TreeTransformer
+    >>> class MyTransformer(TreeTransformer):
     ...     def visit_search_field(self, node, parents):
     ...         if node.expr.value == '"lazy dog"':
     ...             node.expr.value = '"back to foo bar"'
