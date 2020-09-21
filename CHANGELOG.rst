@@ -16,6 +16,8 @@ Added
 - support for parsing Regular expressions like `/foo/` (no transformation to Elasticsearch DSL yet)
 - basic support for head and tail of expressions (the separators) 
   and for their position (pos and size) in original text
+- added `auto_head_tail` util
+  (use it if you build your tree programatically and want a printable representation)
 - tree item now support a `clone_item` method and a setter for children.
   This should help with making transformation pattern easier.
 - New `visitor.TreeVisitor` and `visitor.TreeTransformer` classes to help in processing trees
@@ -26,7 +28,7 @@ Changed
 -------
 
 - support for python 3.8 added, support for python 3.4 and 3.5 dropped
-- better printing of Proximity and Fuzzy items (preserve implicit caracter of degree)
+- better printing of Proximity and Fuzzy items (preserve implicit nature of degree)
 
 Fixed
 -----

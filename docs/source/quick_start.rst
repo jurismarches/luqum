@@ -63,20 +63,22 @@ In the previous request we can modify ``"foo bar"`` for ``"lazy dog"``::
     >>> print(str(tree))
     (title:"lazy dog" AND body:"quick fox") OR title:fox
 
-That was a bit tedious. Of course, normally you will use recursion and visitor pattern
-to do such things.
+That was a bit tedious and also very specific to this tree.
+Usually you will use recursion and visitor pattern to do such things.
 
-
-.. py:currentmodule:: luqum.utils
+.. py:currentmodule:: luqum.visitor
 
 Luqum does provide some helpers like :py:class:`TreeTransformer` for this::
 
-    >>> from luqum.utils import TreeTransformer
+    >>> from luqum.visitor import TreeTransformer
     >>> class MyTransformer(TreeTransformer):
-    ...     def visit_search_field(self, node, parents):
+    ...     def visit_search_field(self, node, context):
     ...         if node.expr.value == '"lazy dog"':
-    ...             node.expr.value = '"back to foo bar"'
-    ...         return node
+    ...             new_node = node.clone_item()
+    ...             new_node.expr = node.expr.clone_item(value = '"back to foo bar"')
+    ...             yield new_node
+    ...         else:
+    ...             yield from self.generic_visit(node, context)
     ...
     >>> transformer = MyTransformer()
     >>> new_tree = transformer.visit(tree)
@@ -262,6 +264,50 @@ that will smartly replace ``UnkownOperation`` by ``AndOperation`` or ``OrOperati
 
 .. _tutorial-pretty-printing:
 
+Head and tail
+--------------
+
+In an expression there may be different spaces, or other characters
+as delimiter between sub expressions.
+
+Most of the time, as we manipulate expressions we may want to keep those spaces,
+as they may be meaningful to their author (for example formating the expression).
+
+Luqum manage this by computing a `head` and `tail` on each element
+that gives the characters before and after the part of the expression the item represents.
+
+Those properties are computed at parsing time.
+If you build trees computationaly (or change them), you will have to set them yourself.
+
+For example, do not write::
+
+    >>> from luqum.tree import AndOperation, Word
+    >>> my_tree =  AndOperation(Word('foo'), Word('bar'))
+
+As it would result in::
+
+    >>> print(my_tree)
+    fooANDbar
+
+Instead, you may write:
+
+    >>> my_tree =  AndOperation(Word('foo', tail=" "), Word('bar', head=" "))
+    >>> print(my_tree)
+    foo AND bar
+
+.. py:currentmodule:: luqum.auto_head_tail
+
+Although luqum provides a util :py:func:`auto_head_tail`
+to quickly add minimal head / tail where needed::
+
+    >>> from luqum.tree import Not
+    >>> from luqum.auto_head_tail import auto_head_tail
+    >>> my_tree =  AndOperation(Word('foo'), Not(Word('bar')))
+    >>> my_tree = auto_head_tail(my_tree)
+    >>> print(my_tree)
+    foo AND NOT bar
+
+
 Pretty printing
 ---------------
 
@@ -295,7 +341,6 @@ We can pretty print it::
 
 Named Queries
 --------------
-
 
 .. py:currentmodule:: luqum.naming
 

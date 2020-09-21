@@ -22,13 +22,23 @@ class TokenValue:
 
 
 class HeadTailLexer:
-    """Utility to handle head and tail at lexer time
+    """Utility to handle head and tail at lexer time.
     """
 
     LEXER_ATTR = "_luqum_headtail"
 
     @classmethod
     def handle(cls, token, orig_value):
+        """Handling a token.
+
+        .. note::
+          PLY does not gives acces to previous tokens,
+          although it does not provide any infrastructure for handling specific state.
+
+          So we use the strategy
+          of puting a :py:cls:`HeadTailLexer`instance as an attribute of the lexer
+          each time we start a new tokenization.
+        """
         # get instance
         if token.lexpos == 0:
             # first token make instance
@@ -41,7 +51,11 @@ class HeadTailLexer:
 
     def __init__(self):
         self.head = None
+        """This will track the head of next element, useful only for first element
+        """
         self.last_elt = None
+        """This will track the last token, so we can use it to add the tail to it.
+        """
 
     def handle_token(self, token, orig_value):
         """Handle head and tail for tokens
@@ -79,6 +93,12 @@ class HeadTailManager:
     """
 
     def pos(self, p, head_transfer=False, tail_transfer=False):
+        """Compute pos and size of element 0 based on it's parts (p[1:])
+
+        :param list p: the parser expression as in PLY
+        :param bool head_transfer: True if head of first child will be transfered to p[0]
+        :param bool tail_transfer: True if tail of last child wiil be transfered to p[0]
+        """
         # pos
         if p[1].pos is not None:
             p[0].pos = p[1].pos
@@ -159,3 +179,5 @@ class HeadTailManager:
 
 
 head_tail = HeadTailManager()
+"""singleton of HeadTailManager
+"""

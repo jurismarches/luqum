@@ -44,12 +44,26 @@ Utilities
 ==========
 
 
+luqum.visitor: Manipulating trees
+----------------------------------
+
+.. automodule:: luqum.visitor
+   :members:
+   :member-order: bysource
+
+
 luqum.naming: Naming query parts
 ---------------------------------
 
 .. automodule:: luqum.naming
    :members:
    :member-order: bysource
+
+luqum.auto_head_tail: Automatic addition of spaces
+--------------------------------------------------
+
+.. automodule:: luqum.auto_head_tail
+   :members:
 
 luqum.pretty: Pretty printing
 ------------------------------
