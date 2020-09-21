@@ -4,7 +4,6 @@ In order to use elastic search named query, we need to be able to assign names t
 and retrieve their positions in the query text.
 
 This module adds support for that.
-
 """
 from .visitor import TreeVisitor
 

@@ -15,7 +15,8 @@ class Item(object):
 
     An item is a part of a request.
 
-    :param int pos: position of element in orginal text (not accounting for tail)
+    :param int pos: position of element in orginal text (not accounting for head)
+    :param int size: size of element in orginal text (not accounting for head and tail)
     :param str head: non meaningful text before this element
     :param str tail: non meaningful text after this element
     """
@@ -35,7 +36,7 @@ class Item(object):
     # other we might add in the future).
 
     #: this attribute permits to list attributes that participate in telling equality of two item
-    #: this exclude children (for generic `__eq__` methode will already recursively compare them)
+    #: this excludes children (for generic `__eq__` methode will already recursively compare them)
     _equality_attrs = []
     #: this attribute permits to list attributes that defines the children.
     #: Order is important.
@@ -50,7 +51,10 @@ class Item(object):
     def clone_item(self, **kwargs):
         """clone an item, but not its children !
 
-        :param dict **kwargs: those item will be added to __init__ call
+        This is particularly useful for the :py:class:`.visitor.TreeTransformer` pattern.
+
+        :param dict kwargs: those item will be added to `__init__` call.
+            It's a simple way to change some values of target item.
         """
         return self._clone_item(cls=type(self), **kwargs)
 
@@ -75,7 +79,10 @@ class Item(object):
 
     @children.setter
     def children(self, value):
-        """generic setter for children
+        """generic setter for children.
+
+        Having a setter for children in useful for generic manipulations
+        like in :py:mod:`luqum.visitor`
         """
         if len(value) != len(self._children_attrs):
             num_children = len(value) if value else "no"
@@ -93,7 +100,9 @@ class Item(object):
             return value
 
     def span(self, head_tail=False):
-        """return (sart, end) position of this element in global expression
+        """return (start, end) position of this element in global expression.
+
+        :param bool head_tail: should span include head and tail of element ?
         """
         if self.pos is None:
             start, end = None, None
