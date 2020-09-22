@@ -7,8 +7,8 @@ and this project tries to adhere to `Semantic Versioning`_.
 .. _`Keep a Changelog`: http://keepachangelog.com/en/1.0.0/
 .. _`Semantic Versioning`: http://semver.org/spec/v2.0.0.html
 
-Not published
-=============
+0.10.0 - 2020-09-22
+===================
 
 Added
 -----
@@ -37,6 +37,7 @@ Fixed
 
 - Range item were not checking for bounds type on equality
 - Boost item were not checking for force on equality
+- Reorganize tests
 
 0.9.0 - 2020-07-29
 ==================
