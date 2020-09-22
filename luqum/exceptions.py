@@ -21,3 +21,19 @@ class ObjectSearchFieldException(InconsistentQueryException):
     """
     Raised when a doted field name is queried which is not an object field
     """
+
+
+class ParseError(ValueError):
+    """Exception while parsing a lucene statement
+    """
+
+
+class ParseSyntaxError(ParseError):
+    """Raised when parser encounters an invalid statement
+    """
+
+
+class IllegalCharacterError(ParseError):
+    """
+    Raised when parser encounters an invalid character
+    """

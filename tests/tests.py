@@ -8,7 +8,8 @@ from unittest import TestCase
 from luqum.exceptions import NestedSearchFieldException, ObjectSearchFieldException
 
 from luqum.check import LuceneCheck, CheckNestedFields
-from luqum.parser import lexer, parser, ParseError
+from luqum.exceptions import IllegalCharacterError, ParseSyntaxError
+from luqum.parser import lexer, parser
 from luqum.pretty import Prettifier, prettify
 from luqum.tree import (
     SearchField, FieldGroup, Group, Item,
@@ -752,29 +753,29 @@ class TestParser(TestCase):
     def test_reserved_ko(self):
         """Test reserved word hurt as they hurt lucene
         """
-        with self.assertRaises(ParseError) as raised:
+        with self.assertRaises(ParseSyntaxError) as raised:
             parser.parse('foo:NOT')
         self.assertTrue(
             str(raised.exception).startswith("Syntax error in input : unexpected end of expr"))
-        with self.assertRaises(ParseError) as raised:
+        with self.assertRaises(ParseSyntaxError) as raised:
             parser.parse('foo:AND')
         self.assertEqual(
             str(raised.exception),
             "Syntax error in input : unexpected  'AND' at position 4!",
         )
-        with self.assertRaises(ParseError) as raised:
+        with self.assertRaises(ParseSyntaxError) as raised:
             parser.parse('foo:OR')
         self.assertEqual(
             str(raised.exception),
             "Syntax error in input : unexpected  'OR' at position 4!",
         )
-        with self.assertRaises(ParseError) as raised:
+        with self.assertRaises(ParseSyntaxError) as raised:
             parser.parse('OR')
         self.assertEqual(
             str(raised.exception),
             "Syntax error in input : unexpected  'OR' at position 0!",
         )
-        with self.assertRaises(ParseError) as raised:
+        with self.assertRaises(ParseSyntaxError) as raised:
             parser.parse('AND')
         self.assertEqual(
             str(raised.exception),
@@ -782,23 +783,31 @@ class TestParser(TestCase):
         )
 
     def test_parse_error_on_unmatched_parenthesis(self):
-        with self.assertRaises(ParseError) as raised:
+        with self.assertRaises(ParseSyntaxError) as raised:
             parser.parse('((foo bar) ')
         self.assertTrue(
             str(raised.exception).startswith("Syntax error in input : unexpected end of expr"))
 
     def test_parse_error_on_unmatched_bracket(self):
-        with self.assertRaises(ParseError) as raised:
+        with self.assertRaises(ParseSyntaxError) as raised:
             parser.parse('[foo TO bar')
         self.assertTrue(
             str(raised.exception).startswith("Syntax error in input : unexpected end of expr"))
 
     def test_parse_error_on_range(self):
-        with self.assertRaises(ParseError) as raised:
+        with self.assertRaises(ParseSyntaxError) as raised:
             parser.parse('[foo TO ]')
         self.assertEqual(
             str(raised.exception),
             "Syntax error in input : unexpected  ']' at position 8!",
+        )
+
+    def test_illegal_character_exception(self):
+        with self.assertRaises(IllegalCharacterError) as raised:
+            parser.parse('\\')
+        self.assertEqual(
+            str(raised.exception),
+            "Illegal character '\\' at position 0",
         )
 
 
