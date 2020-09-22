@@ -210,9 +210,10 @@ class EOperation(AbstractEOperation):
     Abstract operation taking care of the json build
     """
 
-    def __init__(self, items):
+    def __init__(self, items, **options):
         self.items = items
         self._method = None
+        self.options = options
 
     def __repr__(self):
         items = ", ".join(i.__repr__() for i in self.items)
@@ -220,7 +221,9 @@ class EOperation(AbstractEOperation):
 
     @property
     def json(self):
-        return {'bool': {self.operation: [item.json for item in self.items]}}
+        bool_query = {self.operation: [item.json for item in self.items]}
+        query = dict(bool_query, **self.options)
+        return {'bool': query}
 
 
 class ENested(AbstractEOperation):
@@ -313,8 +316,8 @@ class EShould(EOperation):
 
 class AbstractEMustOperation(EOperation):
 
-    def __init__(self, items):
-        op = super().__init__(items)
+    def __init__(self, items, **options):
+        op = super().__init__(items, **options)
         for item in self.items:
             item.zero_terms_query = self.zero_terms_query
         return op
