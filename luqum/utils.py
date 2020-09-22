@@ -4,16 +4,11 @@
 Include base classes to implement a visitor pattern.
 
 """
-import elasticsearch_dsl
-
 # utils pending deprecation
 from . import visitor
 from .deprecated_utils import (  # noqa: F401
     LuceneTreeTransformer, LuceneTreeVisitor, LuceneTreeVisitorV2)
 from .tree import AndOperation, BaseOperation, OrOperation
-
-
-ES_6 = elasticsearch_dsl.VERSION[0] >= 6
 
 
 class UnknownOperationResolver(visitor.TreeTransformer):

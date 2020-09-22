@@ -1,7 +1,13 @@
 from unittest import TestCase
 
-from luqum.utils import ES_6
 from luqum.elasticsearch.schema import SchemaAnalyzer
+
+
+try:
+    import elasticsearch_dsl
+    ES_6 = elasticsearch_dsl.VERSION[0] >= 6
+except ImportError:
+    ES_6 = True
 
 
 class SchemaAnalyzerTestCase(TestCase):
