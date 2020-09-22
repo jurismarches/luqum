@@ -10,6 +10,7 @@ import re
 import ply.lex as lex
 import ply.yacc as yacc
 
+from .exceptions import IllegalCharacterError, ParseSyntaxError
 from .head_tail import TokenValue, head_tail, token_headtail
 from .tree import (
     AndOperation, Boost, Fuzzy, Group, Not,
@@ -17,12 +18,6 @@ from .tree import (
     Range, Regex, SearchField, UnknownOperation, Word,
     create_operation, group_to_fieldgroup,
 )
-
-
-class ParseError(ValueError):
-    """Exception while parsing a lucene statement
-    """
-    pass
 
 
 reserved = {
@@ -234,10 +229,8 @@ def t_BOOST(t):
     return t
 
 
-# Error handling rule FIXME
-def t_error(t):  # pragma: no cover
-    print("Illegal character '%s' at position %d" % (t.value[0], t.lexpos))
-    t.lexer.skip(1)
+def t_error(t):
+    raise IllegalCharacterError("Illegal character '%s' at position %d" % (t.value, t.lexpos))
 
 
 lexer = lex.lex()
@@ -361,7 +354,7 @@ def p_error(p):
     else:
         error = "unexpected  '%s'" % p.value
         pos = "position %d" % p.lexpos
-    raise ParseError("Syntax error in input : %s at %s!" % (error, pos))
+    raise ParseSyntaxError("Syntax error in input : %s at %s!" % (error, pos))
 
 
 parser = yacc.yacc()

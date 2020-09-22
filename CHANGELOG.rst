@@ -29,6 +29,8 @@ Changed
 
 - support for python 3.8 added, support for python 3.4 and 3.5 dropped
 - better printing of Proximity and Fuzzy items (preserve implicit nature of degree)
+- raise `IllegalCharacterError` on illegal character found instead of printing and skipping
+- renamed `ParseError` to `ParseSyntaxError`, and kept `ParseError` as a parent exception
 
 Fixed
 -----
