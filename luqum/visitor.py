@@ -115,6 +115,13 @@ class TreeTransformer(TreeVisitor):
         self.track_new_parents = track_new_parents
         super().__init__(**kwargs)
 
+    def _clone_item(self, node):
+        """simply call node.clone_item
+
+        Surcharge this method to add specific tweaks if needed (like copying special attributes)
+        """
+        return node.clone_item()
+
     def visit(self, tree, context=None):
         if context is None:
             context = {}
@@ -137,7 +144,7 @@ class TreeTransformer(TreeVisitor):
 
         It simply clone node and children
         """
-        new_node = node.clone_item()
+        new_node = self._clone_item(node)
         new_node.children = self.clone_children(node, new_node, context)
         yield new_node
 

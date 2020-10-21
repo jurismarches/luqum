@@ -1,107 +1,10 @@
-import json
-import os
 from unittest import TestCase, skipIf
 
-import elasticsearch_dsl
-from elasticsearch.exceptions import ConnectionError
-from elasticsearch.helpers import bulk
-from elasticsearch_dsl import Date, Index, Integer, Nested, Object, Search, analyzer
-from elasticsearch_dsl.connections import connections
-from luqum.elasticsearch import ElasticsearchQueryBuilder, SchemaAnalyzer
 from luqum.parser import parser
 
-MAJOR_ES = elasticsearch_dsl.VERSION[0]
-if MAJOR_ES > 2:
-    from elasticsearch_dsl import Keyword
-
-ES6 = False
-if MAJOR_ES >= 6:
-    from elasticsearch_dsl import Text, Document, InnerDoc
-
-    ES6 = True
-else:
-    from elasticsearch_dsl import (
-        String as Text,
-        DocType as Document,
-        InnerObjectWrapper as InnerDoc,
-    )
-
-
-def get_es():
-    # you may use ES_HOST environment variable to configure Elasticsearch
-    # launching something like
-    # docker run --rm -p "127.0.0.1:9200:9200" -e "discovery.type=single-node" elasticsearch:7.8.0
-    # is a simple way to get an instance
-    connections.configure(default=dict(hosts=os.environ.get("ES_HOST", "localhost"), timeout=20))
-    client = connections.get_connection("default")
-    try:
-        # check ES runnig
-        client.cluster.health(wait_for_status='yellow')
-    except ConnectionError:
-        client = None
-    return client
-
-
-if MAJOR_ES > 2:
-
-    class Illustrator(InnerDoc):
-        name = Text()
-        birthdate = Date()
-        nationality = Keyword()
-
-
-class Book(Document):
-    title = Text(fields={
-        "no_vowels": Text(
-            analyzer=analyzer("no_vowels", "pattern", pattern="[\Waeiouy]"),  # noqa: W605
-            search_analyzer="standard"
-        )
-    })
-    edition = Text()
-    author = Object(properties={"name": Text(), "birthdate": Date()})
-    publication_date = Date()
-    n_pages = Integer()
-
-    if ES6:
-        illustrators = Nested(Illustrator)
-
-        class Index:
-            name = "bk"
-
-    else:
-        illustrators = Nested(
-            properties={
-                "name": Text(),
-                "birthdate": Date(),
-                "nationality": Keyword()
-                if MAJOR_ES > 2
-                else Text(index="not_analyzed"),
-            }
-        )
-
-        class Meta:
-            index = "bk"
-
-
-def add_data():
-    search = connections.get_connection()
-    Book.init()
-    with open(os.path.join(os.path.dirname(__file__), "book.json")) as f:
-        datas = json.load(f)
-
-    actions = (
-        {"_op_type": "index", "_id": i, "_source": d}
-        for i, d in enumerate(datas["books"])
-    )
-    if MAJOR_ES >= 7:
-        bulk(search, actions, index="bk", refresh=True)
-    else:
-        if ES6:
-            doc_type = "doc"
-        else:
-            doc_type = "book"
-
-        bulk(search, actions, index="bk", doc_type=doc_type, refresh=True)
+from .es_integration_utils import (
+    add_book_data, book_query_builder, book_search, get_es, remove_book_index,
+)
 
 
 @skipIf(get_es() is None, "Skipping ES test as I can't reach ES")
@@ -112,20 +15,9 @@ class LuqumRequestTestCase(TestCase):
         cls.es_client = get_es()
         if cls.es_client is None:
             return
-        cls.search = Search(using=cls.es_client, index="bk")
-        MESSAGES_SCHEMA = {"mappings": Book._doc_type.mapping.to_dict()}
-        schema_analizer = SchemaAnalyzer(MESSAGES_SCHEMA)
-
-        builder_options = schema_analizer.query_builder_options()
-        builder_options['field_options'] = {
-            'title.no_vowels': {
-                'match_type': 'multi_match',
-                'type': 'most_fields',
-                'fields': ('title', 'title.no_vowels')
-            }
-        }
-        cls.es_builder = ElasticsearchQueryBuilder(**builder_options)
-        add_data()
+        cls.es_builder = book_query_builder(cls.es_client)
+        cls.search = book_search(cls.es_client)
+        add_book_data(cls.es_client)
 
     def _ask_luqum(self, req):
         tree = parser.parse(req)
@@ -256,9 +148,4 @@ class LuqumRequestTestCase(TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        if cls.es_client is None:
-            return
-        if ES6:
-            Book._index.delete()
-        else:
-            Index("bk").delete(ignore=404)
+        remove_book_index(cls.es_client)
