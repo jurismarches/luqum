@@ -4,8 +4,11 @@ from unittest import TestCase
 
 from luqum.tree import (
     NONE_ITEM, Group, Word, Phrase, AndOperation, OrOperation, Proximity, SearchField,
+    Boost, Fuzzy, Regex,
 )
-from luqum.visitor import TreeTransformer, TreeVisitor
+from luqum.visitor import (
+    PathTrackingTransformer, PathTrackingVisitor, TreeTransformer, TreeVisitor,
+)
 
 
 class TreeVisitorTestCase(TestCase):
@@ -217,3 +220,75 @@ class TreeTransformerTestCase(TestCase):
         with self.assertRaises(ValueError) as raised:
             self.RaisingTreeTransformer2().visit(tree)
         self.assertEqual("Random error", str(raised.exception))
+
+
+class PathTrackingVisitorTestCase(TestCase):
+
+    class TermPathVisitor(PathTrackingVisitor):
+
+        def visit_term(self, node, context):
+            yield (context["path"], node.value)
+
+    @classmethod
+    def setUpClass(cls):
+        cls.visit = cls.TermPathVisitor().visit
+
+    def test_visit_simple_term(self):
+        paths = self.visit(Word("foo"))
+        self.assertEqual(paths, [((), "foo")])
+
+    def test_visit_complex(self):
+        tree = AndOperation(
+            Group(OrOperation(Word("foo"), Word("bar"), Boost(Fuzzy(Word("baz")), force=2))),
+            Proximity(Phrase('"spam ham"')),
+            SearchField("fizz", Regex("/fuzz/")),
+        )
+        paths = self.visit(tree)
+        self.assertEqual(
+            sorted(paths),
+            [
+                ((0, 0, 0), "foo"),
+                ((0, 0, 1), "bar"),
+                ((0, 0, 2, 0, 0), "baz"),
+                ((1, 0), '"spam ham"'),
+                ((2, 0), '/fuzz/'),
+            ]
+        )
+
+
+class PathTrackingTransformerTestCase(TestCase):
+
+    class TermPathTransformer(PathTrackingTransformer):
+
+        def visit_term(self, node, context):
+            path = '-'.join(str(i) for i in context['path'])
+            quote = '"' if isinstance(node, Phrase) else "/" if isinstance(node, Regex) else ""
+            value = node.value.strip(quote)
+            new_node = node.clone_item(value=f"{quote}{value}@{path}{quote}")
+            yield new_node
+
+    @classmethod
+    def setUpClass(cls):
+        cls.transform = cls.TermPathTransformer().visit
+
+    def test_visit_simple_term(self):
+        tree = self.transform(Word("foo"))
+        self.assertEqual(tree, Word("foo@"))
+
+    def test_visit_complex(self):
+        tree = AndOperation(
+            Group(OrOperation(Word("foo"), Word("bar"), Boost(Fuzzy(Word("baz")), force=2))),
+            Proximity(Phrase('"spam ham"')),
+            SearchField("fizz", Regex("/fuzz/")),
+        )
+        transformed = self.transform(tree)
+        expected = AndOperation(
+            Group(OrOperation(
+                Word("foo@0-0-0"),
+                Word("bar@0-0-1"),
+                Boost(Fuzzy(Word("baz@0-0-2-0-0")), force=2),
+            )),
+            Proximity(Phrase('"spam ham@1-0"')),
+            SearchField("fizz", Regex("/fuzz@2-0/")),
+        )
+        self.assertEqual(transformed, expected)

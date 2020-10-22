@@ -7,7 +7,7 @@ from .es_integration_utils import (
 )
 
 
-@skipIf(get_es() is None, "Skipping ES test as I can't reach ES")
+@skipIf(get_es() is None, "Skipping ES test as ES seems unreachable")
 class LuqumRequestTestCase(TestCase):
 
     @classmethod

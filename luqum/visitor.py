@@ -90,17 +90,37 @@ class TreeVisitor:
         method = self._get_method(node)
         yield from method(node, context)
 
+    def child_context(self, node, child, context, **kwargs):
+        """Generate a context for children.
+
+        The context children is distinct from its parent context,
+        so that visit in a branch does not affect others.
+
+        .. note:: If you need global parameters,
+            a trick is to put them in dict in a "global" entry
+            as we do a swallow copy of context, and not a deep one.
+
+        :param luqum.tree.Item node: parent node
+        :param luqum.tree.Item child: child node
+        :param dict context: parent context
+        :return dict: child context
+        """
+        child_context = dict(context)
+        if self.track_parents:
+            child_context["parents"] = context.get("parents", ()) + (node,)
+        return child_context
+
     def generic_visit(self, node, context):
         """
         Default visitor function, called if nothing matches the current node.
 
         It simply visit children.
+
+        :param luqum.tree.Item node: current node
+        :param dict context: context (aka local parameters received from parents)
         """
-        if self.track_parents:
-            child_context = dict(context, parents=context.get("parents", ()) + (node,))
-        else:
-            child_context = context
         for child in node.children:
+            child_context = self.child_context(node, child, context)
             yield from self.visit_iter(child, context=child_context)
 
 
@@ -108,7 +128,9 @@ class TreeTransformer(TreeVisitor):
     """A version of TreeVisitor that is aimed at obtaining a transformed copy of tree.
 
     .. note:: It is far better to build a transformed copy,
-       than to modify in place the original tree, as it is less error prone.
+        than to modify in place the original tree, as it is less error prone.
+
+    :param bool track_new_parents: do we want to track new parents in the context ?
     """
 
     def __init__(self, track_new_parents=False, **kwargs):
@@ -123,6 +145,11 @@ class TreeTransformer(TreeVisitor):
         return node.clone_item()
 
     def visit(self, tree, context=None):
+        """Visit the tree, by default building a copy and returning it.
+
+        :param luqum.tree.Item tree: luqum expression tree
+        :param context: optional initial context
+        """
         if context is None:
             context = {}
         try:
@@ -138,6 +165,12 @@ class TreeTransformer(TreeVisitor):
             else:
                 raise
 
+    def child_context(self, node, child, context, **kwargs):
+        child_context = super().child_context(node, child, context, **kwargs)
+        if self.track_new_parents:
+            child_context["new_parents"] = context.get("new_parents", ()) + (kwargs["new_node"],)
+        return child_context
+
     def generic_visit(self, node, context):
         """
         Default visitor function, called if nothing matches the current node.
@@ -145,7 +178,7 @@ class TreeTransformer(TreeVisitor):
         It simply clone node and children
         """
         new_node = self._clone_item(node)
-        new_node.children = self.clone_children(node, new_node, context)
+        new_node.children = list(self.clone_children(node, new_node, context))
         yield new_node
 
     def clone_children(self, node, new_node, context):
@@ -154,16 +187,52 @@ class TreeTransformer(TreeVisitor):
         .. note:: a children may generate more than one children or none, for flexibility
            but it's up to the transformer to ensure everything is ok
         """
-        child_context = dict(context)
-        if self.track_parents:
-            child_context["parents"] = context.get("parents", ()) + (node,)
-        if self.track_new_parents:
-            child_context["new_parents"] = context.get("new_parents", ()) + (new_node,)
-        new_children = [
-            new_child
-            for child in node.children
-            for new_child in self.visit_iter(child, context=child_context)
-        ]
-        # it's list, so we keep the iterator interface
-        # and it may be easier to debug
-        return new_children
+        for child in node.children:
+            child_context = self.child_context(node, child, context, new_node=new_node)
+            new_children = self.visit_iter(child, context=child_context)
+            for new_child in new_children:
+                yield new_child
+
+
+class PathTrackingMixin:
+    """It can be useful to compute path of an elements (as tuple of index in parent children)
+
+    This mixin provides base components
+    """
+
+    def child_context(self, node, child, context, **kwargs):
+        """Thanks to "path" and "position" in kwargs, we add the path of children
+        """
+        child_context = super().child_context(node, child, context, **kwargs)
+        child_context["path"] = context["path"] + (kwargs["position"],)
+        return child_context
+
+    def visit(self, node, context=None):
+        """visit the tree while tracking their path
+        """
+        if context is None:
+            context = {}
+        context["path"] = ()
+        return super().visit(node, context=context)
+
+
+class PathTrackingVisitor(PathTrackingMixin, TreeVisitor):
+    """Path tracking version of TreeVisitor
+    """
+
+    def generic_visit(self, node, context):
+        for i, child in enumerate(node.children):
+            child_context = self.child_context(node, child, context, position=i)
+            yield from self.visit_iter(child, context=child_context)
+
+
+class PathTrackingTransformer(PathTrackingMixin, TreeTransformer):
+    """Path tracking version of TreeTransformer
+    """
+
+    def clone_children(self, node, new_node, context):
+        for i, child in enumerate(node.children):
+            child_context = self.child_context(node, child, context, new_node=new_node, position=i)
+            new_children = self.visit_iter(child, context=child_context)
+            for new_child in new_children:
+                yield new_child

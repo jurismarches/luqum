@@ -65,6 +65,7 @@ class Book(Document):
             search_analyzer="standard"
         )
     })
+    ref = Keyword() if MAJOR_ES > 2 else Text(index="not_analyzed")
     edition = Text()
     author = Object(properties={"name": Text(), "birthdate": Date()})
     publication_date = Date()
@@ -81,9 +82,7 @@ class Book(Document):
             properties={
                 "name": Text(),
                 "birthdate": Date(),
-                "nationality": Keyword()
-                if MAJOR_ES > 2
-                else Text(index="not_analyzed"),
+                "nationality": Keyword() if MAJOR_ES > 2 else Text(index="not_analyzed"),
             }
         )
 
@@ -94,10 +93,10 @@ class Book(Document):
 def add_book_data(es):
     """Create a "bk" index and fill it with data
     """
+    remove_book_index(es)
     Book.init()
     with open(os.path.join(os.path.dirname(__file__), "book.json")) as f:
         datas = json.load(f)
-
     actions = (
         {"_op_type": "index", "_id": i, "_source": d}
         for i, d in enumerate(datas["books"])
@@ -125,7 +124,6 @@ def book_query_builder(es):
     """
     MESSAGES_SCHEMA = {"mappings": Book._doc_type.mapping.to_dict()}
     schema_analizer = SchemaAnalyzer(MESSAGES_SCHEMA)
-
     builder_options = schema_analizer.query_builder_options()
     builder_options['field_options'] = {
         'title.no_vowels': {
@@ -143,6 +141,6 @@ def remove_book_index(es):
     if es is None:
         return
     if ES6:
-        Book._index.delete()
+        Book._index.delete(ignore=404)
     else:
         Index("bk").delete(ignore=404)
