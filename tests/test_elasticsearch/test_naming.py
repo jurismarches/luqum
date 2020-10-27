@@ -169,6 +169,38 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
         result = self.transformer(tree)
         self.assertEqual(result, {'range': {'text': {'_name': 'a', 'gte': 'x', 'lte': 'z'}}})
 
+    def test_named_queries_nested(self):
+        tree = SearchField("author.name", Word("Monthy"))
+        set_name(tree, "a")
+        result = self.transformer(tree)
+        # name is repeated on query, but it's not a big deal…
+        self.assertEqual(
+            result,
+            {
+                'nested': {
+                    '_name': 'a',
+                    'path': 'author',
+                    'query': {'match': {'author.name': {
+                        '_name': 'a', 'query': 'Monthy', 'zero_terms_query':'none',
+                    }}},
+                },
+            }
+        )
+
+    def test_named_queries_object(self):
+        tree = SearchField("book.title", Word("Circus"))
+        set_name(tree, "a")
+        result = self.transformer(tree)
+        # name is repeated on query, but it's not a big deal…
+        self.assertEqual(
+            result,
+            {
+                'match': {'book.title': {
+                    '_name': 'a', 'query': 'Circus', 'zero_terms_query': 'none'
+                }}
+            }
+        )
+
     def test_named_queries_group(self):
         tree = SearchField("text", FieldGroup(Word("bar")))
         set_name(tree.children[0], "a")

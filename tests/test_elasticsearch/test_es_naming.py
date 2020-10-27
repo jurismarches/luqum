@@ -188,6 +188,12 @@ class LuqumNamingTestCase(TestCase):
     def test_unknown_operation(self):
         self._simple_test('(title:Phoenix ref:HP5)', "HP5", num_match=2)
 
+    def test_nested(self):
+        self._simple_test('(illustrators.name:Greenfield)', "HP4")
+
+    def test_object(self):
+        self._simple_test('(author.name:Rowling AND ref:HP4)', "HP4", num_match=2)
+
     @classmethod
     def tearDownClass(cls):
         remove_book_index(cls.es_client)

@@ -195,7 +195,7 @@ class TreeTransformer(TreeVisitor):
 
 
 class PathTrackingMixin:
-    """It can be useful to compute path of an elements (as tuple of index in parent children)
+    """It can be useful to compute path of an element (as tuple of index in parent children)
 
     This mixin provides base components
     """

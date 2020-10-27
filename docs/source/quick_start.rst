@@ -360,7 +360,7 @@ We can use :py:func:`auto_name` to automatically add names::
 
 names contains a dict association names to path in the luqum tree.
 For example the first name "a" is associated with element "foo",
-and we can retrieve it easly thanks to small utils for navigating the tree::
+and we can retrieve it easily thanks to small utils for navigating the tree::
 
    >>> from luqum.naming import element_from_path, element_from_name
    >>> element_from_name(tree, "a", names)
