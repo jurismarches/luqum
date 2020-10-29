@@ -239,8 +239,14 @@ class PropagateMatchingTestCase(TestCase):
         propagate_and = MatchingPropagator(default_operation=AndOperation)
 
         for matching in [set(), {(2, )}, {(0, ), (2, )}, {(0, ), (1, ), (2, )}]:
-            self.assertEqual(propagate_or(tree, matching), self.propagate_matching(tree_or, matching))
-            self.assertEqual(propagate_and(tree, matching), self.propagate_matching(tree_and, matching))
+            self.assertEqual(
+                propagate_or(tree, matching),
+                self.propagate_matching(tree_or, matching),
+            )
+            self.assertEqual(
+                propagate_and(tree, matching),
+                self.propagate_matching(tree_and, matching),
+            )
 
     def test_negation(self):
         for tree in [Prohibit(Word("foo")), Not(Word("foo"))]:

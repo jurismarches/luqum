@@ -73,7 +73,9 @@ class LuqumNamingTestCase(TestCase):
             '<span class="ok">n_pages:360 OR<span class="ko"> edition:Lumos</span></span>',
         )
         # matching None
-        book, = list(self.search.filter(Q(query) | Q("match_all")).filter(Q("term", ref="HP7")).execute())
+        book, = list(
+            self.search.filter(Q(query) | Q("match_all")).filter(Q("term", ref="HP7")).execute()
+        )
         self.assertFalse(hasattr(book.meta, "matched_queries"))
 
     def test_and_operation_matching(self):
@@ -124,7 +126,8 @@ class LuqumNamingTestCase(TestCase):
             f'<span class="ok">{operator}n_pages:360 AND edition:Lumos</span>',
         )
         # matching n_pages and not lumos
-        book, = list(self.search.filter(Q(query) | Q("term", ref="HP8")).exclude(Q("term", ref="BB1")).execute())
+        search = self.search.filter(Q(query) | Q("term", ref="HP8")).exclude(Q("term", ref="BB1"))
+        book, = list(search.execute())
         self.assertEqual(len(book.meta.matched_queries), 1)
         paths_ok, paths_ko = self.propagate_matching(
             ltree, matching_from_names(book.meta.matched_queries, names),
@@ -135,7 +138,8 @@ class LuqumNamingTestCase(TestCase):
             f'AND edition:Lumos</span>',
         )
         # matching none
-        book, = list(self.search.filter(Q(query) | Q("term", ref="HP7")).exclude(Q("term", ref="BB1")).execute())
+        search = self.search.filter(Q(query) | Q("term", ref="HP7")).exclude(Q("term", ref="BB1"))
+        book, = list(search.execute())
         self.assertFalse(hasattr(book.meta, "matched_queries"))
 
     def test_not(self):
@@ -143,7 +147,7 @@ class LuqumNamingTestCase(TestCase):
 
     def test_minus(self):
         self._negation_test("-")
-        
+
     def _simple_test(self, matching_query, ref, num_match=1):
         """simple scenario
 
@@ -175,6 +179,9 @@ class LuqumNamingTestCase(TestCase):
 
     def test_plus(self):
         self._simple_test('+title:"Phoenix"', "HP5")
+
+    def test_exists(self):
+        self._simple_test('(ref:* AND title:Phoenix)', "HP5", num_match=2)
 
     def test_range(self):
         self._simple_test('publication_date:[2000-01-01 TO 2001-01-01]', "HP4")

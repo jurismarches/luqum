@@ -181,7 +181,7 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
                     '_name': 'a',
                     'path': 'author',
                     'query': {'match': {'author.name': {
-                        '_name': 'a', 'query': 'Monthy', 'zero_terms_query':'none',
+                        '_name': 'a', 'query': 'Monthy', 'zero_terms_query': 'none',
                     }}},
                 },
             }
@@ -211,6 +211,12 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
         set_name(tree, "a")
         result = self.transformer(tree)
         self.assertEqual(result, {"term": {"text": {"value": "bar", "_name": "a"}}},)
+
+    def test_named_queries_exists(self):
+        tree = SearchField("text", Word("*"))
+        set_name(tree.children[0], "a")
+        result = self.transformer(tree)
+        self.assertEqual(result, {"exists": {"field": "text", "_name": "a"}},)
 
     def test_named_queries_complex(self):
         tree = (

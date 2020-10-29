@@ -126,7 +126,11 @@ class EWord(AbstractEItem):
     def json(self):
         # field:* is transformed to exists query
         if self.q == '*':
-            return {"exists": {"field": self.field}}
+            query = {"exists": {"field": self.field}}
+            name = getattr(self, "_name", None)
+            if name is not None:
+                query["exists"]["_name"] = name
+            return query
         return super().json
 
 
