@@ -150,10 +150,18 @@ class UtilitiesTestCase(TestCase):
 
     def test_matching_from_name(self):
         names = {"a": (0,), "b": (1,), "c": (0, 0), "d": (0, 1), "e": (1, 0, 1)}
-        self.assertEqual(matching_from_names([], names), set())
-        self.assertEqual(matching_from_names(["a", "b"], names), {(0,), (1,)})
-        self.assertEqual(matching_from_names(["a", "e"], names), {(0,), (1, 0, 1)})
-        self.assertEqual(matching_from_names(["c"], names), {(0, 0)})
+        self.assertEqual(
+            matching_from_names([], names), (set(), {(0,), (1,), (0, 0), (0, 1), (1, 0, 1)})
+        )
+        self.assertEqual(
+            matching_from_names(["a", "b"], names), ({(0,), (1,)}, {(0, 0), (0, 1), (1, 0, 1)})
+        )
+        self.assertEqual(
+            matching_from_names(["a", "e"], names), ({(0,), (1, 0, 1)}, {(1,), (0, 0), (0, 1)})
+        )
+        self.assertEqual(
+            matching_from_names(["c"], names), ({(0, 0)}, {(0,), (1,), (0, 1), (1, 0, 1)})
+        )
         with self.assertRaises(KeyError):
             matching_from_names(["x"], names)
 
@@ -194,39 +202,49 @@ class PropagateMatchingTestCase(TestCase):
 
     def test_or_operation(self):
         tree = OrOperation(Word("foo"), Phrase('"bar"'), Word("baz"))
+        all_paths = {(0,), (1,), (2,)}
 
-        paths_ok, paths_ko = self.propagate_matching(tree, set())
+        matching = set()
+        paths_ok, paths_ko = self.propagate_matching(tree, matching, all_paths - matching)
         self.assertEqual(paths_ok, set())
         self.assertEqual(paths_ko, {(), (0,), (1,), (2,), })
 
-        paths_ok, paths_ko = self.propagate_matching(tree, {(2, )})
+        matching = {(2, )}
+        paths_ok, paths_ko = self.propagate_matching(tree, matching, all_paths - matching)
         self.assertEqual(paths_ok, {(), (2, )})
         self.assertEqual(paths_ko, {(0,), (1,)})
 
-        paths_ok, paths_ko = self.propagate_matching(tree, {(0, ), (2, )})
+        matching = {(0, ), (2, )}
+        paths_ok, paths_ko = self.propagate_matching(tree, matching, all_paths - matching)
         self.assertEqual(paths_ok, {(), (0, ), (2,)})
         self.assertEqual(paths_ko, {(1,)})
 
-        paths_ok, paths_ko = self.propagate_matching(tree, {(0, ), (1, ), (2, )})
+        matching = {(0, ), (1, ), (2, )}
+        paths_ok, paths_ko = self.propagate_matching(tree, matching, all_paths - matching)
         self.assertEqual(paths_ok, {(), (0,), (1,), (2, )})
         self.assertEqual(paths_ko, set())
 
     def test_and_operation(self):
         tree = AndOperation(Word("foo"), Phrase('"bar"'), Word("baz"))
+        all_paths = {(0,), (1,), (2,)}
 
-        paths_ok, paths_ko = self.propagate_matching(tree, set())
+        matching = set()
+        paths_ok, paths_ko = self.propagate_matching(tree, matching, all_paths - matching)
         self.assertEqual(paths_ok, set())
         self.assertEqual(paths_ko, {(), (0,), (1,), (2,), })
 
-        paths_ok, paths_ko = self.propagate_matching(tree, {(2, )})
+        matching = {(2, )}
+        paths_ok, paths_ko = self.propagate_matching(tree, matching, all_paths - matching)
         self.assertEqual(paths_ok, {(2, )})
         self.assertEqual(paths_ko, {(), (0,), (1,)})
 
-        paths_ok, paths_ko = self.propagate_matching(tree, {(0, ), (2, )})
+        matching = {(0, ), (2, )}
+        paths_ok, paths_ko = self.propagate_matching(tree, matching, all_paths - matching)
         self.assertEqual(paths_ok, {(0, ), (2,)})
         self.assertEqual(paths_ko, {(), (1,)})
 
-        paths_ok, paths_ko = self.propagate_matching(tree, {(0, ), (1, ), (2, )})
+        matching = {(0, ), (1, ), (2, )}
+        paths_ok, paths_ko = self.propagate_matching(tree, matching, all_paths - matching)
         self.assertEqual(paths_ok, {(), (0,), (1,), (2, )})
         self.assertEqual(paths_ko, set())
 
@@ -237,49 +255,83 @@ class PropagateMatchingTestCase(TestCase):
         tree_and = AndOperation(Word("foo"), Phrase('"bar"'), Word("baz"))
         propagate_or = self.propagate_matching
         propagate_and = MatchingPropagator(default_operation=AndOperation)
+        all_paths = {(0,), (1,), (2,)}
 
         for matching in [set(), {(2, )}, {(0, ), (2, )}, {(0, ), (1, ), (2, )}]:
             self.assertEqual(
                 propagate_or(tree, matching),
-                self.propagate_matching(tree_or, matching),
+                self.propagate_matching(tree_or, matching, matching - all_paths),
             )
             self.assertEqual(
                 propagate_and(tree, matching),
-                self.propagate_matching(tree_and, matching),
+                self.propagate_matching(tree_and, matching, matching - all_paths),
             )
 
     def test_negation(self):
         for tree in [Prohibit(Word("foo")), Not(Word("foo"))]:
             with self.subTest("%r" % type(tree)):
-                paths_ok, paths_ko = self.propagate_matching(tree, set())
-                self.assertEqual(paths_ok, {(), (0,)})
-                self.assertEqual(paths_ko, set())
+                paths_ok, paths_ko = self.propagate_matching(tree, set(), {(0, )})
+                self.assertEqual(paths_ok, {()})
+                self.assertEqual(paths_ko, {(0,)})
 
-                paths_ok, paths_ko = self.propagate_matching(tree, {(0, )})
-                self.assertEqual(paths_ok, set())
-                self.assertEqual(paths_ko, {(), (0,)})
+                paths_ok, paths_ko = self.propagate_matching(tree, {(0, )}, set())
+                self.assertEqual(paths_ok, {(0,)})
+                self.assertEqual(paths_ko, {()})
+
+    def test_nested_negation(self):
+        for NegClass in (Prohibit, Not):
+            with self.subTest("%r" % NegClass):
+                tree = AndOperation(
+                    NegClass(OrOperation(
+                        NegClass(AndOperation(
+                            NegClass(Word("a")),
+                            Word("b"),
+                        )),
+                        Word("c"),
+                    )),
+                    Word("d"),
+                )
+                a, b, c, d = (0, 0, 0, 0, 0, 0), (0, 0, 0, 0, 1), (0, 0, 1), (1,)
+                not_a, ab, not_ab = (0, 0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0)
+                abc, not_abc, abcd = (0, 0), (0,), ()
+
+                paths_ok, paths_ko = self.propagate_matching(tree, set(), {a, b, c, d})
+                self.assertEqual(paths_ok, {not_a, not_ab, abc})
+                self.assertEqual(paths_ko, {a, b, ab, c, not_abc, d, abcd})
+
+                paths_ok, paths_ko = self.propagate_matching(tree, {b, d}, {a, c})
+                self.assertEqual(paths_ok, {not_a, b, ab, not_abc, d, abcd})
+                self.assertEqual(paths_ko, {a, not_ab, c, abc})
+
+                paths_ok, paths_ko = self.propagate_matching(tree, {a, b, c}, {d})
+                self.assertEqual(paths_ok, {a, b, not_ab, c, abc})
+                self.assertEqual(paths_ko, {not_a, ab, not_abc, d, abcd})
+
+                paths_ok, paths_ko = self.propagate_matching(tree, {a, b, c, d}, set())
+                self.assertEqual(paths_ok, {a, b, not_ab, c, abc, d})
+                self.assertEqual(paths_ko, {not_a, ab, not_abc, abcd})
 
     def test_single_element(self):
         for tree in [Word("a"), Phrase('"a"'), Regex("/a/")]:
             with self.subTest("%r" % type(tree)):
                 paths_ok, paths_ko = self.propagate_matching(tree, set())
-                self.assertEqual(paths_ok, set())
+                self.assertEqual(paths_ok, set(), {()})
                 self.assertEqual(paths_ko, {()})
 
                 paths_ok, paths_ko = self.propagate_matching(tree, {()})
-                self.assertEqual(paths_ok, {()})
+                self.assertEqual(paths_ok, {()}, set())
                 self.assertEqual(paths_ko, set())
 
     def test_no_propagation(self):
         for tree in [Range(Word("a"), Word("b")), Fuzzy(Word("foo")), Proximity('"bar baz"', 2)]:
             with self.subTest("%r" % type(tree)):
-                paths_ok, paths_ko = self.propagate_matching(tree, set())
+                paths_ok, paths_ko = self.propagate_matching(tree, set(), {()})
 
                 # no down propagation
                 self.assertEqual(paths_ok, set())
                 self.assertEqual(paths_ko, {()})
 
-                paths_ok, paths_ko = self.propagate_matching(tree, {()})
+                paths_ok, paths_ko = self.propagate_matching(tree, {()}, set())
                 self.assertEqual(paths_ok, {()})
                 self.assertEqual(paths_ko, set())
 
@@ -287,11 +339,11 @@ class PropagateMatchingTestCase(TestCase):
         # propagation in nodes with only one children
         tree = Boost(Group(SearchField("foo", FieldGroup(Plus(Word("bar"))))), force=2)
 
-        paths_ok, paths_ko = self.propagate_matching(tree, set())
+        paths_ok, paths_ko = self.propagate_matching(tree, set(), {()})
         self.assertEqual(paths_ok, set())
         self.assertEqual(paths_ko, {(), (0,), (0, 0), (0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0, 0)})
 
-        paths_ok, paths_ko = self.propagate_matching(tree, {(0, 0, 0, 0, 0)})
+        paths_ok, paths_ko = self.propagate_matching(tree, {()}, set())
         self.assertEqual(paths_ok, {(), (0,), (0, 0), (0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0, 0)})
         self.assertEqual(paths_ko, set())
 
@@ -330,16 +382,15 @@ class PropagateMatchingTestCase(TestCase):
         to_path = simple_naming(tree)
 
         paths_ok, paths_ko = self.propagate_matching(tree, set())
-        # prohibit and not make non matching parts to match
         self.assertEqual(
             paths_to_names(tree, paths_ok),
-            {"prohibit", "fuzzy", "not", "or2", "bar", "baz"},
+            {"prohibit", "not"},
         )
         self.assertEqual(
             paths_to_names(tree, paths_ko),
             {
                 "and", "or", "searchfield", "fieldgroup", "plus", "and2", "foo", "fizz",
-                "boost", "group", "and3", "ham", "spam",
+                "boost", "group", "and3", "ham", "spam", "fuzzy", "or2", "bar", "baz"
             },
         )
 
@@ -349,10 +400,15 @@ class PropagateMatchingTestCase(TestCase):
         )
         self.assertEqual(
             paths_to_names(tree, paths_ok),
-            {"and", "or", "searchfield", "fieldgroup", "plus", "and2", "foo", "fizz", "ham",
-             "prohibit", "fuzzy", "not", "or2", "bar", "baz", }
+            {
+                "and", "or", "searchfield", "fieldgroup", "plus", "and2", "foo", "fizz", "ham",
+                "prohibit", "not"
+            },
         )
-        self.assertEqual(paths_to_names(tree, paths_ko), {"boost", "group", "and3", "spam", })
+        self.assertEqual(
+            paths_to_names(tree, paths_ko),
+            {"boost", "group", "and3", "spam", "fuzzy", "or2", "bar", "baz"},
+        )
 
         # making everything match
         paths_ok, paths_ko = self.propagate_matching(
@@ -361,9 +417,9 @@ class PropagateMatchingTestCase(TestCase):
         self.assertEqual(
             paths_to_names(tree, paths_ok),
             {"and", "or", "searchfield", "fieldgroup", "plus", "and2", "foo", "fizz", "ham",
-             "prohibit", "fuzzy", "boost", "group", "and3", "spam", "not", "or2", "bar", "baz", }
+             "prohibit", "boost", "group", "and3", "spam", "not"}
         )
-        self.assertEqual(paths_to_names(tree, paths_ko), set())
+        self.assertEqual(paths_to_names(tree, paths_ko), {"fuzzy", "or2", "bar", "baz"})
 
         # making everything match, but some negative expression
         paths_ok, paths_ko = self.propagate_matching(
@@ -377,14 +433,14 @@ class PropagateMatchingTestCase(TestCase):
             paths_to_names(tree, paths_ok),
             {
                 "or", "searchfield", "fieldgroup", "plus", "and2",
-                "foo", "fizz", "ham", "spam", "baz",
+                "foo", "fizz", "ham", "spam", "fuzzy", "or2", "bar",
             },
         )
         self.assertEqual(
             paths_to_names(tree, paths_ko),
             {
-                "and", "boost", "group", "and3", "prohibit", "fuzzy",
-                "boost", "group", "and3", "not", "or2", "bar"
+                "and", "boost", "group", "and3", "prohibit",
+                "boost", "group", "and3", "not", "baz",
             },
         )
 

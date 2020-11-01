@@ -98,9 +98,10 @@ def matching_from_names(names, name_to_path):
 
     :param list names: list of names
     :param dict name_to_path: association of names with path to children
-    :return set: corresponding list of matching path
+    :return tuple: (set of matching paths, set of other known paths)
     """
-    return {name_to_path[name] for name in names}
+    matching = {name_to_path[name] for name in names}
+    return (matching, set(name_to_path.values()) - matching)
 
 
 def element_from_path(tree, path):
@@ -143,7 +144,19 @@ class MatchingPropagator:
         if default_operation is tree.OrOperation:
             self.OR_NODES = self.OR_NODES + (tree.UnknownOperation,)
 
-    def _propagate(self, node, matching, path):
+    def _status_from_parent(self, path, matching, other):
+        """Get status from nearest parent in hierarchie which had a name
+        """
+        if path in matching:
+            return True
+        elif path in other:
+            return False
+        elif not path:
+            return False
+        else:
+            return self._status_from_parent(path[:-1], matching, other)
+
+    def _propagate(self, node, matching, other, path):
         """recursively propagate matching
 
         return tuple: (
@@ -151,37 +164,37 @@ class MatchingPropagator:
             set of pathes of matching sub nodes,
             set of pathes of non matching sub nodes)
         """
-        if path not in matching:
-            if node.children and not isinstance(node, self.NO_CHILDREN_PROPAGATE):
-                paths_ok = set()  # path of nodes that are matching
-                paths_ko = set()  # path of nodes that are not matching
-                children_status = []  # bool for each children, indicating if it matches or not
-                # children first, for our result may depend on them
-                for i, child in enumerate(node.children):
-                    child_ok, sub_ok, sub_ko = self._propagate(child, matching, path + (i,))
-                    paths_ok.update(sub_ok)
-                    paths_ko.update(sub_ko)
-                    children_status.append(child_ok)
-                # compute parent success from children
-                operator = any if isinstance(node, self.OR_NODES) else all
-                node_ok = operator(children_status)
-                # eventually negate result
-                if isinstance(node, self.NEGATION_NODES):
-                    node_ok = not node_ok
-                    paths_ok, paths_ko = paths_ko, paths_ok
-                # add path nod to the right set
-                target_set = paths_ok if node_ok else paths_ko
-                target_set.add(path)
-                # return result
-                return node_ok, paths_ok, paths_ko
-            else:
-                # non matching final node
-                return False, set(), {path}
+        paths_ok = set()  # path of nodes that are matching
+        paths_ko = set()  # path of nodes that are not matching
+        children_status = []  # bool for each children, indicating if it matches or not
+        # recurse children
+        if node.children and not isinstance(node, self.NO_CHILDREN_PROPAGATE):
+            for i, child in enumerate(node.children):
+                child_ok, sub_ok, sub_ko = self._propagate(
+                    child, matching, other, path + (i,),
+                )
+                paths_ok.update(sub_ok)
+                paths_ko.update(sub_ko)
+                children_status.append(child_ok)
+        # resolve node status
+        if path in matching:
+            node_ok = True
+        elif children_status:  # compute from children
+            # compute parent success from children
+            operator = any if isinstance(node, self.OR_NODES) else all
+            node_ok = operator(children_status)
         else:
-            # single node matching
-            return True, {path}, set()
+            node_ok = self._status_from_parent(path, matching, other)
+        if isinstance(node, self.NEGATION_NODES):
+            # negate result
+            node_ok = not node_ok
+        # add node to the right set
+        target_set = paths_ok if node_ok else paths_ko
+        target_set.add(path)
+        # return result
+        return node_ok, paths_ok, paths_ko
 
-    def __call__(self, tree, matching=None):
+    def __call__(self, tree, matching, other=frozenset()):
         """
         Given a list of paths that are known to match,
         return all pathes in the tree that are matches.
@@ -192,12 +205,13 @@ class MatchingPropagator:
            Descending would mean risking to give non consistent information.
 
         :param list matching: list of path of matching nodes (each path is a tuple)
+        :param list other: list of other path that had a name, but were not reported as matching
 
         :return tuple: (
             set of matching path after propagation,
             set of non matching pathes after propagation)
         """
-        tree_ok, paths_ok, paths_ko = self._propagate(tree, matching, ())
+        tree_ok, paths_ok, paths_ko = self._propagate(tree, matching, other, ())
         return paths_ok, paths_ko
 
 

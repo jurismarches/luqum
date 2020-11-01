@@ -396,14 +396,14 @@ first identifying every matching element using :py:class:`MatchingPropagator`::
 
    >>> from luqum.naming import MatchingPropagator, matching_from_names
    >>> propagate_matching = MatchingPropagator()
-   >>> paths_ok, paths_ko = propagate_matching(tree, matching_from_names(matched_queries, names))
+   >>> paths_ok, paths_ko = propagate_matching(tree, *matching_from_names(matched_queries, names))
 
 And then using :py:class:`HTMLMarker` to display it in html (you could make your own also)::
 
    >>> from luqum.naming import HTMLMarker
    >>> mark_html = HTMLMarker()  # you can customize some parameters, refer to doc
    >>> mark_html(tree, paths_ok, paths_ko)
-   '<span class="ok"><span class="ko">foo~2 </span>OR (bar AND baz)</span>'
+   '<span class="ok"><span class="ko">foo~2 </span>OR (<span class="ko"><span class="ok">bar </span>AND baz</span>)</span>'
 
 
 __ https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-body.html#request-body-search-queries-and-filters
