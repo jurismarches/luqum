@@ -136,7 +136,7 @@ class NestedQueriesTestCase(TestCase):
                 "nested": {"path": "my.your", "query": term1}
             }}},
         ])
-    
+
     def test_get_first_name(self):
         term = {"term": {"text": {"value": "bar", "_name": "bar"}}}
         query = [{"query": term, "_name": "spam"}, {"query": term, "_name": "beurre"}]

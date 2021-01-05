@@ -51,7 +51,6 @@ def extract_nested_queries(query, query_nester=None):
     queries = []  # this contains our result
     in_nested = query_nester is not None
     sub_query_nester = query_nester
-    
     if isinstance(query, dict):
         if "nested" in query:
             params = {k: v for k, v in query["nested"].items() if k not in ("query", "name")}
