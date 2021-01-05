@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from luqum.elasticsearch.nested import extract_nested_queries
+from luqum.elasticsearch.nested import extract_nested_queries, get_first_name
 
 
 class NestedQueriesTestCase(TestCase):
@@ -136,3 +136,9 @@ class NestedQueriesTestCase(TestCase):
                 "nested": {"path": "my.your", "query": term1}
             }}},
         ])
+    
+    def test_get_first_name(self):
+        term = {"term": {"text": {"value": "bar", "_name": "bar"}}}
+        query = [{"query": term, "_name": "spam"}, {"query": term, "_name": "beurre"}]
+        name = get_first_name(query)
+        self.assertEqual(name, "spam")
