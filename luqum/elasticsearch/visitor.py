@@ -242,6 +242,19 @@ class ElasticsearchQueryBuilder(TreeVisitor):
             self.default_operator == ElasticsearchQueryBuilder.SHOULD
         )
 
+    def _propagate_name(self, node, child_context):
+        """if node has a name, put it in child_context to propagate it
+        """
+        name = get_name(node)
+        if name:
+            child_context["name"] = name
+
+    def get_name(self, node, context):
+        """get node name or take it from context (inherited from upper layers)
+        """
+        node_name = get_name(node)
+        return node_name if node_name is not None else context.get("name")
+
     def _yield_nested_children(self, parent, children):
         """
         Raise if a OR (should) is in a AND (must) without being in parenthesis::
@@ -273,11 +286,13 @@ class ElasticsearchQueryBuilder(TreeVisitor):
     def _binary_operation(self, cls, node, context):
         children = self.simplify_if_same(node.children, node)
         children = self._yield_nested_children(node, children)
-        (visit_iter) = super().visit_iter  # can't use super inside the comprehension expression
+        visit_iter = super().visit_iter  # can't use super inside the comprehension expression
+        child_context = dict(context)
+        self._propagate_name(node, child_context)
         items = [
             item
             for child in children
-            for item in visit_iter(child, context)
+            for item in visit_iter(child, child_context)
         ]
         yield self.es_item_factory.build(cls, items)
 
@@ -300,16 +315,20 @@ class ElasticsearchQueryBuilder(TreeVisitor):
         child_context = dict(context, parents=context.get("parents", ()) + (node,))
         child_context[self.CONTEXT_ANALYZE_MARKER] = name not in self._not_analyzed_fields
         child_context[self.CONTEXT_FIELD_PREFIX] = prefix
+        self._propagate_name(node, child_context)
         enode, = self.visit_iter(node.expr, child_context)
         nested_path = self._split_nested(node, context)
         skip_nesting = isinstance(enode, ENested)  # no need to nest a nested
         if nested_path is not None and not skip_nesting:
-            enode = self.es_item_factory.build(ENested, nested_path=nested_path, items=enode)
+            enode = self.es_item_factory.build(
+                ENested, nested_path=nested_path, items=enode, _name=self.get_name(node, context),
+            )
         yield enode
 
     def visit_not(self, node, context):
         children = self.simplify_if_same(node.children, node)
         child_context = dict(context, parents=context.get("parents", ()) + (node,))
+        self._propagate_name(node, child_context)
         items = [
             item
             for child in children
@@ -330,23 +349,29 @@ class ElasticsearchQueryBuilder(TreeVisitor):
             yield from self._must_operation(*args, **kwargs)
 
     def visit_boost(self, node, context):
-        eword, = super().generic_visit(node, context)
+        eword, = self.generic_visit(node, context)
         eword.boost = float(node.force)
         yield eword
 
     def visit_fuzzy(self, node, context):
-        eword, = super().generic_visit(node, context)
+        eword, = self.generic_visit(node, context)
         eword.fuzziness = float(node.degree)
         yield eword
 
     def visit_proximity(self, node, context):
-        ephrase, = super().generic_visit(node, context)
+        ephrase, = self.generic_visit(node, context)
         if self._is_analyzed(context):
             ephrase.slop = float(node.degree)
         else:
             # on a term query the ~ is always fuziness
             ephrase.fuzziness = float(node.degree)
         yield ephrase
+
+    def generic_visit(self, node, context):
+        # propagate name
+        child_context = dict(context)
+        self._propagate_name(node, child_context)
+        yield from super().generic_visit(node, child_context)
 
     def visit_word(self, node, context):
         if self._is_analyzed(context):
@@ -361,7 +386,7 @@ class ElasticsearchQueryBuilder(TreeVisitor):
             q=node.value,
             method=method,
             fields=self._fields(context),
-            _name=get_name(node),
+            _name=self.get_name(node, context),
         )
 
     def visit_phrase(self, node, context):
@@ -370,7 +395,7 @@ class ElasticsearchQueryBuilder(TreeVisitor):
                 EPhrase,
                 phrase=node.value,
                 fields=self._fields(context),
-                _name=get_name(node),
+                _name=self.get_name(node, context),
             )
         else:
             # in the case of a term, parenthesis are just there to escape spaces or colons
@@ -378,7 +403,7 @@ class ElasticsearchQueryBuilder(TreeVisitor):
                 EWord,
                 q=node.value[1:-1],  # remove quotes
                 fields=self._fields(context),
-                _name=get_name(node),
+                _name=self.get_name(node, context),
             )
 
     def visit_range(self, node, context):
@@ -388,7 +413,7 @@ class ElasticsearchQueryBuilder(TreeVisitor):
         }
         yield self.es_item_factory.build(
             ERange,
-            _name=get_name(node),
+            _name=self.get_name(node, context),
             fields=self._fields(context),
             **kwargs
         )

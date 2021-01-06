@@ -53,7 +53,7 @@ class Item(object):
 
         This is particularly useful for the :py:class:`.visitor.TreeTransformer` pattern.
 
-        :param dict kwargs: those item will be added to `__init__` call.
+        :param dict kwargs: those item will be added to `__init__` call.
             It's a simple way to change some values of target item.
         """
         return self._clone_item(cls=type(self), **kwargs)
@@ -444,8 +444,8 @@ class AndOperation(BaseOperation):
 def create_operation(cls, a, b, op_tail=" "):
     """Create operation between a and b, merging if a or b is already an operation of same class
 
-    :param a: left operand
-    :param b: right operand
+    :param a: left operand
+    :param b: right operand
     :param op_tail: tail of operation token
     """
     operands = []

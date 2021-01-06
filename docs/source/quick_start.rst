@@ -3,6 +3,7 @@ Quick start
 
     >>> from unittest import TestCase
     >>> t = TestCase()
+    >>> t.maxDiff = None
 
 
 .. _tutorial-parsing:
@@ -339,8 +340,8 @@ We can pretty print it::
 .. _`elasticsearch_dsl`: https://pypi.python.org/pypi/elasticsearch-dsl
 .. _`Elasticsearch queries DSL`: https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html
 
-Named Queries
---------------
+Named Queries: explaining a match
+---------------------------------
 
 .. py:currentmodule:: luqum.naming
 
@@ -355,7 +356,18 @@ Say we have a query::
 We can use :py:func:`auto_name` to automatically add names::
 
    >>> from luqum.naming import auto_name
-   >>> auto_name(tree)
+   >>> names = auto_name(tree)
+
+names contains a dict association names to path in the luqum tree.
+For example the first name "a" is associated with element "foo",
+and we can retrieve it easily thanks to small utils for navigating the tree::
+
+   >>> from luqum.naming import element_from_path, element_from_name
+   >>> element_from_name(tree, "a", names)
+   Fuzzy(Word('foo'), 2)
+   >>> element_from_path(tree, (0, 0))
+   Word('foo')
+
 
 The generated elastic search queries use the names
 when  building the query (see `elastic named queries`__)::
@@ -364,16 +376,10 @@ when  building the query (see `elastic named queries`__)::
    >>> t.assertDictEqual(
    ...     es_query,
    ...     {'bool': {'should': [
-   ...         {'fuzzy': {'text': {'_name': '0_0', 'fuzziness': 2.0, 'value': 'foo'}}},
+   ...         {'fuzzy': {'text': {'fuzziness': 2.0, 'value': 'foo', '_name': 'a'}}},
    ...         {'bool': {'must': [
-   ...             {'match': {'text': {
-   ...                 '_name': '0_1_0',
-   ...                 'query': 'bar',
-   ...                 'zero_terms_query': 'all'}}},
-   ...             {'match': {'text': {
-   ...                 '_name': '0_1_1',
-   ...                 'query': 'baz',
-   ...                 'zero_terms_query': 'all'}}}
+   ...             {'match': {'text': {'query': 'bar', 'zero_terms_query': 'all', '_name': 'c'}}},
+   ...             {'match': {'text': {'query': 'baz', 'zero_terms_query': 'all', '_name': 'd'}}}
    ...         ]}}
    ...     ]}}
    ... )
@@ -381,18 +387,23 @@ when  building the query (see `elastic named queries`__)::
 If you use this on elasticsearch, for each record,
 elastic will return the part of the queries matched by the record, using their names.
 
-To display it to the user, we can find back which name refers to which  part of the query,
-using :py:func:`name_index` and :py:func:`extract`::
+Imagine elasticsearch returned us we match on 'b' and 'c'::
 
-   >>> from luqum.naming import name_index, extract
-   >>> index = name_index(tree)
-   >>> index["0_1_0"]  # for each name, associate start index and length
-   (10, 3)
-   >>> extract(expr, "0_1_0", index)
-   'bar'
-   >>> extract(expr, "0_1", index)
-   'bar AND baz'
-   
-   
+   >>> matched_queries = ['b', 'c']
 
-__ https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-named-queries-and-filters.html
+To display it to the user, we have two step to undergo:
+first identifying every matching element using :py:class:`MatchingPropagator`::
+
+   >>> from luqum.naming import MatchingPropagator, matching_from_names
+   >>> propagate_matching = MatchingPropagator()
+   >>> paths_ok, paths_ko = propagate_matching(tree, *matching_from_names(matched_queries, names))
+
+And then using :py:class:`HTMLMarker` to display it in html (you could make your own also)::
+
+   >>> from luqum.naming import HTMLMarker
+   >>> mark_html = HTMLMarker()  # you can customize some parameters, refer to doc
+   >>> mark_html(tree, paths_ok, paths_ko)
+   '<span class="ok"><span class="ko">foo~2 </span>OR (<span class="ko"><span class="ok">bar </span>AND baz</span>)</span>'
+
+
+__ https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-body.html#request-body-search-queries-and-filters

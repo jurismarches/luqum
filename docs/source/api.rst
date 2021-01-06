@@ -40,6 +40,18 @@ luqum.elasticsearch
    :member-order: bysource
 
 
+Naming and explaining matches
+==============================
+
+
+luqum.naming
+------------
+
+.. automodule:: luqum.naming
+   :members:
+   :member-order: bysource
+
+
 Utilities
 ==========
 
@@ -51,13 +63,6 @@ luqum.visitor: Manipulating trees
    :members:
    :member-order: bysource
 
-
-luqum.naming: Naming query parts
----------------------------------
-
-.. automodule:: luqum.naming
-   :members:
-   :member-order: bysource
 
 luqum.auto_head_tail: Automatic addition of spaces
 --------------------------------------------------

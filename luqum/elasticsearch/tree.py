@@ -126,7 +126,11 @@ class EWord(AbstractEItem):
     def json(self):
         # field:* is transformed to exists query
         if self.q == '*':
-            return {"exists": {"field": self.field}}
+            query = {"exists": {"field": self.field}}
+            name = getattr(self, "_name", None)
+            if name is not None:
+                query["exists"]["_name"] = name
+            return query
         return super().json
 
 
@@ -233,10 +237,11 @@ class ENested(AbstractEOperation):
     Take care to remove ENested children
     """
 
-    def __init__(self, nested_path, nested_fields, items, *args, **kwargs):
+    def __init__(self, nested_path, nested_fields, items, *args, _name=None, **kwargs):
 
         self._nested_path = [nested_path]
         self.items = self._exclude_nested_children(items)
+        self._name = _name
 
     @property
     def nested_path(self):
@@ -289,7 +294,10 @@ class ENested(AbstractEOperation):
 
     @property
     def json(self):
-        return {'nested': {'path': self.nested_path, 'query': self.items.json}}
+        data = {'nested': {'path': self.nested_path, 'query': self.items.json}}
+        if self._name:
+            data['nested']['_name'] = self._name
+        return data
 
 
 class EShould(EOperation):

@@ -4,7 +4,11 @@ __pycache__/
 *$py.class
 
 # PLY
-luqum/parser.out
+parser.out
+parsetab.py
+
+# coverage
+cover/
 
 # C extensions
 *.so
@@ -43,6 +47,7 @@ htmlcov/
 .coverage
 .coverage.*
 .cache
+.venv
 nosetests.xml
 coverage.xml
 *,cover

@@ -7,6 +7,30 @@ and this project tries to adhere to `Semantic Versioning`_.
 .. _`Keep a Changelog`: http://keepachangelog.com/en/1.0.0/
 .. _`Semantic Versioning`: http://semver.org/spec/v2.0.0.html
 
+Rolling
+=======
+
+Changed
+-------
+
+- completely modified the naming module and `auto_name` function, as it was not practical as is.
+
+Added
+-----
+
+- added tools to build visual explanations about why a request matches a results
+  (leveraging `elasticsearch named queries`__.
+- added a visitor and transformer that tracks path to element while visiting the tree.
+
+__ https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-body.html#request-body-search-queries-and-filters
+
+Fixed
+-----
+
+- fixed the handling of names when transforming luqum tree to elasticsearch queries
+  and added integration tests.
+
+
 0.10.0 - 2020-09-22
 ===================
 
