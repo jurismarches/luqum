@@ -413,6 +413,21 @@ class BaseOperation(Item):
         self.operands = tuple(value)
 
 
+class BoolOperation(BaseOperation):
+    """Lucene Boolean Query.
+
+    This operation assumes that the query builder can utilize a boolean operator
+    with three possible sections, must, should and must_not. If the
+    UnknownOperationResolver is asked to resolve_to this operation, the query
+    builder can utilize this operator directly instead of nested AND/OR.
+    This also makes it possible to correctly support Lucene queries such as:
+    "apples +bananas -vegetables"
+    .. seealso::
+        the :py:class:`.utils.UnknownOperationResolver`
+    """
+    op = ""
+
+
 class UnknownOperation(BaseOperation):
     """Unknown Boolean operator.
 

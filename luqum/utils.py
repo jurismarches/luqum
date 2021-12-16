@@ -8,22 +8,22 @@ Include base classes to implement a visitor pattern.
 from . import visitor
 from .deprecated_utils import (  # noqa: F401
     LuceneTreeTransformer, LuceneTreeVisitor, LuceneTreeVisitorV2)
-from .tree import AndOperation, BaseOperation, OrOperation
+from .tree import AndOperation, BaseOperation, OrOperation, BoolOperation
 
 
 class UnknownOperationResolver(visitor.TreeTransformer):
     """Transform the UnknownOperation to OR or AND
     """
 
-    VALID_OPERATIONS = frozenset([None, AndOperation, OrOperation])
+    VALID_OPERATIONS = frozenset([None, AndOperation, OrOperation, BoolOperation])
     DEFAULT_OPERATION = AndOperation
 
     def __init__(self, resolve_to=None, add_head=" "):
         """Initialize a new resolver
 
-        :param resolve_to: must be either None, OrOperation or AndOperation.
+        :param resolve_to: must be either None, OrOperation, AndOperation, BoolOperation.
 
-          for the latter two the UnknownOperation is repalced by specified operation.
+          for the latter three the UnknownOperation is replaced by specified operation.
 
           if it is None, we use the last operation encountered, as would Lucene do
         """

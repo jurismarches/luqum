@@ -1,7 +1,8 @@
 from unittest import TestCase
 
 from luqum.parser import parser
-from luqum.tree import Group, Word, AndOperation, OrOperation, UnknownOperation
+from luqum.tree import (Group, Word, AndOperation, OrOperation, BoolOperation,
+                        UnknownOperation, Prohibit, Plus)
 from luqum.utils import UnknownOperationResolver
 
 
@@ -47,6 +48,18 @@ class UnknownOperationResolverTestCase(TestCase):
                 Word("b"),
                 AndOperation(Word("c"), Word("d"))))
         resolver = UnknownOperationResolver(resolve_to=None)
+        self.assertEqual(resolver(tree), expected)
+
+    def test_lucene_resolution_bool(self):
+        tree = parser.parse("a b (+f +g) -(c d) +e")
+        expected = (
+            BoolOperation(
+                Word("a"),
+                Word("b"),
+                Group(BoolOperation(Plus(Word("f")), Plus(Word("g")))),
+                Prohibit(Group(BoolOperation(Word("c"), Word("d")))),
+                Plus(Word('e'))))
+        resolver = UnknownOperationResolver(resolve_to=BoolOperation)
         self.assertEqual(resolver(tree), expected)
 
     def test_lucene_resolution_last_op(self):
