@@ -18,7 +18,7 @@ class TokenValue:
         return "TokenValue(%s)" % self.value
 
     def __str__(self):
-        return self.value
+        return str(self.value)
 
 
 class HeadTailLexer:
