@@ -11,6 +11,11 @@ from luqum.tree import (
 )
 
 
+class Dummy:
+    def __str__(self):
+        return "silly me"
+
+
 class TokenValueTestCase(TestCase):
 
     def test_tokenvalue_str(self):
@@ -18,6 +23,8 @@ class TokenValueTestCase(TestCase):
         self.assertEqual(str(TokenValue("")), "")
         self.assertEqual(repr(TokenValue("foo")), "TokenValue(foo)")
         self.assertEqual(str(TokenValue("foo")), "foo")
+        self.assertEqual(str(TokenValue(None)), "")
+        self.assertEqual(str(TokenValue(Dummy())), "silly me")
 
     def test_tokenvalue_head_tail_pos(self):
         t = TokenValue("foo")
