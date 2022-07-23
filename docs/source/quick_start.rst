@@ -104,7 +104,7 @@ We may also pass default operator, and default fields::
 
     >>> from luqum.elasticsearch import ElasticsearchQueryBuilder
     >>> es_builder = ElasticsearchQueryBuilder(not_analyzed_fields=["published", "tag"])
-   
+
     >>> tree = parser.parse('''
     ...     title:("brown fox" AND quick AND NOT dog) AND
     ...     published:[* TO 1990-01-01T00:00:00.000Z] AND
@@ -232,8 +232,59 @@ but also use it to build a query with `elasticsearch_dsl`_.
 
 Note that under the hood, the operation is two fold:
 it first create a new specific tree from the luqum tree.
-This tree is then capable of giving it's JSON like represetation
+This tree is then capable of giving it's JSON like representation
 (that is JSON compatible python objects).
+
+Modifying the generated queries
+...............................
+
+The JSON representation is built using elements (``EWord``,
+``EPhrase``, ``EBoolOperation``, ...).
+
+An easy way to modify the generated queries DSL, is to inherit
+:py:class:`ElasticsearchQueryBuilder` and modify the behavior of
+these ``E-elements``. You can do that by replacing each element
+using the attributes defined as follow::
+
+    >>> class ElasticsearchQueryBuilder(TreeVisitor):
+    ... [...]
+    ... E_MUST = EMust
+    ... E_MUST_NOT = EMustNot
+    ... E_SHOULD = EShould
+    ... E_WORD = EWord
+    ... E_PHRASE = EPhrase
+    ... E_RANGE = ERange
+    ... E_NESTED = ENested
+    ... E_BOOL_OPERATION = EBoolOperation
+
+For instance, if you want your query to use ``match`` instead of
+``term`` for words::
+
+    >>> from luqum.elasticsearch.visitor import EWord, ElasticsearchQueryBuilder
+    >>> from luqum.tree import AndOperation
+
+    >>> class EWordMatch(EWord):
+    ...     @property
+    ...     def json(self):
+    ...          if self.q == '*':
+    ...              return super().json
+    ...          return {"match": {self.field: self.q}}
+
+    >>> class MyElasticsearchQueryBuilder(ElasticsearchQueryBuilder):
+    ...     E_WORD = EWordMatch
+    ...
+
+    >>> transformer = MyElasticsearchQueryBuilder()
+    >>> q = 'message:* AND author:John AND link_type:action'
+    >>> tree = parser.parse(q)
+    >>> query = transformer(tree)
+    >>> t.assertDictEqual(
+    ...     query,
+    ...     {'bool': {'must': [
+    ...         {'exists': {'field': 'message'}},
+    ...         {'match': {'author': 'John'}},
+    ...         {'match': {'link_type': 'action'}}]}}
+
 
 .. _tutorial-unknown-operation:
 

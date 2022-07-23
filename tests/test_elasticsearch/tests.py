@@ -25,6 +25,25 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
             sub_fields=["book.title.raw"],
         )
 
+    def test_override_element(self):
+        class CustomEWord(EWord):
+            @property
+            def json(self):
+                return {"custom": self.q}
+
+        class CustomQueryBuilder(ElasticsearchQueryBuilder):
+            E_WORD = CustomEWord
+
+        transformer = CustomQueryBuilder()
+        tree = AndOperation(Word('spam'), Word('eggs'), Word('foo'))
+        result = transformer(tree)
+        expected = {'bool': {'must': [
+            {"custom": 'spam'},
+            {"custom": 'eggs'},
+            {"custom": 'foo'},
+        ]}}
+        self.assertDictEqual(result, expected)
+
     def test_should_raise_when_nested_search_field(self):
         # Note that there are more extensive tests on the checker itself
         # so we do not use so much test cases here,
@@ -35,6 +54,15 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
         )
         with self.assertRaises(ObjectSearchFieldException):
             self.transformer(tree)
+
+        tree = AndOperation(Word('spam'), Word('eggs'), Word('foo'))
+        result = self.transformer(tree)
+        expected = {'bool': {'must': [
+            {"term": {"text": {"value": 'spam'}}},
+            {"term": {"text": {"value": 'eggs'}}},
+            {"term": {"text": {"value": 'foo'}}},
+        ]}}
+        self.assertDictEqual(result, expected)
 
     def test_should_transform_and(self):
         tree = AndOperation(Word('spam'), Word('eggs'), Word('foo'))
@@ -684,7 +712,6 @@ class ElasticsearchTreeTransformerRealQueriesTestCase(TestCase):
 
     @classmethod
     def setUpClass(cls):
-
         NO_ANALYZE = [
             "type", "statut", "pays", "pays_acheteur", "pays_acheteur_display",
             "refW", "pays_execution", "dept", "region", "dept_acheteur",
@@ -850,7 +877,6 @@ class NestedAndObjectFieldsTestCase(TestCase):
 
     @classmethod
     def setUpClass(cls):
-
         NO_ANALYZE = [
             'author.book.format.type',
             'author.book.isbn.ref',
@@ -1129,8 +1155,8 @@ class NestedAndObjectFieldsTestCase(TestCase):
         result = self.transformer(tree)
         expected = {
             "nested": {
-                "path":  "author.book",
-                "query":  {
+                "path": "author.book",
+                "query": {
                     "match_phrase": {
                         "author.book.title": {
                             "query": "printemps",
@@ -1151,8 +1177,8 @@ class NestedAndObjectFieldsTestCase(TestCase):
         result = self.transformer(tree)
         expected = {
             "nested": {
-                "path":  "author.book.format",
-                "query":  {
+                "path": "author.book.format",
+                "query": {
                     "term": {
                         "author.book.format.type": {
                             "value": "pdf",
@@ -1300,7 +1326,6 @@ class NestedAndObjectFieldsTestCase(TestCase):
         self.assertDictEqual(result, expected)
 
     def test_nested_and_object_queries_together(self):
-
         tree = parser.parse(
             '''
             author:(book:(isbn.ref:"foo" AND title:"bar") OR lastname:"baz") AND
