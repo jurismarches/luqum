@@ -6,7 +6,7 @@ from luqum.parser import parser
 from luqum.tree import (
     AndOperation, Word, Prohibit, OrOperation, Not, Phrase, SearchField,
     UnknownOperation, Boost, Fuzzy, Proximity, Range, Group, FieldGroup,
-    Plus)
+    Plus, BoolOperation)
 from luqum.elasticsearch.tree import ElasticSearchItemFactory
 from luqum.elasticsearch.visitor import EWord, ElasticsearchQueryBuilder
 
@@ -62,6 +62,29 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
             {"term": {"text": {"value": 'eggs'}}},
             {"term": {"text": {"value": 'foo'}}},
         ]}}
+        self.assertDictEqual(result, expected)
+
+    def test_bool_transform_bool(self):
+        tree = BoolOperation(
+            Word("a"),
+            Word("b"),
+            Group(BoolOperation(Plus(Word('f')), Plus(Word('g')))),
+            Prohibit(Group(BoolOperation(Word("c"), Word("d")))),
+            Plus(Word('e')))
+        result = self.transformer(tree)
+        expected = {'bool': {
+            'must': [
+                {'term': {'text': {'value': 'e'}}}],
+            'should': [
+                {"term": {"text": {"value": 'a'}}},
+                {"term": {"text": {"value": 'b'}}},
+                {'bool': {'must': [
+                    {'term': {'text': {"value": 'f'}}},
+                    {'term': {'text': {"value": 'g'}}}]}}],
+            'must_not': [{"bool": {"should": [
+                {"term": {"text": {"value": 'c'}}},
+                {"term": {"text": {"value": 'd'}}}]}}],
+        }}
         self.assertDictEqual(result, expected)
 
     def test_should_raise_when_or_and_and_on_same_level(self):

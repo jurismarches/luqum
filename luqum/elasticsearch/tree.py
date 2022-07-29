@@ -373,6 +373,32 @@ class EMustNot(AbstractEMustOperation):
     operation = 'must_not'
 
 
+class EBoolOperation(EOperation):
+
+    @property
+    def json(self):
+        must_items = []
+        should_items = []
+        must_not_items = []
+        for item in self.items:
+            if isinstance(item, EMust):
+                must_items.extend(item.items)
+            elif isinstance(item, EMustNot):
+                must_not_items.extend(item.items)
+            else:
+                should_items.append(item)
+        bool_query = {}
+        if must_items:
+            bool_query["must"] = [item.json for item in must_items]
+        if should_items:
+            bool_query["should"] = [item.json for item in should_items]
+        if must_not_items:
+            bool_query["must_not"] = [item.json for item in must_not_items]
+
+        query = dict(bool_query, **self.options)
+        return {'bool': query}
+
+
 class ElasticSearchItemFactory:
     """
     Factory to preconfigure EItems and EOperation

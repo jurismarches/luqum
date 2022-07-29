@@ -6,7 +6,7 @@ from luqum.tree import OrOperation, AndOperation, UnknownOperation
 from luqum.tree import Word  # noqa: F401
 from .tree import (
     EMust, EMustNot, EShould, EWord, EPhrase, ERange,
-    ENested)
+    ENested, EBoolOperation)
 from ..check import CheckNestedFields
 from ..naming import get_name
 from ..utils import (
@@ -341,6 +341,9 @@ class ElasticsearchQueryBuilder(TreeVisitor):
 
     def visit_plus(self, *args, **kwargs):
         yield from self._must_operation(*args, **kwargs)
+
+    def visit_bool_operation(self, *args, **kwargs):
+        yield from self._binary_operation(EBoolOperation, *args, **kwargs)
 
     def visit_unknown_operation(self, *args, **kwargs):
         if self.default_operator == self.SHOULD:
