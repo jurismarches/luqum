@@ -81,13 +81,13 @@ class TreeVisitorTestCase(TestCase):
 
         tree = OrOperation(Word('a'), Word('b'))
         result = visitor.visit(tree)
-        self.assertEquals(list(result), ['a OR b', 'a', 'b'])
+        self.assertEqual(list(result), ['a OR b', 'a', 'b'])
 
         # AndOperation has no specific method,
         # but inherists BaseOperation, hence uses visit_base_operation
         tree = AndOperation(Word('a'), Word('b'))
         result = visitor.visit(tree)
-        self.assertEquals(list(result), ['a BASE_OP b', 'a', 'b'])
+        self.assertEqual(list(result), ['a BASE_OP b', 'a', 'b'])
 
 
 class TreeTransformerTestCase(TestCase):
