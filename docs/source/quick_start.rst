@@ -307,12 +307,19 @@ it is replaced by a special :py:class:`UnknownOperation` operation.
     UnknownOperation(Word('foo'), Word('bar'))
 
 To help you deal with this we provide a transformer,
-that will smartly replace ``UnkownOperation`` by ``AndOperation`` or ``OrOperation``.
+that will smartly replace ``UnkownOperation`` by
+``AndOperation``, ``OrOperation`` or ``BoolOperation``.
 
     >>> from luqum.utils import UnknownOperationResolver
     >>> resolver = UnknownOperationResolver()
     >>> str(resolver(tree))
     'foo AND bar'
+
+``BoolOperation`` correspond to `Lucene boolean query`__.
+
+__ https://lucidworks.com/post/solr-boolean-operators/
+
+
 
 .. _tutorial-pretty-printing:
 
