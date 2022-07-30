@@ -238,24 +238,27 @@ This tree is then capable of giving it's JSON like representation
 Modifying the generated queries
 ...............................
 
+.. py:currentmodule:: luqum.elasticsearch
+
+
 The JSON representation is built using elements (``EWord``,
 ``EPhrase``, ``EBoolOperation``, ...).
 
 An easy way to modify the generated queries DSL, is to inherit
-:py:class:`ElasticsearchQueryBuilder` and modify the behavior of
-these ``E-elements``. You can do that by replacing each element
-using the attributes defined as follow::
+:py:class:`visitor.ElasticsearchQueryBuilder` and modify the behavior of
+these ``E-elements``. You can do that by replacing one of the element
+handling operation and ar defined as followi in :py:mod:`visitor`::
 
-    >>> class ElasticsearchQueryBuilder(TreeVisitor):
-    ... [...]
-    ... E_MUST = EMust
-    ... E_MUST_NOT = EMustNot
-    ... E_SHOULD = EShould
-    ... E_WORD = EWord
-    ... E_PHRASE = EPhrase
-    ... E_RANGE = ERange
-    ... E_NESTED = ENested
-    ... E_BOOL_OPERATION = EBoolOperation
+    class ElasticsearchQueryBuilder(TreeVisitor):
+        (...)
+        E_MUST = EMust
+        E_MUST_NOT = EMustNot
+        E_SHOULD = EShould
+        E_WORD = EWord
+        E_PHRASE = EPhrase
+        E_RANGE = ERange
+        E_NESTED = ENested
+        E_BOOL_OPERATION = EBoolOperation
 
 For instance, if you want your query to use ``match`` instead of
 ``term`` for words::
@@ -283,7 +286,7 @@ For instance, if you want your query to use ``match`` instead of
     ...     {'bool': {'must': [
     ...         {'exists': {'field': 'message'}},
     ...         {'match': {'author': 'John'}},
-    ...         {'match': {'link_type': 'action'}}]}}
+    ...         {'match': {'link_type': 'action'}}]}})
 
 
 .. _tutorial-unknown-operation:
@@ -307,15 +310,15 @@ it is replaced by a special :py:class:`UnknownOperation` operation.
     UnknownOperation(Word('foo'), Word('bar'))
 
 To help you deal with this we provide a transformer,
-that will smartly replace ``UnkownOperation`` by
-``AndOperation``, ``OrOperation`` or ``BoolOperation``.
+that will smartly replace :py:class:`UnkownOperation` by
+:py:class:`AndOperation`, :py:class:`OrOperation` or :py:class:`BoolOperation`.
 
     >>> from luqum.utils import UnknownOperationResolver
     >>> resolver = UnknownOperationResolver()
     >>> str(resolver(tree))
     'foo AND bar'
 
-``BoolOperation`` correspond to `Lucene boolean query`__.
+:py:class:`BoolOperation` correspond to `Lucene boolean query`__.
 
 __ https://lucidworks.com/post/solr-boolean-operators/
 
