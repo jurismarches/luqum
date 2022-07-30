@@ -47,6 +47,15 @@ class ElasticsearchQueryBuilder(TreeVisitor):
     CONTEXT_ANALYZE_MARKER = "analyzed"
     CONTEXT_FIELD_PREFIX = "field_prefix"
 
+    E_MUST = EMust
+    E_MUST_NOT = EMustNot
+    E_SHOULD = EShould
+    E_WORD = EWord
+    E_PHRASE = EPhrase
+    E_RANGE = ERange
+    E_NESTED = ENested
+    E_BOOL_OPERATION = EBoolOperation
+
     def __init__(self, default_operator=SHOULD, default_field='text',
                  not_analyzed_fields=None, nested_fields=None, object_fields=None, sub_fields=None,
                  field_options=None, match_word_as_phrase=False):
@@ -297,10 +306,10 @@ class ElasticsearchQueryBuilder(TreeVisitor):
         yield self.es_item_factory.build(cls, items)
 
     def _must_operation(self, *args, **kwargs):
-        yield from self._binary_operation(EMust, *args, **kwargs)
+        yield from self._binary_operation(self.E_MUST, *args, **kwargs)
 
     def _should_operation(self, *args, **kwargs):
-        yield from self._binary_operation(EShould, *args, **kwargs)
+        yield from self._binary_operation(self.E_SHOULD, *args, **kwargs)
 
     def visit_and_operation(self, *args, **kwargs):
         yield from self._must_operation(*args, **kwargs)
@@ -318,10 +327,11 @@ class ElasticsearchQueryBuilder(TreeVisitor):
         self._propagate_name(node, child_context)
         enode, = self.visit_iter(node.expr, child_context)
         nested_path = self._split_nested(node, context)
-        skip_nesting = isinstance(enode, ENested)  # no need to nest a nested
+        skip_nesting = isinstance(enode, self.E_NESTED)  # no need to nest a nested
         if nested_path is not None and not skip_nesting:
             enode = self.es_item_factory.build(
-                ENested, nested_path=nested_path, items=enode, _name=self.get_name(node, context),
+                self.E_NESTED, nested_path=nested_path, items=enode,
+                _name=self.get_name(node, context),
             )
         yield enode
 
@@ -334,7 +344,7 @@ class ElasticsearchQueryBuilder(TreeVisitor):
             for child in children
             for item in self.visit_iter(child, child_context)
         ]
-        yield self.es_item_factory.build(EMustNot, items)
+        yield self.es_item_factory.build(self.E_MUST_NOT, items)
 
     def visit_prohibit(self, *args, **kwargs):
         yield from self.visit_not(*args, **kwargs)
@@ -343,7 +353,7 @@ class ElasticsearchQueryBuilder(TreeVisitor):
         yield from self._must_operation(*args, **kwargs)
 
     def visit_bool_operation(self, *args, **kwargs):
-        yield from self._binary_operation(EBoolOperation, *args, **kwargs)
+        yield from self._binary_operation(self.E_BOOL_OPERATION, *args, **kwargs)
 
     def visit_unknown_operation(self, *args, **kwargs):
         if self.default_operator == self.SHOULD:
@@ -385,7 +395,7 @@ class ElasticsearchQueryBuilder(TreeVisitor):
         else:
             method = "term"
         yield self.es_item_factory.build(
-            EWord,
+            self.E_WORD,
             q=node.value,
             method=method,
             fields=self._fields(context),
@@ -395,7 +405,7 @@ class ElasticsearchQueryBuilder(TreeVisitor):
     def visit_phrase(self, node, context):
         if self._is_analyzed(context):
             yield self.es_item_factory.build(
-                EPhrase,
+                self.E_PHRASE,
                 phrase=node.value,
                 fields=self._fields(context),
                 _name=self.get_name(node, context),
@@ -403,7 +413,7 @@ class ElasticsearchQueryBuilder(TreeVisitor):
         else:
             # in the case of a term, parenthesis are just there to escape spaces or colons
             yield self.es_item_factory.build(
-                EWord,
+                self.E_WORD,
                 q=node.value[1:-1],  # remove quotes
                 fields=self._fields(context),
                 _name=self.get_name(node, context),
@@ -415,7 +425,7 @@ class ElasticsearchQueryBuilder(TreeVisitor):
             'lte' if node.include_high else 'lt': node.high.value,
         }
         yield self.es_item_factory.build(
-            ERange,
+            self.E_RANGE,
             _name=self.get_name(node, context),
             fields=self._fields(context),
             **kwargs
