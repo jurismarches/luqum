@@ -153,6 +153,13 @@ class TestParser(TestCase):
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
 
+    def test_comma_can_be_a_term(self):
+        # non regression for issue #79
+        tree = UnknownOperation(Word("hi", tail=" "), Word(",", tail=" "), Word("bye"))
+        parsed = parser.parse("hi , bye")
+        self.assertEqual(str(parsed), str(tree))
+        self.assertEqual(parsed, tree)
+
     def test_minus(self):
         tree = (
             AndOperation(
