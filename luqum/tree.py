@@ -236,7 +236,7 @@ class Term(Item):
 
     :param str value: the value
     """
-    WILDCARDS_PATTERN = re.compile(r"((?<=[^\\])[?*]|^[?*])")  # non escaped * and ?
+    WILDCARDS_PATTERN = re.compile(r"((?<=[^\\])[?*]|\\\\[?*]|^[?*])")  # non escaped * and ?
     # see
     # https://lucene.apache.org/core/3_6_0/queryparsersyntax.html#Escaping%20Special%20Characters
     WORD_ESCAPED_CHARS = re.compile(r'\\([+\-&|!(){}[\]^"~*?:\\])')

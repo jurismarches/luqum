@@ -227,6 +227,18 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
         expected = {"match_phrase": {"foo": {"query": 'spam*'}}}
         self.assertDictEqual(result, expected)
 
+    def test_should_keep_phrase_with_escaped_wildcard(self):
+        tree = SearchField("foo", Phrase(r'"spam\*"'))
+        result = self.transformer(tree)
+        expected = {"match_phrase": {"foo": {"query": r'spam\*'}}}
+        self.assertDictEqual(result, expected)
+
+    def test_should_keep_phrase_with_not_really_escaped_wildcard(self):
+        tree = SearchField("foo", Phrase(r'"spam\\*"'))  # \\ it's the \ which is escaped
+        result = self.transformer(tree)
+        expected = {"match_phrase": {"foo": {"query": r'spam\\*'}}}
+        self.assertDictEqual(result, expected)
+
     def test_should_transform_phrase(self):
         tree = SearchField("foo", Phrase('"spam eggs"'))
         result = self.transformer(tree)
@@ -359,6 +371,12 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
         tree = Word("spam*")
         result = self.transformer(tree)
         expected = {"wildcard": {"text": {"value": 'spam*'}}}
+        self.assertDictEqual(result, expected)
+
+    def test_should_not_transform_escaped_wildcard(self):
+        tree = Word(r"spam\*")
+        result = self.transformer(tree)
+        expected = {"term": {"text": {"value": r'spam\*'}}}
         self.assertDictEqual(result, expected)
 
     def test_should_transform_boost_in_search_field(self):

@@ -1,6 +1,8 @@
 import abc
 import re
 
+from ..tree import Term
+
 
 class JsonSerializableMixin:
     """
@@ -82,7 +84,9 @@ class AbstractEItem(JsonSerializableMixin):
         self._fuzzy = fuzzy
 
     def _value_has_wildcard_char(self):
-        return any(char in getattr(self, 'q', '') for char in ['*', '?'])
+        # reuse the work done in Term
+        term = Term(getattr(self, 'q', ''))
+        return term.has_wildcard()
 
     def _is_analyzed(self):
         return self.field not in self._no_analyze
