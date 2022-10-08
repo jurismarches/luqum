@@ -12,6 +12,12 @@ luqum.parser
 .. automodule:: luqum.parser
    :members: parser
 
+luqum.threading
+---------------
+
+.. automodule:: luqum.thread
+   :members: parse
+
 luqum.tree
 ---------------
 
