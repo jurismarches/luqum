@@ -371,14 +371,16 @@ class Boost(Item):
 
     def __init__(self, expr, force, **kwargs):
         self.expr = expr
-        self.force = Decimal(force).normalize()
+        self.force = Decimal(force).normalize() if force is not None else 1
+        self.implicit_force = force is None
         super().__init__(**kwargs)
 
     def __repr__(self):
         return "%s(%s, %s)" % (self.__class__.__name__, self.expr.__repr__(), self.force)
 
     def __str__(self, head_tail=False):
-        value = "%s^%s" % (self.expr.__str__(head_tail=True), self.force)
+        force = "" if self.implicit_force else self.force
+        value = "%s^%s" % (self.expr.__str__(head_tail=True), force)
         return self._head_tail(value, head_tail)
 
 

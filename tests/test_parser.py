@@ -143,6 +143,17 @@ class TestParser(TestCase):
         self.assertEqual(str(parsed), query)
         self.assertEqual(parsed.unescaped_value, "1000:1000::1/24")
 
+    def test_boost_default_to_one(self):
+        query = "boost^ me^1"
+        parsed = parser.parse(query)
+        tree = UnknownOperation(Boost(Word("boost"), None), Boost(Word("me"), 1))
+        self.assertEqual(parsed, tree)
+        self.assertEqual(parsed.operands[0].force, 1)
+        self.assertEqual(parsed.operands[0].implicit_force, True)
+        self.assertEqual(parsed.operands[1].force, 1)
+        self.assertEqual(parsed.operands[1].implicit_force, False)
+        self.assertEqual(str(parsed), query)
+
     def test_field_with_number(self):
         # non regression for issue #10
         tree = (
