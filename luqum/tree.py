@@ -422,7 +422,7 @@ class BoolOperation(BaseOperation):
     builder can utilize this operator directly instead of nested AND/OR.
     This also makes it possible to correctly support Lucene queries such as:
     "apples +bananas -vegetables".
- 
+
     .. seealso::
         the :py:class:`.utils.UnknownOperationResolver`
     """

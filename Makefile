@@ -1,9 +1,11 @@
+ES_VERSION ?= 7.17.5
+
 tests:
 	pytest
 
-# integration test with ES using docker
+# integration test with ES using docker
 es_tests:
-	docker run --name luqum_test_es --rm -d -ti -p 127.0.0.1:9200:9200  -e "discovery.type=single-node" -e  "ES_JAVA_OPTS=-Xms512m -Xmx512m" elasticsearch:7.17.5
+	docker run --name luqum_test_es --rm -d -ti -p 127.0.0.1:9200:9200  -e "discovery.type=single-node" -e  "ES_JAVA_OPTS=-Xms512m -Xmx512m" elasticsearch:${ES_VERSION}
 # wait ES to be ready
 	@echo "waiting for ES to be ready"
 	@while ! curl -XGET "localhost:9200" >/dev/null 2>&1;do sleep 1; echo -n "."; done
