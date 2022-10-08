@@ -22,6 +22,8 @@ class TestTree(TestCase):
         self.assertTrue(Term(r"?a\*").has_wildcard())
         self.assertTrue(Term("*").has_wildcard())
         self.assertTrue(Term("?").has_wildcard())
+        # the \ itself can be escaped !
+        self.assertTrue(Term(r"\\*\\?").has_wildcard())
 
     def test_term_wildcard_false(self):
         self.assertFalse(Term("bar").has_wildcard())
