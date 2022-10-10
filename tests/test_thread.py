@@ -26,6 +26,8 @@ def test_thread_parse():
     threads = [threading.Thread(target=run, args=(result_queue,)) for i in range(100)]
     for thread in threads:
         thread.start()
+    for thread in threads:
+        thread.join()
     assert result_queue.qsize() == 100
     for i in range(100):
         assert result_queue.get() == expected_tree
