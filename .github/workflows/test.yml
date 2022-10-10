@@ -1,0 +1,52 @@
+name: code quality checks and unit tests
+
+on:
+  pull_request:
+
+
+jobs:
+  # quality
+  quality_checks:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version:
+        - "3.8"
+        - "3.9"
+        - "3.10"
+        es-version:
+        - "7.17.6"
+        es-dsl-version:
+        - "7.4.0"
+        include:
+          # only test older ES version with python 3.10
+          - python-version: "3.10"
+            es-version: "6.8.23"
+            es-dsl-version: "6.4.0"
+          # we need to include this however to be sure it runs
+          - python-version: "3.10"
+            es-version: "7.17.6"
+            es-dsl-version: "7.4.0"
+
+    env:
+      ES_VERSION: "${{ matrix.es-version }}"
+    steps:
+      #----------------------------------------------
+      #       check-out repo and set-up python
+      #----------------------------------------------
+      - name: Check out repository
+        uses: actions/checkout@v3
+      - name: Setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "${{ matrix.python-version }}"
+      - name: install project
+        run: |
+          pip install -r requirements-dev.txt
+          pip install .
+          pip install coveralls
+          pip install  elasticsearch-dsl==${{ matrix.es-dsl-version }}
+      - name: run tests
+        run: |
+          make quality && \
+          make es_tests

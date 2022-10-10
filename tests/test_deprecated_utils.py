@@ -56,11 +56,11 @@ class TreeVisitorTestCase(TestCase):
 
         tree = OrOperation(Word('a'), Word('b'))
         result = visitor.visit(tree)
-        self.assertEquals(list(result), ['a OR b', 'a', 'b'])
+        self.assertEqual(list(result), ['a OR b', 'a', 'b'])
 
         tree = AndOperation(Word('a'), Word('b'))
         result = visitor.visit(tree)
-        self.assertEquals(list(result), ['a BASE_OP b', 'a', 'b'])
+        self.assertEqual(list(result), ['a BASE_OP b', 'a', 'b'])
 
 
 class TreeTransformerTestCase(TestCase):
@@ -216,11 +216,11 @@ class TreeVisitorV2TestCase(TestCase):
 
         tree = OrOperation(Word('a'), Word('b'))
         result = visitor.visit(tree)
-        self.assertEquals(result, 'a OR b')
+        self.assertEqual(result, 'a OR b')
 
         tree = OrOperation(AndOperation(Word('a'), Word('b')), Word('c'))
         result = visitor.visit(tree)
-        self.assertEquals(result, 'a BASE_OP b OR c')
+        self.assertEqual(result, 'a BASE_OP b OR c')
 
     def test_generic_visit_fails_by_default(self):
         visitor = self.MROVisitor()

@@ -3,46 +3,34 @@ language: python
 matrix:
   include:
     - env: ES_APT_URL=https://packages.elastic.co/elasticsearch/2.x/debian ES_DSL_VERS=2.2.0 ES_VERS=2.2.1
-    - env: ES_APT_URL=https://packages.elastic.co/elasticsearch/2.x/debian ES_DSL_VERS=2.2.0 ES_VERS=2.2.1
-      python: 3.6
-    - env: ES_APT_URL=https://artifacts.elastic.co/packages/5.x/apt ES_DSL_VERS=5.3.0 ES_VERS=5.6.0
-      python: 3.6
-    - env: ES_APT_URL=https://artifacts.elastic.co/packages/6.x/apt ES_DSL_VERS=6.3.1 ES_VERS=6.4.3
-      python: 3.6
-    - env: ES_APT_URL=https://artifacts.elastic.co/packages/7.x/apt ES_DSL_VERS=7.2.1 ES_VERS=7.8.0
-      python: 3.6
-    - env: ES_APT_URL=https://packages.elastic.co/elasticsearch/2.x/debian ES_DSL_VERS=2.2.0 ES_VERS=2.2.1
       python: 3.7
       sudo: true
-      dist: xenial
-    - env: ES_APT_URL=https://artifacts.elastic.co/packages/5.x/apt ES_DSL_VERS=5.3.0 ES_VERS=5.6.0
-      python: 3.7
-      sudo: true
-      dist: xenial
-    - env: ES_APT_URL=https://artifacts.elastic.co/packages/6.x/apt ES_DSL_VERS=6.3.1 ES_VERS=6.4.3
-      python: 3.7
-      dist: xenial
-      sudo: true
+      dist: bionic
     - env: ES_APT_URL=https://artifacts.elastic.co/packages/7.x/apt ES_DSL_VERS=7.2.1 ES_VERS=7.8.0
       python: 3.7
-      dist: xenial
+      dist: bionic
       sudo: true
     - env: ES_APT_URL=https://packages.elastic.co/elasticsearch/2.x/debian ES_DSL_VERS=2.2.0 ES_VERS=2.2.1
       python: 3.8
       sudo: true
-      dist: xenial
-    - env: ES_APT_URL=https://artifacts.elastic.co/packages/5.x/apt ES_DSL_VERS=5.3.0 ES_VERS=5.6.0
-      python: 3.8
-      sudo: true
-      dist: xenial
-    - env: ES_APT_URL=https://artifacts.elastic.co/packages/6.x/apt ES_DSL_VERS=6.3.1 ES_VERS=6.4.3
-      python: 3.8
-      dist: xenial
-      sudo: true
+      dist: bionic
     - env: ES_APT_URL=https://artifacts.elastic.co/packages/7.x/apt ES_DSL_VERS=7.2.1 ES_VERS=7.8.0
       python: 3.8
-      dist: xenial
+      dist: bionic
       sudo: true
+    - env: ES_APT_URL=https://artifacts.elastic.co/packages/7.x/apt ES_DSL_VERS=7.2.1 ES_VERS=7.8.0
+      python: 3.9
+      dist: bionic
+      sudo: true
+    - env: ES_APT_URL=https://artifacts.elastic.co/packages/6.x/apt ES_DSL_VERS=6.3.1 ES_VERS=6.4.3
+      python: 3.10
+      dist: bionic
+      sudo: true
+    - env: ES_APT_URL=https://artifacts.elastic.co/packages/7.x/apt ES_DSL_VERS=7.2.1 ES_VERS=7.8.0
+      python: 3.10
+      dist: bionic
+      sudo: true
+
 
 before_install:
   - sudo rm /etc/apt/sources.list; sudo touch /etc/apt/sources.list

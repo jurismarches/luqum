@@ -1,0 +1,4 @@
+[tool.pytest.ini_options]
+addopts = '--doctest-modules --doctest-glob="test_*.rst" --cov=luqum --cov-branch --cov-report html --no-cov-on-fail'
+python_files = 'test_*.py tests.py'
+
