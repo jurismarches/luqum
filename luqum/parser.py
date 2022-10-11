@@ -63,7 +63,7 @@ precedence = (
 # term
 
 # the case of : which is used in date is problematic because it is also a delimiter
-# lets catch those expressions appart
+# lets catch those expressions apart
 # Note : we must use positive look behind, because regexp engine is eager,
 # and it's only arrived at ':' that it will try this rule
 TIME_RE = r'''
@@ -79,7 +79,7 @@ TIME_RE = r'''
 TERM_RE = r'''
 (?P<term>  # group term
   (?:
-   [^\s:^~(){{}}[\]/,"'+\-\\] # first char is not a space neither some char which have meanings
+   [^\s:^~(){{}}[\]/"'+\-\\] # first char is not a space neither some char which have meanings
                               # note: escape of "-" and "]"
                               #       and doubling of "{{}}" (because we use format)
    |                          # but
