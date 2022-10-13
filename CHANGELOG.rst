@@ -7,6 +7,54 @@ and this project tries to adhere to `Semantic Versioning`_.
 .. _`Keep a Changelog`: http://keepachangelog.com/en/1.0.0/
 .. _`Semantic Versioning`: http://semver.org/spec/v2.0.0.html
 
+0.12.0 - 2022-10-13
+===================
+
+Changed
+-------
+
+- Boost can be implicit ; by default, the boost factor is 1
+
+Added
+-----
+
+- Add support for Lucene and Elasticsearch Boolean operations (#71, thanks to @linefeedse):
+
+  * Introduce the BooleanOperation
+  * add its resolution in ElasticSearch transformer
+  * add it as a possible resolver for the unknown operation (no explicit operator in query)
+
+- Set E element as ElasticsearchQueryBuilder's attributes (#75, thanks to @qcoumes):
+
+  This allows to override elements such as EMust, EWord, ...,
+  without the need of overriding ElasticsearchQueryBuilder's methods.
+
+- Explicit support for Python 3.9 and Python 3.10 (#76)
+- Add a thread safe parse function (#82)
+
+Fixed
+-----
+
+- Cast TokenValue.__str__ return value to string (#74, thanks to @delkopiso)
+- Isolated comma should be parsed as a Word (#80)
+- Better handling of escaped wildcards
+
+Docs
+----
+
+- Add boolean operation to doc
+- Fix quick start documentation
+- Updated readthedocs instructions
+
+CI
+--
+
+- Run tests with github actions
+- Update all libraries for dev:
+
+  * switch from nose to pytest as nose is not python3.10 compatible
+  * remove old travis tests
+
 0.11.0 - 2021-01-06
 ===================
 
@@ -38,7 +86,7 @@ Added
 -----
 
 - support for parsing Regular expressions like `/foo/` (no transformation to Elasticsearch DSL yet)
-- basic support for head and tail of expressions (the separators) 
+- basic support for head and tail of expressions (the separators)
   and for their position (pos and size) in original text
 - added `auto_head_tail` util
   (use it if you build your tree programatically and want a printable representation)
