@@ -6,4 +6,4 @@ flake8==4.0.1
 pytest==7.1.2
 pytest-cov==3.0.0
 Sphinx==5.1.1
-wheel==0.37.1
+wheel==0.38.1
