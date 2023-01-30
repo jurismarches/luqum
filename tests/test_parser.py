@@ -322,6 +322,52 @@ class TestParser(TestCase):
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
 
+    def test_precedence(self):
+        """We test that unary + and - associate with the closest (unary) expression, and do not
+        become associated with the entire ``2 AND 3`` expression
+
+        Also, Boost must be closer than Plus: ``+1 AND +2^1`` must be ``+1 AND +(2^1)``
+        """
+        tree = (
+            OrOperation(
+                Word("1", tail=" "),
+                AndOperation(
+                    Plus(Boost(Fuzzy(Word("2"), 1), 1), tail=" "),
+                    Word("3", head=" "),
+                    head=" ",
+                ),
+            )
+        )
+        parsed = parser.parse('1 OR +2~1^1 AND 3')
+
+        self.assertEqual(str(parsed), str(tree))
+        self.assertEqual(parsed, tree)
+
+    def test_precedence_unknown(self):
+        """Tests whether the implied unknown operation has the lowest associativity.
+        This is independent of whether UnknownOperation resolves to AND or OR, as per
+        evidence from Apache's Lucene parsing.
+
+        Default operator: AND, parsed as: +1 +(+2 +3) +4
+        Default operator: OR, parsed as:  1 (+2 +3) 4
+
+        """
+        tree = (
+            UnknownOperation(
+                Word("1", tail=" "),
+                AndOperation(
+                    Word("2", tail=" "),
+                    Word("3", head=" "),
+                    tail=" ",
+                ),
+                Word("4"),
+            )
+        )
+        parsed = parser.parse('1 2 AND 3 4')
+
+        self.assertEqual(str(parsed), str(tree))
+        self.assertEqual(parsed, tree)
+
     def test_reserved_ok(self):
         """Test reserved word do not hurt in certain positions
         """
