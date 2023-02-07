@@ -47,17 +47,17 @@ tokens = (
 
 # precedence rules
 precedence = (
-    ('left', 'OR_OP',),
+    # since IMPLICIT_OP has no lookahead token, everything not defined here has the lowest
+    # precedence (e.g. TERM, PHRASE and REGEX). see https://stackoverflow.com/a/40754838
+    # note that we do not need to include all tokens here, as there is no confusion about
+    # LBRACKET or something; APPROX is also not necessary, as this token can only occur
+    # after a TERM or PHRASE, and there is no confusion about operator precedence
+    ('left', 'IMPLICIT_OP'),
+    ('left', 'OR_OP'),
     ('left', 'AND_OP'),
-    ('nonassoc', 'MINUS',),
-    ('nonassoc', 'PLUS',),
-    ('nonassoc', 'APPROX'),
+    ('nonassoc', 'PLUS', 'MINUS'),
     ('nonassoc', 'BOOST'),
-    ('nonassoc', 'LPAREN', 'RPAREN'),
-    ('nonassoc', 'LBRACKET', 'TO', 'RBRACKET'),
-    ('nonassoc', 'REGEX'),
-    ('nonassoc', 'PHRASE'),
-    ('nonassoc', 'TERM'),
+    ('nonassoc', 'TO'),
 )
 
 # term
@@ -249,7 +249,7 @@ def p_expression_and(p):
 
 
 def p_expression_implicit(p):
-    '''expression : expression expression'''
+    '''expression : expression expression %prec IMPLICIT_OP'''
     p[0] = create_operation(UnknownOperation, p[1], p[2], op_tail="")
     head_tail.binary_operation(p, op_tail="")
 
@@ -312,7 +312,7 @@ def p_proximity(p):
 
 
 def p_boosting(p):
-    '''expression : expression BOOST'''
+    '''unary_expression : unary_expression BOOST'''
     p[0] = Boost(p[1], p[2].value)
     head_tail.post_unary(p)
 
