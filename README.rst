@@ -20,7 +20,7 @@ and control the precise meaning of each search terms.
 
 Luqum is dual licensed under Apache2.0 and LGPLv3.
 
-Compatible with Python 3.4+
+Compatible with Python 3.6+
 
 Installation
 ============
