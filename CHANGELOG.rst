@@ -7,6 +7,15 @@ and this project tries to adhere to `Semantic Versioning`_.
 .. _`Keep a Changelog`: http://keepachangelog.com/en/1.0.0/
 .. _`Semantic Versioning`: http://semver.org/spec/v2.0.0.html
 
+0.12.1 - 2023-02-08
+===================
+
+Fixed
+-----
+
+- Precedence for unknown operation and boost (#89, thanks to @JSCU-CNI)
+
+
 0.12.0 - 2022-10-13
 ===================
 
