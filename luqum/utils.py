@@ -8,7 +8,7 @@ Include base classes to implement a visitor pattern.
 from . import visitor
 from .deprecated_utils import (  # noqa: F401
     LuceneTreeTransformer, LuceneTreeVisitor, LuceneTreeVisitorV2)
-from .tree import AndOperation, BaseOperation, OrOperation, BoolOperation
+from .tree import AndOperation, BaseOperation, OrOperation, BoolOperation, Range, Word
 
 
 class UnknownOperationResolver(visitor.TreeTransformer):
@@ -75,6 +75,128 @@ class UnknownOperationResolver(visitor.TreeTransformer):
         for child in new_node.children[1:]:
             child.head = self.add_head + child.head
         yield new_node
+
+    def __call__(self, tree):
+        return self.visit(tree)
+
+
+class OpenRangeTransformer(visitor.TreeTransformer):
+    """Transforms open ranges to normal Range objects, i.e.
+
+    ::
+
+        >=foo            ->   [foo TO *]
+        <bar             ->   [* TO bar}
+
+    When *merge_ranges* is set (the default), this also merges open ranges in AND clauses::
+
+        >foo AND <=bar              ->   {foo TO bar]
+        [foo TO *] AND [* TO bar]   ->   [foo TO bar]
+
+    The merging of open ranges is performed by collecting all open ranges, and merging any
+    open range into any previously collected open range with an open bound. In other words, any
+    open bounds are always merged into the first suitable. Additionally, matching is always done
+    from left-to-right, so that this holds::
+
+        [a TO *] AND [b TO *] AND [* TO y] AND [* TO z]   ->   [a TO y] AND [b TO z]
+
+    Open ranges in OR and unknown clauses are not adjusted. Use :cls:`UnknownOperationResolver`
+    to make sure that unknown operations are resolved first.
+
+    Ranges with none of the bounds set are left unadjusted.
+    """
+
+    WILDCARD_WORD = Word("*")
+
+    def __init__(self, merge_ranges=True, add_head=" "):
+        self.merge_ranges = merge_ranges
+        self.add_head = add_head
+        super().__init__(track_parents=True)
+
+    def visit_and_operation(self, node, context):
+        if not self.merge_ranges:
+            yield from self.generic_visit(node, context)
+            return
+
+        new_node = AndOperation(pos=node.pos, size=node.size, head=node.head, tail=node.tail)
+        new_node.children = ()
+
+        # We collect all ranges from a AND's children with the same bound side, and pop the
+        # first one from the list when we encounter a different bound side. This allows us
+        # to join [x TO *] AND [y TO *] to [* TO a] AND [* TO b] as [x TO a] AND [y TO b]
+        # We adjust the first enounter of the range, and do not add the joined one.
+
+        # Note: possible_ranges_bound_side has no meaning if possible_ranges is empty
+        possible_ranges, possible_ranges_bound_side = [], None
+        for child in self.clone_children(node, new_node, context):
+            # Determines the bound side of the range (high or low), meaning that the other side is
+            # a wildcard. Assigns None if the provided node is not a Range, bound on both sides,
+            # or bound on neither side.
+            child_bound_side = None
+            if isinstance(child, Range):
+                if child.low == self.WILDCARD_WORD and child.high != self.WILDCARD_WORD:
+                    child_bound_side = 'high'
+                elif child.low != self.WILDCARD_WORD and child.high == self.WILDCARD_WORD:
+                    child_bound_side = 'low'
+
+            if child_bound_side is not None:
+                # If we have encountered a Range with only one bound side, we may be able to join it
+                if not possible_ranges or possible_ranges_bound_side == child_bound_side:
+                    # We have not yet encountered any unbound ranges, or the encountered unbound
+                    # rangesare all the same direction, so store a pointer to this child and we may
+                    # be able to join a future range. The flow will continue.
+                    possible_ranges.append(child)
+                    # This assignment only has meaning if possible_ranges was empty
+                    possible_ranges_bound_side = child_bound_side
+                else:
+                    # There is at least one possible range to join to. We adjust the first range
+                    # encountered of the different side
+                    joining_child = possible_ranges.pop(0)
+                    if child_bound_side == 'low':
+                        joining_child.low = child.low
+                        joining_child.include_low = child.include_low
+                    else:
+                        joining_child.high = child.high
+                        joining_child.include_high = child.include_high
+                    # we should not need to adjust the head/tail because those would be included
+                    # from the child range we are joining from
+
+                    # do not add the child we have just merged from
+                    continue
+
+            new_node.children += (child, )
+
+        yield new_node
+
+    def _visit_from_to(self, node, context, bound_side):
+        # We omit the child directly for now, as we cannot assign it yet. We add the
+        # wildcard element though, and the child is None until we have cloned it.
+        #
+        # The following two lines will resolve to either:
+        # [None, self.WILDCARD_WORD.clone_item(), node.include, True]  (if bound_side=low)
+        # [self.WILDCARD_WORD.clone_item(), None, True, node.include]  (if bound_side=high)
+        args = [None, None, node.include, node.include]
+        args[bound_side == 'low'::2] = [self.WILDCARD_WORD.clone_item(), True]
+
+        new_node = Range(
+            *args,
+            pos=node.pos, size=node.size, head=node.head, tail=node.tail,
+        )
+
+        # this forces that we clone the children like we should, but we only expect
+        # one return value, so we can simply assign it directly
+        child = tuple(self.clone_children(node, new_node, context))[0]
+        setattr(new_node, bound_side, child)
+
+        new_node.low.tail += self.add_head
+        new_node.high.head += self.add_head
+        yield new_node
+
+    def visit_from(self, node, context):
+        yield from self._visit_from_to(node, context, 'low')
+
+    def visit_to(self, node, context):
+        yield from self._visit_from_to(node, context, 'high')
 
     def __call__(self, tree):
         return self.visit(tree)

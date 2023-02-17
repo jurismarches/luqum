@@ -15,8 +15,8 @@ from .head_tail import TokenValue, head_tail, token_headtail
 from .tree import (
     AndOperation, Boost, Fuzzy, Group, Not,
     OrOperation, Phrase, Plus, Prohibit, Proximity,
-    Range, Regex, SearchField, UnknownOperation, Word,
-    create_operation, group_to_fieldgroup,
+    Range, To, From, Regex, SearchField, UnknownOperation,
+    Word, create_operation, group_to_fieldgroup,
 )
 
 
@@ -40,7 +40,9 @@ tokens = (
      'LPAREN',
      'RPAREN',
      'LBRACKET',
-     'RBRACKET'] +
+     'RBRACKET',
+     'LESSTHAN',
+     'GREATERTHAN'] +
     # we sort to have a deterministic order, so that gammar signature does not changes
     sorted(list(reserved.values())))
 
@@ -79,7 +81,7 @@ TIME_RE = r'''
 TERM_RE = r'''
 (?P<term>  # group term
   (?:
-   [^\s:^~(){{}}[\]/"'+\-\\] # first char is not a space neither some char which have meanings
+   [^\s:^~(){{}}[\]/"'+\-\\<>] # first char is not a space neither some char which have meanings
                               # note: escape of "-" and "]"
                               #       and doubling of "{{}}" (because we use format)
    |                          # but
@@ -191,6 +193,16 @@ def t_RBRACKET(t):
     return simple_token(t)
 
 
+def t_GREATERTHAN(t):
+    r'>=?'
+    return simple_token(t)
+
+
+def t_LESSTHAN(t):
+    r'<=?'
+    return simple_token(t)
+
+
 @lex.TOKEN(PHRASE_RE)
 def t_PHRASE(t):
     orig_value = t.value
@@ -289,6 +301,20 @@ def p_range(p):
     include_high = p[5].value == "]"
     p[0] = Range(p[2], p[4], include_low, include_high)
     head_tail.range(p)
+
+
+def p_lessthan(p):
+    '''unary_expression : LESSTHAN phrase_or_term'''
+    include_bound = '=' in p[1].value
+    p[0] = To(p[2], include_bound)
+    head_tail.unary(p)
+
+
+def p_greaterthan(p):
+    '''unary_expression : GREATERTHAN phrase_or_term'''
+    include_bound = '=' in p[1].value
+    p[0] = From(p[2], include_bound)
+    head_tail.unary(p)
 
 
 def p_field_search(p):

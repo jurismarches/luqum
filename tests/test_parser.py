@@ -5,7 +5,7 @@ from luqum.exceptions import IllegalCharacterError, ParseSyntaxError
 from luqum.parser import lexer, parser
 from luqum.tree import (
     SearchField, FieldGroup, Group,
-    Word, Phrase, Regex, Proximity, Fuzzy, Boost, Range,
+    Word, Phrase, Regex, Proximity, Fuzzy, Boost, Range, From, To,
     Not, AndOperation, OrOperation, Plus, Prohibit, UnknownOperation)
 
 
@@ -106,7 +106,7 @@ class TestParser(TestCase):
         self.assertEqual(parsed.unescaped_value, unescaped)
 
     def test_escaping_word_first_letter(self):
-        for letter in r'+-&|!(){}[]^"~*?:\\':
+        for letter in r'+-&|!(){}[]^"~*?:\\<>':
             with self.subTest("letter %s" % letter):
                 query = r"\%stest" % letter
                 tree = Word(query)
@@ -116,8 +116,17 @@ class TestParser(TestCase):
                 self.assertEqual(parsed, tree)
                 self.assertEqual(parsed.unescaped_value, unescaped)
 
+    def test_escaping_word_unbounded_equals(self):
+        """This tests that <\\=foo correctly translates to <(=foo)"""
+        query = r"<\=test"
+        tree = To(Word("\\=test"), False)
+        parsed = parser.parse(query)
+        self.assertEqual(str(parsed), query)
+        self.assertEqual(parsed, tree)
+        self.assertEqual(parsed.a.unescaped_value, "=test")
+
     def test_escaping_phrase(self):
-        query = r'"test \"phrase"'
+        query = r'"test \"ph\rase"'
         tree = Phrase(query)
         unescaped = '"test "phrase"'
         parsed = parser.parse(query)
@@ -319,6 +328,39 @@ class TestParser(TestCase):
                         head=" "))))
         parsed = parser.parse('subject:test desc:(house OR car) AND NOT "approximatly this"~3')
 
+        self.assertEqual(str(parsed), str(tree))
+        self.assertEqual(parsed, tree)
+
+    def test_from_to(self):
+        """Tests that all unbounded ranges work correctly"""
+        tree = (
+            AndOperation(
+                SearchField("foo", From(Word("10"), False), tail=" "),
+                SearchField("bar", To(Word("11"), True), tail=" ", head=" "),
+                SearchField("baz", From(Word("100"), True), tail=" ", head=" "),
+                SearchField("fou", To(Phrase('"200"'), False), head=" ")
+            )
+        )
+        parsed = parser.parse('foo:>10 AND bar:<=11 AND baz:>=100 AND fou:<"200"')
+        self.assertEqual(str(parsed), str(tree))
+        self.assertEqual(parsed, tree)
+
+    def test_from_to_fieldgroup(self):
+        """Additional test for the use of combined open ranges (could have been a normal range)"""
+        tree = (
+            SearchField("foo", FieldGroup(UnknownOperation(
+                From(Word("10"), True, tail=" "),
+                To(Word("11"), False)
+            )))
+        )
+        parsed = parser.parse('foo:(>=10 <11)')
+        self.assertEqual(str(parsed), str(tree))
+        self.assertEqual(parsed, tree)
+
+    def test_from_boost_plus_precedence(self):
+        """Tests that boost, plus and from have correct precedence"""
+        tree = Plus(Boost(From(Word("10"), True), 3))
+        parsed = parser.parse('+>=10^3')
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
 

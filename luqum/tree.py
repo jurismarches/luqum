@@ -237,9 +237,10 @@ class Term(Item):
     :param str value: the value
     """
     WILDCARDS_PATTERN = re.compile(r"((?<=[^\\])[?*]|\\\\[?*]|^[?*])")  # non escaped * and ?
-    # see
+    # Although the following URL lists [+\-&|!(){}[\]^"~*?:\\] as escaped characters, in
+    # practice, in Lucene, all escaped letters are interpreted as a literal, i.e. '\a' == 'a'
     # https://lucene.apache.org/core/3_6_0/queryparsersyntax.html#Escaping%20Special%20Characters
-    WORD_ESCAPED_CHARS = re.compile(r'\\([+\-&|!(){}[\]^"~*?:\\])')
+    WORD_ESCAPED_CHARS = re.compile(r'\\(.)')
 
     _equality_attrs = ['value']
 
@@ -490,17 +491,49 @@ class Unary(Item):
         return self._head_tail(value, head_tail)
 
 
-class Plus(Unary):
+class UnaryOperator(Unary):
+    """Base class for unary binary operators"""
+    pass
+
+
+class Plus(UnaryOperator):
     """plus, unary operation
     """
     op = "+"
 
 
-class Not(Unary):
+class Not(UnaryOperator):
     op = 'NOT'
 
 
-class Prohibit(Unary):
+class Prohibit(UnaryOperator):
     """The negation
     """
     op = "-"
+
+
+class OpenRange(Unary):
+    """A range with only one bound.
+
+    :param a: the provided bound value
+    :param bool include: whether a is included
+    """
+
+    _char = {True: '=', False: ''}
+    _equality_attrs = ['include']
+
+    def __init__(self, a, include=True, **kwargs):
+        self.include = include
+        super().__init__(a, **kwargs)
+
+    def __str__(self, head_tail=False):
+        value = "%s%s%s" % (self.op, self._char[self.include], self.a.__str__(head_tail=True))
+        return self._head_tail(value, head_tail)
+
+
+class From(OpenRange):
+    op = ">"
+
+
+class To(OpenRange):
+    op = "<"

@@ -2,8 +2,8 @@ from unittest import TestCase
 
 from luqum.parser import parser
 from luqum.tree import (Group, Word, AndOperation, OrOperation, BoolOperation,
-                        UnknownOperation, Prohibit, Plus)
-from luqum.utils import UnknownOperationResolver
+                        UnknownOperation, Prohibit, Plus, From, To, Range, SearchField)
+from luqum.utils import UnknownOperationResolver, OpenRangeTransformer
 
 
 class UnknownOperationResolverTestCase(TestCase):
@@ -141,3 +141,120 @@ class UnknownOperationResolverTestCase(TestCase):
         resolver = UnknownOperationResolver(resolve_to=OrOperation)
         transformed = resolver(tree)
         self.assertEqual(str(transformed), "\ra\nOR b OR (c\t OR (d OR e OR f)) ")
+
+
+class OpenRangeTransformerTestCase(TestCase):
+    def test_simple_resolution_from(self):
+        tree = (
+            From(Word("1"), True)
+        )
+        expected = (
+            Range(Word("1", tail=" "), Word("*", head=" "), True, True)
+        )
+        resolver = OpenRangeTransformer()
+        output = resolver(tree)
+        self.assertEqual(output, expected)
+        self.assertEqual(str(output), str(expected))
+
+    def test_simple_resolution_to(self):
+        tree = (
+            To(Word("1"), False)
+        )
+        expected = (
+            Range(Word("*", tail=" "), Word("1", head=" "), True, False)
+        )
+        resolver = OpenRangeTransformer()
+        output = resolver(tree)
+        self.assertEqual(output, expected)
+        self.assertEqual(str(output), str(expected))
+
+    def test_and_resolution(self):
+        tree = (
+            AndOperation(
+                From(Word("1"), True),
+                To(Word("2"), True),
+            )
+        )
+        expected = (
+            AndOperation(
+                Range(Word("1", tail=" "), Word("2", head=" "), True, True)
+            )
+        )
+        resolver = OpenRangeTransformer()
+        output = resolver(tree)
+        self.assertEqual(output, expected)
+        self.assertEqual(str(output), str(expected))
+
+    def test_unjoined_resolution(self):
+        tree = (
+            AndOperation(
+                From(Word("1"), False),
+                From(Word("2"), True),
+            )
+        )
+        expected = (
+            AndOperation(
+                Range(Word("1", tail=" "), Word("*", head=" "), False, True),
+                Range(Word("2", tail=" "), Word("*", head=" "), True, True)
+            )
+        )
+        resolver = OpenRangeTransformer()
+        output = resolver(tree)
+        self.assertEqual(output, expected)
+        self.assertEqual(str(output), str(expected))
+
+    def test_normal_ranges_are_untouched(self):
+        tree = (
+            AndOperation(
+                Range(Word("1"), Word("2"), True, True),
+                Range(Word("*"), Word("*"), True, True),
+                Range(Word("1"), Word("*"), True, True),
+            )
+        )
+        resolver = OpenRangeTransformer()
+        output = resolver(tree)
+        self.assertEqual(output, tree)
+
+    def test_first_range_is_adjusted(self):
+        tree = (
+            AndOperation(
+                Range(Word("*"), Word("2"), True, True),
+                Range(Word("*"), Word("*"), True, True),
+                Range(Word("*"), Word("3"), True, True),
+                Range(Word("1"), Word("*"), True, True),
+                Range(Word("4"), Word("*"), True, True),
+            )
+        )
+        expected = (
+            AndOperation(
+                Range(Word("1"), Word("2"), True, True),
+                Range(Word("*"), Word("*"), True, True),
+                Range(Word("4"), Word("3"), True, True),
+            )
+        )
+        resolver = OpenRangeTransformer()
+        output = resolver(tree)
+        self.assertEqual(output, expected)
+        self.assertEqual(str(output), str(expected))
+
+    def test_do_not_adjust_unknown(self):
+        tree = (
+            UnknownOperation(
+                Range(Word("1"), Word("*"), True, True),
+                Range(Word("*"), Word("2"), True, True),
+            )
+        )
+        resolver = OpenRangeTransformer()
+        output = resolver(tree)
+        self.assertEqual(output, tree)
+
+    def test_do_not_adjust_searchfield(self):
+        tree = (
+            AndOperation(
+                Range(Word("1"), Word("*"), True, True),
+                SearchField("foo", Range(Word("*"), Word("2"), True, True))
+            )
+        )
+        resolver = OpenRangeTransformer()
+        output = resolver(tree)
+        self.assertEqual(output, tree)
