@@ -492,7 +492,7 @@ class Unary(Item):
 
 
 class UnaryOperator(Unary):
-    """Base class for unary binary operators"""
+    """Base class for unary operators"""
     pass
 
 

@@ -88,7 +88,7 @@ class OpenRangeTransformer(visitor.TreeTransformer):
         >=foo            ->   [foo TO *]
         <bar             ->   [* TO bar}
 
-    When *merge_ranges* is set (the default), this also merges open ranges in AND clauses::
+    When *merge_ranges* is set, this also merges open ranges in AND clauses::
 
         >foo AND <=bar              ->   {foo TO bar]
         [foo TO *] AND [* TO bar]   ->   [foo TO bar]
@@ -103,15 +103,31 @@ class OpenRangeTransformer(visitor.TreeTransformer):
     Open ranges in OR and unknown clauses are not adjusted. Use :cls:`UnknownOperationResolver`
     to make sure that unknown operations are resolved first.
 
-    Ranges with none of the bounds set are left unadjusted.
+    Ranges with none of the bounds set are left unadjusted. Additionally, the ranges must be
+    direct siblings of the same parent. Ranges such as ``[foo TO *]^2 AND [* TO bar]^2`` are
+    therefore not merged (though ``([foo TO *] AND [* TO bar])^2`` would).
     """
 
     WILDCARD_WORD = Word("*")
 
-    def __init__(self, merge_ranges=True, add_head=" "):
+    def __init__(self, merge_ranges=False, add_head=" "):
         self.merge_ranges = merge_ranges
         self.add_head = add_head
         super().__init__(track_parents=True)
+
+    def _get_node_bound_side(self, node):
+        """Given a Range node, returns the bound side of the range (either 'high' or 'low').
+        This guarantees that the other side is a wildcard. Returns None if the provided node is
+        bound on both sides or bound on neither side.
+
+        If the provided node is not a Range object, always returns None.
+        """
+        if isinstance(node, Range):
+            if node.low == self.WILDCARD_WORD and node.high != self.WILDCARD_WORD:
+                return 'high'
+            elif node.low != self.WILDCARD_WORD and node.high == self.WILDCARD_WORD:
+                return 'low'
+        return None
 
     def visit_and_operation(self, node, context):
         if not self.merge_ranges:
@@ -123,34 +139,43 @@ class OpenRangeTransformer(visitor.TreeTransformer):
 
         # We collect all ranges from a AND's children with the same bound side, and pop the
         # first one from the list when we encounter a different bound side. This allows us
-        # to join [x TO *] AND [y TO *] to [* TO a] AND [* TO b] as [x TO a] AND [y TO b]
-        # We adjust the first enounter of the range, and do not add the joined one.
+        # to join multiple low bounds with multiple high bounds, or vice versa, without
+        # requiring them to be in order (see class's docstring for an example)
+        #
+        # This works correctly because possible_ranges will be a list of open ranges from only one
+        # side. Which side this is, is tracked in possible_ranges_bound_side. Any new node of the
+        # other side will join into an already existing node, until the list is empty, and we may
+        # reset possible_ranges_bound_side again.
+        possible_ranges = []
 
-        # Note: possible_ranges_bound_side has no meaning if possible_ranges is empty
-        possible_ranges, possible_ranges_bound_side = [], None
+        # possible_ranges_bound_side has no meaning if possible_ranges is empty, and may either
+        # be None, or set to a previous value. When adding anything to possible_ranges, we make
+        # sure that the direction is correct. All nodes in possible_ranges will be of the same
+        # bound side.
+        possible_ranges_bound_side = None
+
         for child in self.clone_children(node, new_node, context):
             # Determines the bound side of the range (high or low), meaning that the other side is
-            # a wildcard. Assigns None if the provided node is not a Range, bound on both sides,
-            # or bound on neither side.
-            child_bound_side = None
-            if isinstance(child, Range):
-                if child.low == self.WILDCARD_WORD and child.high != self.WILDCARD_WORD:
-                    child_bound_side = 'high'
-                elif child.low != self.WILDCARD_WORD and child.high == self.WILDCARD_WORD:
-                    child_bound_side = 'low'
+            # a wildcard.
+            child_bound_side = self._get_node_bound_side(child)
 
             if child_bound_side is not None:
                 # If we have encountered a Range with only one bound side, we may be able to join it
                 if not possible_ranges or possible_ranges_bound_side == child_bound_side:
                     # We have not yet encountered any unbound ranges, or the encountered unbound
-                    # rangesare all the same direction, so store a pointer to this child and we may
-                    # be able to join a future range. The flow will continue.
+                    # ranges are of this node's direction, so store a pointer to this child and we
+                    # may be able to join a future range. The flow will continue.
                     possible_ranges.append(child)
-                    # This assignment only has meaning if possible_ranges was empty
+                    # Store the direction in the ranges. This assignment only has meaning if
+                    # possible_ranges was empty, but the if statement prevents flipping it otherwise
                     possible_ranges_bound_side = child_bound_side
                 else:
                     # There is at least one possible range to join to. We adjust the first range
                     # encountered of the different side
+                    #
+                    # We adjust the first enounter of the range, and do not add the joined one, to
+                    # ensure the correct ordering of the different nodes (it is more intuitive to
+                    # add it to the first one)
                     joining_child = possible_ranges.pop(0)
                     if child_bound_side == 'low':
                         joining_child.low = child.low
@@ -164,6 +189,8 @@ class OpenRangeTransformer(visitor.TreeTransformer):
                     # do not add the child we have just merged from
                     continue
 
+            # Could not join the node (either because child_bound_side is None, or it has nothing to
+            # join to)
             new_node.children += (child, )
 
         yield new_node
@@ -171,12 +198,10 @@ class OpenRangeTransformer(visitor.TreeTransformer):
     def _visit_from_to(self, node, context, bound_side):
         # We omit the child directly for now, as we cannot assign it yet. We add the
         # wildcard element though, and the child is None until we have cloned it.
-        #
-        # The following two lines will resolve to either:
-        # [None, self.WILDCARD_WORD.clone_item(), node.include, True]  (if bound_side=low)
-        # [self.WILDCARD_WORD.clone_item(), None, True, node.include]  (if bound_side=high)
-        args = [None, None, node.include, node.include]
-        args[bound_side == 'low'::2] = [self.WILDCARD_WORD.clone_item(), True]
+        if bound_side == 'low':
+            args = [None, self.WILDCARD_WORD.clone_item(), node.include, True]
+        else:
+            args = [self.WILDCARD_WORD.clone_item(), None, True, node.include]
 
         new_node = Range(
             *args,

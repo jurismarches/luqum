@@ -2,7 +2,8 @@ from unittest import TestCase
 
 from luqum.parser import parser
 from luqum.tree import (Group, Word, AndOperation, OrOperation, BoolOperation,
-                        UnknownOperation, Prohibit, Plus, From, To, Range, SearchField)
+                        UnknownOperation, Prohibit, Plus, From, To, Range, SearchField,
+                        Boost)
 from luqum.utils import UnknownOperationResolver, OpenRangeTransformer
 
 
@@ -151,10 +152,12 @@ class OpenRangeTransformerTestCase(TestCase):
         expected = (
             Range(Word("1", tail=" "), Word("*", head=" "), True, True)
         )
-        resolver = OpenRangeTransformer()
-        output = resolver(tree)
-        self.assertEqual(output, expected)
-        self.assertEqual(str(output), str(expected))
+        for merge_ranges in (True, False):
+            with self.subTest(merge_ranges=merge_ranges):
+                resolver = OpenRangeTransformer(merge_ranges=merge_ranges)
+                output = resolver(tree)
+                self.assertEqual(output, expected)
+                self.assertEqual(str(output), str(expected))
 
     def test_simple_resolution_to(self):
         tree = (
@@ -163,10 +166,12 @@ class OpenRangeTransformerTestCase(TestCase):
         expected = (
             Range(Word("*", tail=" "), Word("1", head=" "), True, False)
         )
-        resolver = OpenRangeTransformer()
-        output = resolver(tree)
-        self.assertEqual(output, expected)
-        self.assertEqual(str(output), str(expected))
+        for merge_ranges in (True, False):
+            with self.subTest(merge_ranges=merge_ranges):
+                resolver = OpenRangeTransformer(merge_ranges=merge_ranges)
+                output = resolver(tree)
+                self.assertEqual(output, expected)
+                self.assertEqual(str(output), str(expected))
 
     def test_and_resolution(self):
         tree = (
@@ -180,7 +185,25 @@ class OpenRangeTransformerTestCase(TestCase):
                 Range(Word("1", tail=" "), Word("2", head=" "), True, True)
             )
         )
-        resolver = OpenRangeTransformer()
+        resolver = OpenRangeTransformer(merge_ranges=True)
+        output = resolver(tree)
+        self.assertEqual(output, expected)
+        self.assertEqual(str(output), str(expected))
+
+    def test_and_resolution_without_merge(self):
+        tree = (
+            AndOperation(
+                From(Word("1"), True),
+                To(Word("2"), True),
+            )
+        )
+        expected = (
+            AndOperation(
+                Range(Word("1", tail=" "), Word("*", head=" "), True),
+                Range(Word("*", tail=" "), Word("2", head=" "), True),
+            )
+        )
+        resolver = OpenRangeTransformer(merge_ranges=False)
         output = resolver(tree)
         self.assertEqual(output, expected)
         self.assertEqual(str(output), str(expected))
@@ -198,7 +221,7 @@ class OpenRangeTransformerTestCase(TestCase):
                 Range(Word("2", tail=" "), Word("*", head=" "), True, True)
             )
         )
-        resolver = OpenRangeTransformer()
+        resolver = OpenRangeTransformer(merge_ranges=True)
         output = resolver(tree)
         self.assertEqual(output, expected)
         self.assertEqual(str(output), str(expected))
@@ -211,11 +234,13 @@ class OpenRangeTransformerTestCase(TestCase):
                 Range(Word("1"), Word("*"), True, True),
             )
         )
-        resolver = OpenRangeTransformer()
-        output = resolver(tree)
-        self.assertEqual(output, tree)
+        for merge_ranges in (True, False):
+            with self.subTest(merge_ranges=merge_ranges):
+                resolver = OpenRangeTransformer(merge_ranges=merge_ranges)
+                output = resolver(tree)
+                self.assertEqual(output, tree)
 
-    def test_first_range_is_adjusted(self):
+    def test_first_range_is_merged(self):
         tree = (
             AndOperation(
                 Range(Word("*"), Word("2"), True, True),
@@ -232,29 +257,40 @@ class OpenRangeTransformerTestCase(TestCase):
                 Range(Word("4"), Word("3"), True, True),
             )
         )
-        resolver = OpenRangeTransformer()
+        resolver = OpenRangeTransformer(merge_ranges=True)
         output = resolver(tree)
         self.assertEqual(output, expected)
         self.assertEqual(str(output), str(expected))
 
-    def test_do_not_adjust_unknown(self):
+    def test_do_not_merge_unknown(self):
         tree = (
             UnknownOperation(
                 Range(Word("1"), Word("*"), True, True),
                 Range(Word("*"), Word("2"), True, True),
             )
         )
-        resolver = OpenRangeTransformer()
+        resolver = OpenRangeTransformer(merge_ranges=True)
         output = resolver(tree)
         self.assertEqual(output, tree)
 
-    def test_do_not_adjust_searchfield(self):
+    def test_do_not_merge_searchfield(self):
         tree = (
             AndOperation(
                 Range(Word("1"), Word("*"), True, True),
                 SearchField("foo", Range(Word("*"), Word("2"), True, True))
             )
         )
-        resolver = OpenRangeTransformer()
+        resolver = OpenRangeTransformer(merge_ranges=True)
+        output = resolver(tree)
+        self.assertEqual(output, tree)
+
+    def test_do_not_merge_boosted(self):
+        tree = (
+            AndOperation(
+                Boost(Range(Word("1"), Word("*"), True, True), 2),
+                Boost(Range(Word("*"), Word("2"), True, True), 2),
+            )
+        )
+        resolver = OpenRangeTransformer(merge_ranges=True)
         output = resolver(tree)
         self.assertEqual(output, tree)
