@@ -7,6 +7,30 @@ and this project tries to adhere to `Semantic Versioning`_.
 .. _`Keep a Changelog`: http://keepachangelog.com/en/1.0.0/
 .. _`Semantic Versioning`: http://semver.org/spec/v2.0.0.html
 
+
+0.13.0 - 2023-03-24
+===================
+
+Added
+-----
+
+* Add support for unbounded ranges
+
+  Support is added for open ranges, i.e. inequality operators in
+  front of a term. In tree form, the < is named To, and > is named From.
+
+  Additionally, a TreeTransformer is also added, to convert these
+  open ranges to more traditional Range objects.
+
+  To properly support escaping, some adjustments were made to how escaping
+  sequences work. After careful evaluation of how Apache Lucene handles
+  escape sequences, it appears that random characters can be escaped, even
+  if they result in unknown escape sequences: the escaped character is
+  always yielded. This makes support for operations such as `<\=foo` a lot
+  less complicated.
+
+  There is no support in the ElasticsearchQueryBuilder.
+
 0.12.1 - 2023-02-08
 ===================
 
