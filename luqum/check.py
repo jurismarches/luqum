@@ -44,7 +44,7 @@ class LuceneCheck:
     SIMPLE_EXPR_FIELDS = (
         tree.Boost, tree.Proximity, tree.Fuzzy, tree.Word, tree.Phrase)
 
-    FIELD_EXPR_FIELDS = tuple(list(SIMPLE_EXPR_FIELDS) + [tree.FieldGroup])
+    FIELD_EXPR_FIELDS = tuple(list(SIMPLE_EXPR_FIELDS) + [tree.FieldGroup, tree.Range])
 
     def __init__(self, zeal=0):
         self.zeal = zeal
