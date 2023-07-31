@@ -135,6 +135,12 @@ class TestCheck(TestCase):
         self.assertIn("Unknown item type", check.errors(query)[0])
         self.assertIn("Unknown item type", check.errors(query)[1])
 
+    def test_search_field_range(self):
+        check = LuceneCheck()
+        query = SearchField("foo", Range("1", "10"))
+        self.assertTrue(check(query))
+        self.assertEqual(check.errors(query), [])
+
 
 class CheckVisitorTestCase(TestCase):
 
