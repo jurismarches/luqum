@@ -526,3 +526,8 @@ class TestParser(TestCase):
             str(raised.exception),
             "Illegal character '\\' at position 0",
         )
+
+    def test_negative_values_in_ranges(self):
+        parser.parse("[-1 TO 5]")
+        parser.parse("[-10 TO -1]")
+        parser.parse("[5 TO -1]")   # semantically incorrect but correct from the parser's perspective
