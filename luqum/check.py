@@ -153,7 +153,7 @@ class CheckNestedFields(visitor.TreeVisitor):
     """
 
     def __init__(self, nested_fields, object_fields=None, sub_fields=None):
-        assert(isinstance(nested_fields, dict))
+        assert isinstance(nested_fields, dict)
         self.object_fields = normalize_object_fields_specs(object_fields)
         self.object_prefixes = set(k.rsplit(".", 1)[0] for k in self.object_fields or [])
         self.nested_fields = flatten_nested_fields_specs(nested_fields)

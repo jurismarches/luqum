@@ -528,6 +528,12 @@ class TestParser(TestCase):
         )
 
     def test_negative_values_in_ranges(self):
-        parser.parse("[-1 TO 5]")
-        parser.parse("[-10 TO -1]")
-        parser.parse("[5 TO -1]")   # semantically incorrect but correct from the parser's perspective
+        parsed = parser.parse("[-1 TO 5]")
+        self.assertEqual(str(parsed), "[-1 TO 5]")
+
+        parsed = parser.parse("[-10 TO -1]")
+        self.assertEqual(str(parsed), "[-10 TO -1]")
+
+        # semantically incorrect but correct from the parser's perspective
+        parsed = parser.parse("[5 TO -1]")
+        self.assertEqual(str(parsed), "[5 TO -1]")
