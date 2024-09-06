@@ -435,7 +435,7 @@ class ElasticSearchItemFactory:
                 *args,
                 **kwargs
             )
-        elif cls is ENested:
+        elif issubclass(cls, ENested):
             return cls(
                 nested_fields=self._nested_fields,
                 *args,
