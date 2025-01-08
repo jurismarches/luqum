@@ -45,7 +45,6 @@ def test_thread_lex_global_state():
     Lexers](http://www.dabeaz.com/ply/ply.html#ply_nn37)
     """
     qs = '(title:"foo bar" AND body:"quick fox")'
-    # before_result = parse(qs)
 
     lex.lex(module=alternative_lexer)
     # if there is a "luqum.exceptions.ParseSyntaxError", the wrong lexer was
