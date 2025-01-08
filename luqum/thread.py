@@ -1,9 +1,6 @@
 import threading
 
-from ply import lex
-
 from . import parser
-
 
 thread_local = threading.local()
 
@@ -15,5 +12,5 @@ def parse(input=None, lexer=None, debug=False, tracking=False):
     see: https://github.com/jurismarches/luqum/issues/72
     """
     if not hasattr(thread_local, "lexer"):
-        thread_local.lexer = lex.lexer.clone()
+        thread_local.lexer = parser.lexer.clone()
     return parser.parser.parse(input, lexer=thread_local.lexer)
