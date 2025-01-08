@@ -393,15 +393,16 @@ Use :py:func:`luqum.thread.parse` instead
 **Note 2**: This parser is using the last grammar defined globally with PLY.
 Another library may update PLY global state. To avoid such issue:
 
-1. Provide the lexer manually to the parse function:
+1. Use :func:`luqum.parser.parse` or :py:func:`luqum.thread.parse` that set the
+   correct lexer automatically
 
-   .. code:: python
+2. Provide the lexer manually to the parse function:
 
-        luqum.parser.parser.parse(raw_lucene_query, lexer=luqum.parser.lexer)
+   .. code-block:: python
 
-2. Use :func:`luqum.parser.parse` that sets the correct lexer automatically
-
-3. Use :py:func:`luqum.thread.parse` that automatically passes the correct lexer
+      luqum.parser.parser.parse(
+        lucene_query, lexer=luqum.parser.lexer
+      )
 
 """
 
