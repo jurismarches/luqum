@@ -36,7 +36,9 @@ def get_es():
     # launching something like
     # docker run --rm -p "127.0.0.1:9200:9200" -e "discovery.type=single-node" elasticsearch:7.8.0
     # is a simple way to get an instance
-    connections.configure(default=dict(hosts=os.environ.get("ES_HOST", "localhost"), timeout=20))
+    connections.configure(
+        default=dict(hosts=os.environ.get("ES_HOST", "http://localhost:9200"), timeout=20)
+    )
     try:
         client = connections.get_connection("default")
         # check ES running
