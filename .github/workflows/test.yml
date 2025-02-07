@@ -48,7 +48,8 @@ jobs:
         run: |
           pip install -r requirements-dev.txt
           pip install .
-          pip install coveralls
+          # coveralls yet incompatible with python3.13 yet
+          [[ ${{ matrix.python-version }} != 3.13 ]] && pip install coveralls
           pip install  elasticsearch-dsl==${{ matrix.es-dsl-version }}
       - name: run tests
         run: |
