@@ -5,18 +5,6 @@ on:
 
 
 jobs:
-  # define what we want to test
-  define-matrix:
-    runs-on: ubuntu-latest
-
-    outputs:
-      config: ${{ steps.colors.outputs.colors }}
-
-    steps:
-      - name: Define Colors
-        id: colors
-        run: |
-          echo 'colors=["red", "green", "blue"]' >> "$GITHUB_OUTPUT"
   # quality
   quality_checks:
     runs-on: ubuntu-latest
