@@ -103,9 +103,14 @@ class OpenRangeTransformer(visitor.TreeTransformer):
     Open ranges in OR and unknown clauses are not adjusted. Use :cls:`UnknownOperationResolver`
     to make sure that unknown operations are resolved first.
 
-    Ranges with none of the bounds set are left unadjusted. Additionally, the ranges must be
-    direct siblings of the same parent. Ranges such as ``[foo TO *]^2 AND [* TO bar]^2`` are
-    therefore not merged (though ``([foo TO *] AND [* TO bar])^2`` would).
+    Ranges with none of the bounds set are left unadjusted.
+
+    Additionally, the ranges must be direct siblings of the same parent.
+    Ranges such as ``[foo TO *]^2 AND [* TO bar]^2``
+    are therefore not merged (though ``([foo TO *] AND [* TO bar])^2`` would).
+
+    Also not that it does not check ranges bound ordering
+    so that you might end-up with incoherent ranges like [* TO 3] AND [4 TO *] -> [4 TO 3]
     """
 
     WILDCARD_WORD = Word("*")

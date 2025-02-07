@@ -60,6 +60,7 @@ precedence = (
     ('nonassoc', 'PLUS', 'MINUS'),
     ('nonassoc', 'BOOST'),
     ('nonassoc', 'TO'),
+    ('right', 'UMINUS')
 )
 
 # term
@@ -95,6 +96,7 @@ TERM_RE = r'''
   )*
 )
 '''.format(time_re=TIME_RE)
+
 # phrase
 PHRASE_RE = r'''
 (?P<phrase>  # phrase
@@ -296,11 +298,31 @@ def p_grouping(p):
 
 
 def p_range(p):
-    '''unary_expression : LBRACKET phrase_or_term TO phrase_or_term RBRACKET'''
+    '''unary_expression : LBRACKET \
+                           phrase_or_possibly_negative_term \
+                           TO phrase_or_possibly_negative_term \
+                          RBRACKET'''
+
     include_low = p[1].value == "["
     include_high = p[5].value == "]"
     p[0] = Range(p[2], p[4], include_low, include_high)
     head_tail.range(p)
+
+
+def p_possibly_negative_term(p):
+    '''possibly_negative_term : MINUS phrase_or_term  %prec UMINUS
+                              | phrase_or_term'''
+    if len(p) == 3:
+        p[0] = Prohibit(p[2])
+        head_tail.unary(p)
+    else:
+        p[0] = p[1]
+
+
+def p_phrase_or_possibly_negative_term(p):
+    '''phrase_or_possibly_negative_term : possibly_negative_term
+                                        | PHRASE'''
+    p[0] = p[1]
 
 
 def p_lessthan(p):

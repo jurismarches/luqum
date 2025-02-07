@@ -55,13 +55,15 @@ def extract_nested_queries(query, query_nester=None):
         if "nested" in query:
             params = {k: v for k, v in query["nested"].items() if k not in ("query", "name")}
 
-            def sub_query_nester(req, name):
+            def sub_query_nester_func(req, name):
                 nested = {"nested": {"query": req, **params}}
                 if query_nester is not None:
                     nested = query_nester(nested, name)
                 if name is not None:
                     nested["nested"]["_name"] = name
                 return nested
+
+            sub_query_nester = sub_query_nester_func
 
         bool_param = {"must", "should", "must_not"} & set(query.keys())
         if bool_param and in_nested:
