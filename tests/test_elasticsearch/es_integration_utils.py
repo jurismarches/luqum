@@ -61,7 +61,7 @@ class Book(Document):
     """
     title = Text(fields={
         "no_vowels": Text(
-            analyzer=analyzer("no_vowels", "pattern", pattern="[\Waeiouy]"),  # noqa: W605
+            analyzer=analyzer("no_vowels", "pattern", pattern=r"[\Waeiouy]"),  # noqa: W605
             search_analyzer="standard"
         )
     })
