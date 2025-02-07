@@ -11,23 +11,26 @@ jobs:
     strategy:
       matrix:
         python-version:
-        - "3.8"
-        - "3.9"
         - "3.10"
         - "3.11"
+        - "3.12"
+        - "3.13"
         es-version:
-        - "7.17.6"
+        - "8.17.1"
         es-dsl-version:
-        - "7.4.0"
+        - "8.17.1"
         include:
           # only test older ES version with python 3.10
           - python-version: "3.10"
             es-version: "6.8.23"
             es-dsl-version: "6.4.0"
-          # we need to include this however to be sure it runs
           - python-version: "3.10"
             es-version: "7.17.6"
             es-dsl-version: "7.4.0"
+          # but also runs with newer versions of ES
+          - python-version: "3.10"
+            es-version: "8.17.1"
+            es-dsl-version: "8.17.1"
 
     env:
       ES_VERSION: "${{ matrix.es-version }}"
@@ -45,7 +48,8 @@ jobs:
         run: |
           pip install -r requirements-dev.txt
           pip install .
-          pip install coveralls
+          # coveralls yet incompatible with python3.13 yet
+          [[ ${{ matrix.python-version }} != 3.13 ]] && pip install coveralls
           pip install  elasticsearch-dsl==${{ matrix.es-dsl-version }}
       - name: run tests
         run: |
