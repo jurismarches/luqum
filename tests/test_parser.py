@@ -556,9 +556,9 @@ def test_lex_global_state():
     lex.lex(module=alternative_lexer)
 
     with pytest.raises(ParseSyntaxError):
-        parser.parse(qs)
+        parser.parse(qs, lexer=lex.lexer)
 
-    parser.parse(qs, lexer=lexer)
-    # if there is a "luqum.exceptions.ParseSyntaxError", the wrong lexer was
-    # used.
+    # if there is a "luqum.exceptions.ParseSyntaxError",
+    # the wrong lexer was used.
     parse(qs)
+    parser.parse(qs)

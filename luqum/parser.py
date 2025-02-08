@@ -428,6 +428,8 @@ Another library may update PLY global state. To avoid such issue:
 
 """
 
+_orig_parse = parser.parse
+
 
 def parse(input=None, lexer=lexer, debug=False, tracking=False, tokenfunc=None):
     """
@@ -436,6 +438,10 @@ def parse(input=None, lexer=lexer, debug=False, tracking=False, tokenfunc=None):
     The function signature is based on :func:`ply.yacc.LRParser.parse` except
     that ``lexer`` default to :data:`luqum.parser.lexer`.
     """
-    return parser.parse(
+    return _orig_parse(
         input=input, lexer=lexer, debug=debug, tracking=tracking, tokenfunc=tokenfunc
     )
+
+
+# avoid confusion in lexers by monkey patching
+parser.parse = parse
