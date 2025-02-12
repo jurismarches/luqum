@@ -1,12 +1,16 @@
 from decimal import Decimal
 from unittest import TestCase
 
+import ply.lex as lex
+import pytest
+
 from luqum.exceptions import IllegalCharacterError, ParseSyntaxError
-from luqum.parser import lexer, parser
+from luqum.parser import lexer, parser, parse
 from luqum.tree import (
     SearchField, FieldGroup, Group,
     Word, Phrase, Regex, Proximity, Fuzzy, Boost, Range, From, To,
     Not, AndOperation, OrOperation, Plus, Prohibit, UnknownOperation)
+from tests import alternative_lexer
 
 
 class TestLexer(TestCase):
@@ -537,3 +541,24 @@ class TestParser(TestCase):
         # semantically incorrect but correct from the parser's perspective
         parsed = parser.parse("[5 TO -1]")
         self.assertEqual(str(parsed), "[5 TO -1]")
+
+
+def test_lex_global_state():
+    """
+    Last Lexer is used globally by default by the parser. If another library
+    creates another lexer, it should not impact luqum.
+
+    More info: [Multiple Parsers and
+    Lexers](http://www.dabeaz.com/ply/ply.html#ply_nn37)
+    """
+    qs = '(title:"foo bar" AND body:"quick fox")'
+
+    lex.lex(module=alternative_lexer)
+
+    with pytest.raises(ParseSyntaxError):
+        parser.parse(qs, lexer=lex.lexer)
+
+    # if there is a "luqum.exceptions.ParseSyntaxError",
+    # the wrong lexer was used.
+    parse(qs)
+    parser.parse(qs)

@@ -10,7 +10,7 @@ luqum.parser
 ---------------
 
 .. automodule:: luqum.parser
-   :members: parser
+   :members: parser, parse
 
 luqum.threading
 ---------------

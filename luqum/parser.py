@@ -412,3 +412,21 @@ parser = yacc.yacc()
 **Note**: The parser by itself is not thread safe (because PLY is not).
 Use :py:func:`luqum.thread.parse` instead
 """
+
+_orig_parse = parser.parse
+
+
+def parse(input=None, lexer=lexer, debug=False, tracking=False, tokenfunc=None):
+    """
+    A function to parse a text Lucene query provided as ``input``.
+
+    The function signature is based on :func:`ply.yacc.LRParser.parse` except
+    that ``lexer`` default to :data:`luqum.parser.lexer`.
+    """
+    return _orig_parse(
+        input=input, lexer=lexer, debug=debug, tracking=tracking, tokenfunc=tokenfunc
+    )
+
+
+# avoid confusion in lexers by monkey patching
+parser.parse = parse
