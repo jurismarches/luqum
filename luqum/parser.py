@@ -411,21 +411,6 @@ parser = yacc.yacc()
 
 **Note**: The parser by itself is not thread safe (because PLY is not).
 Use :py:func:`luqum.thread.parse` instead
-
-**Note 2**: This parser is using the last grammar defined globally with PLY.
-Another library may update PLY global state. To avoid such issue:
-
-1. Use :func:`luqum.parser.parse` or :py:func:`luqum.thread.parse` that set the
-   correct lexer automatically
-
-2. Provide the lexer manually to the parse function:
-
-   .. code-block:: python
-
-      luqum.parser.parser.parse(
-        lucene_query, lexer=luqum.parser.lexer
-      )
-
 """
 
 _orig_parse = parser.parse
