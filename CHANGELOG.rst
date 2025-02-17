@@ -7,6 +7,24 @@ and this project tries to adhere to `Semantic Versioning`_.
 .. _`Keep a Changelog`: http://keepachangelog.com/en/1.0.0/
 .. _`Semantic Versioning`: http://semver.org/spec/v2.0.0.html
 
+0.14.0 - 2025-02-17
+===================
+
+Added
+-----
+
+* Support for Python 3.12 and 3.13
+
+Removed
+-------
+
+* Support for Python 3.6, 3.7, 3.8 and 3.9
+
+Fixed
+-----
+
+* Global state management for lexer.
+
 
 0.13.0 - 2023-03-24
 ===================
