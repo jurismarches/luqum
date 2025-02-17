@@ -13,17 +13,20 @@ and this project tries to adhere to `Semantic Versioning`_.
 Added
 -----
 
-* Support for Python 3.12 and 3.13
+* Support for Python 3.11, 3.12 and 3.13 (#97 and #111, thanks to @cclauss and @alexgarel)
+* Support for negative values in range (#101, thanks to @mesemus)
+* Docs on OpenRangeTransformer (#110, thanks to @alexgarel)
 
 Removed
 -------
 
-* Support for Python 3.6, 3.7, 3.8 and 3.9
+* Support for Python 3.6, 3.7, 3.8 and 3.9 (#111, thanks to @alexgarel)
 
 Fixed
 -----
 
-* Global state management for lexer.
+* Improved global state management for lexer (#109, thanks to @Morikko)
+* Recognize E_NESTED override (#103, thanks to @maksle)
 
 
 0.13.0 - 2023-03-24

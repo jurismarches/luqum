@@ -19,6 +19,10 @@ es_tests:
 quality:
 	flake8 luqum tests
 
+# Remove the -s in the last line if it does not work out of the blue.
+# Also add the jurismarches password for PyPI via the -p twine upload option,
+# just in case.
+# This gives 'twine upload -u jurismarches -p <password>  dist/*'.
 distribute:
 	[ -z $(ls dist/) ] || rm dist/*
 	python3 setup.py bdist
