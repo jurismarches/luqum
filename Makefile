@@ -19,14 +19,13 @@ es_tests:
 quality:
 	flake8 luqum tests
 
-# Remove the -s in the last line if it does not work out of the blue.
-# Also add the jurismarches password for PyPI via the -p twine upload option,
-# just in case.
-# This gives 'twine upload -u jurismarches -p <password>  dist/*'.
+# To upload files, you need to have a ~/.pypirc file locally.
+# This file should contain all the necessary passwords and API-tokens.
 distribute:
-	[ -z $(ls dist/) ] || rm dist/*
-	python3 setup.py bdist
-	python3 setup.py bdist_wheel
-	twine upload -u jurismarches -s dist/*
+	rm -r build
+	rm dist/*
+	python -m build --wheel
+	python -m build --sdist
+	python -m twine upload --verbose --repository luqum dist/*
 
 .PHONY: tests quality distribute

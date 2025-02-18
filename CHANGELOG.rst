@@ -7,6 +7,21 @@ and this project tries to adhere to `Semantic Versioning`_.
 .. _`Keep a Changelog`: http://keepachangelog.com/en/1.0.0/
 .. _`Semantic Versioning`: http://semver.org/spec/v2.0.0.html
 
+1.0.0 - 2025-02-18
+==================
+
+Fixed
+-----
+
+* parsetab.py file
+* PyPI distribution procedure for devs
+
+Added
+-----
+
+* Requirements for build and twine for devs
+
+
 0.14.0 - 2025-02-17
 ===================
 

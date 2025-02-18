@@ -3,10 +3,10 @@ luqum - A lucene query parser in Python, using PLY
 
 |pypi-version| |readthedocs| |travis| |coveralls|
 
-|logo| 
+|logo|
 
-"luqum" (as in LUcene QUery Manipolator) is a tool to parse queries 
-written in the `Lucene Query DSL`_ and build an abstract syntax tree 
+"luqum" (as in LUcene QUery Manipolator) is a tool to parse queries
+written in the `Lucene Query DSL`_ and build an abstract syntax tree
 to inspect, analyze or otherwise manipulate search queries.
 
 It enables enriching the Lucene Query DSL meanings
@@ -20,7 +20,7 @@ and control the precise meaning of each search terms.
 
 Luqum is dual licensed under Apache2.0 and LGPLv3.
 
-Compatible with Python 3.6+
+Compatible with Python 3.10+
 
 Installation
 ============
