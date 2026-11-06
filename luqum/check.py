@@ -74,6 +74,10 @@ class LuceneCheck:
         # TODO check lower bound <= higher bound taking into account wildcard and numbers
         return iter([])
 
+    def check_phrase(self, item, parents):
+        # Phrase already checks its enclosing quotes on construction.
+        return iter([])
+
     def check_word(self, item, parents):
         if self.space_re.search(item.value):
             yield "A single term value can't hold a space %s" % item

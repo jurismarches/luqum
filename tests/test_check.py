@@ -30,6 +30,37 @@ class TestCheck(TestCase):
         self.assertTrue(check(query))
         self.assertEqual(check.errors(query), [])
 
+    def test_phrase(self):
+        queries = [
+            Phrase('"Foo Bar"'),
+            SearchField("f", Phrase('"Foo Bar"')),
+        ]
+        for zeal in (0, 1):
+            check = LuceneCheck(zeal=zeal)
+            for query in queries:
+                with self.subTest(query=query, zeal=zeal):
+                    self.assertTrue(check(query))
+                    self.assertEqual(check.errors(query), [])
+
+    def test_parsed_phrase(self):
+        queries = [
+            '"Foo Bar"',
+            'f:"Foo Bar"',
+            'f:("Foo Bar" OR baz)',
+            '("Foo Bar" AND baz)',
+            '"Foo Bar"^2',
+            '"Foo Bar"~3',
+            r'"Foo \"Bar\""',
+            '"foo/bar + baz"',
+        ]
+        for zeal in (0, 1):
+            check = LuceneCheck(zeal=zeal)
+            for query in queries:
+                with self.subTest(query=query, zeal=zeal):
+                    parsed = parser.parse(query)
+                    self.assertTrue(check(parsed))
+                    self.assertEqual(check.errors(parsed), [])
+
     def test_bad_fieldgroup(self):
         check = LuceneCheck()
         query = FieldGroup(Word("foo"))
