@@ -209,6 +209,18 @@ class TestParser(TestCase):
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
 
+    def test_hyphened_word(self):
+        tree = Word("foo-bar-baz")
+        parsed = parser.parse("foo-bar-baz")
+        self.assertEqual(str(parsed), str(tree))
+        self.assertEqual(parsed, tree)
+
+    def test_field_hyphened_word(self):
+        tree = SearchField("test", Word("foo-bar-baz"))
+        parsed = parser.parse("test:foo-bar-baz")
+        self.assertEqual(str(parsed), str(tree))
+        self.assertEqual(parsed, tree)
+
     def test_phrase(self):
         tree = (
             AndOperation(
