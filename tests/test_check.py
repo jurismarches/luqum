@@ -73,6 +73,12 @@ class TestCheck(TestCase):
         check_easy_going = LuceneCheck()
         self.assertTrue(check_easy_going(query))
 
+    def test_zealous_dont_break_single_not(self):
+        # test that we don't break on zeal check on '- foo'
+        query = Not(Word("foo"))
+        check_zealous = LuceneCheck(zeal=1)
+        self.assertTrue(check_zealous(query))
+
     def test_bad_field_name(self):
         check = LuceneCheck()
         query = SearchField("foo*", Word("bar"))

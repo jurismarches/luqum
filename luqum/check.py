@@ -105,7 +105,7 @@ class LuceneCheck:
     def _check_not_operator(self, item, parents):
         """Common checker for NOT and - operators"""
         if self.zeal:
-            if isinstance(parents[-1], tree.OrOperation):
+            if parents and isinstance(parents[-1], tree.OrOperation):
                 yield ("Prohibit or Not really means 'AND NOT' " +
                        "wich is inconsistent with OR operation in %s" % parents[-1])
 
