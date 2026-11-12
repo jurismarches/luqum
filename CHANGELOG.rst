@@ -15,7 +15,8 @@ Fixed
 
 * A negative number as a range bound (``[-5 TO 5]``) is now parsed as ``Word('-5')``
   instead of ``Prohibit(Word('5'))``, so ``ElasticsearchQueryBuilder`` can build the range.
-  A minus separated from the word (``[- 5 TO 5]``) or before a phrase is still a ``Prohibit``.
+  A minus sign is always part of a range bound, never a ``Prohibit``; outside a range
+  nothing changes (``foo -5`` is still ``foo NOT 5``).
 
 
 1.0.0 - 2025-02-18

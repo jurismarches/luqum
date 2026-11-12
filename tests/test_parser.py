@@ -589,14 +589,28 @@ class TestParser(TestCase):
         self.assertEqual(text[high.pos:high.pos + high.size], "-3")
         self.assertEqual(text[range_.pos:range_.pos + range_.size], "[ -12  TO	-3 ]")
 
-    def test_minus_apart_from_value_in_range_is_still_a_prohibit(self):
-        # the previous tree is kept when the minus is not stuck to a word
-        for query in ["a:[- 1 TO 5]", '[-"a b" TO 5]']:
+    def test_minus_in_a_range_bound_is_always_part_of_the_word(self):
+        # a range bound is a term: there is never a Prohibit, whatever follows
+        # the minus sign (a space is not significant here)
+        for query, expected, low in [
+            ("a:[- 1 TO 5]", "a:[-1 TO 5]", "-1"),
+            ('[-"a b" TO 5]', '[-"a b" TO 5]', '-"a b"'),
+        ]:
             with self.subTest(query=query):
                 parsed = parser.parse(query)
-                self.assertEqual(str(parsed), query)
+                self.assertEqual(str(parsed), expected)
                 range_ = parsed.expr if isinstance(parsed, SearchField) else parsed
-                self.assertIsInstance(range_.low, Prohibit)
+                self.assertEqual(range_.low, Word(low))
+                self.assertIs(type(range_.low), Word)
+
+    def test_minus_apart_from_value_keeps_position_and_size(self):
+        text = "x [- 5 TO 5] y"
+        range_ = parser.parse(text).children[1]
+        low = range_.low
+        self.assertEqual(low, Word("-5"))
+        # the position and size are those of the original text
+        self.assertEqual(text[low.pos:low.pos + low.size], "- 5")
+        self.assertEqual(text[range_.pos:range_.pos + range_.size], "[- 5 TO 5]")
 
     def test_minus_before_a_number_outside_a_range_is_still_a_prohibit(self):
         # as in Lucene, ``foo -5`` is ``foo NOT 5``, also next to a range
