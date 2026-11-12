@@ -313,8 +313,12 @@ def p_possibly_negative_term(p):
     '''possibly_negative_term : MINUS phrase_or_term  %prec UMINUS
                               | phrase_or_term'''
     if len(p) == 3:
-        p[0] = Prohibit(p[2])
-        head_tail.unary(p)
+        # this rule is only used for the bounds of a range (``[-5 TO 5]``),
+        # where the minus sign is part of the term, not a prohibition
+        p[0] = Word("-" + p[2].value)
+        head_tail.pos(p, head_transfer=True, tail_transfer=True)
+        p[0].head = p[1].head
+        p[0].tail = p[2].tail
     else:
         p[0] = p[1]
 

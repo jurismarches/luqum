@@ -482,6 +482,16 @@ class ElasticsearchTreeTransformerTestCase(TestCase):
         expected = {"range": {"text": {"lte": '10', "gt": '1'}}}
         self.assertDictEqual(result, expected)
 
+    def test_should_transform_range_with_negative_bounds(self):
+        tree = parser.parse("spam:[-10 TO -1.5}")
+        result = self.transformer(tree)
+        expected = {"range": {"spam": {"lt": "-1.5", "gte": "-10"}}}
+        self.assertDictEqual(result, expected)
+
+        result = self.transformer(parser.parse("spam:{-1 TO 5]"))
+        expected = {"range": {"spam": {"lte": "5", "gt": "-1"}}}
+        self.assertDictEqual(result, expected)
+
     def test_should_transform_range_in_search_field(self):
         tree = SearchField("spam", Range(
             low=Word('1'),

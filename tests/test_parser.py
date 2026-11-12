@@ -546,13 +546,107 @@ class TestParser(TestCase):
     def test_negative_values_in_ranges(self):
         parsed = parser.parse("[-1 TO 5]")
         self.assertEqual(str(parsed), "[-1 TO 5]")
+        self.assertEqual(
+            parsed, Range(Word("-1", tail=" "), Word("5", head=" "), True, True))
 
         parsed = parser.parse("[-10 TO -1]")
         self.assertEqual(str(parsed), "[-10 TO -1]")
+        self.assertEqual(
+            parsed, Range(Word("-10", tail=" "), Word("-1", head=" "), True, True))
 
         # semantically incorrect but correct from the parser's perspective
         parsed = parser.parse("[5 TO -1]")
         self.assertEqual(str(parsed), "[5 TO -1]")
+        self.assertEqual(
+            parsed, Range(Word("5", tail=" "), Word("-1", head=" "), True, True))
+
+    def test_negative_values_in_ranges_are_words(self):
+        # the minus is part of the bound, there is no Prohibit
+        for query, low, high in [
+            ("a:{-1 TO 5}", "-1", "5"),
+            ("a:[-1.5 TO -0.25]", "-1.5", "-0.25"),
+            ("a:[-1e3 TO 1]", "-1e3", "1"),
+            ("a:[-5 TO *]", "-5", "*"),
+        ]:
+            with self.subTest(query=query):
+                parsed = parser.parse(query)
+                self.assertEqual(str(parsed), query)
+                self.assertIsInstance(parsed, SearchField)
+                self.assertEqual(parsed.expr.low, Word(low))
+                self.assertEqual(parsed.expr.high, Word(high))
+                self.assertIs(type(parsed.expr.low), Word)
+                self.assertEqual(parsed.expr.low.value, low)
+
+    def test_negative_values_in_ranges_keep_head_tail_and_pos(self):
+        text = "x:[ -12  TO	-3 ] y"
+        parsed = parser.parse(text)
+        self.assertEqual(str(parsed), text)
+        range_ = parsed.children[0].expr
+        low, high = range_.low, range_.high
+        self.assertEqual((low.head, low.tail), (" ", "  "))
+        self.assertEqual((high.head, high.tail), ("	", " "))
+        self.assertEqual(text[low.pos:low.pos + low.size], "-12")
+        self.assertEqual(text[high.pos:high.pos + high.size], "-3")
+        self.assertEqual(text[range_.pos:range_.pos + range_.size], "[ -12  TO	-3 ]")
+
+    def test_minus_in_a_range_bound_is_always_part_of_the_word(self):
+        # a range bound is a term: there is never a Prohibit, whatever follows
+        # the minus sign (a space is not significant here)
+        for query, expected, low in [
+            ("a:[- 1 TO 5]", "a:[-1 TO 5]", "-1"),
+            ('[-"a b" TO 5]', '[-"a b" TO 5]', '-"a b"'),
+        ]:
+            with self.subTest(query=query):
+                parsed = parser.parse(query)
+                self.assertEqual(str(parsed), expected)
+                range_ = parsed.expr if isinstance(parsed, SearchField) else parsed
+                self.assertEqual(range_.low, Word(low))
+                self.assertIs(type(range_.low), Word)
+
+    def test_minus_apart_from_value_keeps_position_and_size(self):
+        text = "x [- 5 TO 5] y"
+        range_ = parser.parse(text).children[1]
+        low = range_.low
+        self.assertEqual(low, Word("-5"))
+        # the position and size are those of the original text
+        self.assertEqual(text[low.pos:low.pos + low.size], "- 5")
+        self.assertEqual(text[range_.pos:range_.pos + range_.size], "[- 5 TO 5]")
+
+    def test_minus_before_a_number_outside_a_range_is_still_a_prohibit(self):
+        # as in Lucene, ``foo -5`` is ``foo NOT 5``, also next to a range
+        # whose bound is a negative number
+        for query, prohibited in [
+            ("foo -5", "5"),
+            ("foo -5 bar:[-5 TO 5]", "5"),
+            ("bar:[-5 TO 5] foo -5", "5"),
+            ("(foo -5) OR y:{-2 TO -1]", "5"),
+            ("x:[1 TO 5] -3", "3"),
+        ]:
+            with self.subTest(query=query):
+                parsed = parser.parse(query)
+                self.assertEqual(str(parsed), query)
+                items = list(self._walk(parsed))
+                prohibits = [item for item in items if isinstance(item, Prohibit)]
+                self.assertEqual(prohibits, [Prohibit(Word(prohibited))])
+                # the bounds of the ranges are words, with their minus sign
+                for range_ in [item for item in items if isinstance(item, Range)]:
+                    self.assertIs(type(range_.low), Word)
+                    self.assertIs(type(range_.high), Word)
+
+    @classmethod
+    def _walk(cls, item):
+        yield item
+        for child in item.children:
+            yield from cls._walk(child)
+
+    def test_minus_outside_range_is_unchanged(self):
+        parsed = parser.parse("-5")
+        self.assertEqual(parsed, Prohibit(Word("5")))
+        parsed = parser.parse("a:-5")
+        self.assertEqual(parsed, SearchField("a", Prohibit(Word("5"))))
+        parsed = parser.parse("a -5")
+        self.assertEqual(
+            parsed, UnknownOperation(Word("a", tail=" "), Prohibit(Word("5"))))
 
 
 def test_lex_global_state():
