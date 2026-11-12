@@ -7,6 +7,17 @@ and this project tries to adhere to `Semantic Versioning`_.
 .. _`Keep a Changelog`: http://keepachangelog.com/en/1.0.0/
 .. _`Semantic Versioning`: http://semver.org/spec/v2.0.0.html
 
+Unreleased
+==========
+
+Fixed
+-----
+
+* A negative number as a range bound (``[-5 TO 5]``) is now parsed as ``Word('-5')``
+  instead of ``Prohibit(Word('5'))``, so ``ElasticsearchQueryBuilder`` can build the range.
+  A minus separated from the word (``[- 5 TO 5]``) or before a phrase is still a ``Prohibit``.
+
+
 1.0.0 - 2025-02-18
 ==================
 

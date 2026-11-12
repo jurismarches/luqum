@@ -313,8 +313,17 @@ def p_possibly_negative_term(p):
     '''possibly_negative_term : MINUS phrase_or_term  %prec UMINUS
                               | phrase_or_term'''
     if len(p) == 3:
-        p[0] = Prohibit(p[2])
-        head_tail.unary(p)
+        if isinstance(p[2], Word) and not p[1].tail:
+            # the minus sign is stuck to the word: it is part of the bound
+            # (``[-5 TO 5]``), not a prohibition. As in Lucene, a bound is a term.
+            p[0] = Word("-" + p[2].value)
+            head_tail.pos(p, head_transfer=True, tail_transfer=True)
+            p[0].head = p[1].head
+            p[0].tail = p[2].tail
+        else:
+            # ``[- 5 TO 5]`` or a phrase: keep the previous tree
+            p[0] = Prohibit(p[2])
+            head_tail.unary(p)
     else:
         p[0] = p[1]
 
