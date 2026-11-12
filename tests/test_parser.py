@@ -598,6 +598,33 @@ class TestParser(TestCase):
                 range_ = parsed.expr if isinstance(parsed, SearchField) else parsed
                 self.assertIsInstance(range_.low, Prohibit)
 
+    def test_minus_before_a_number_outside_a_range_is_still_a_prohibit(self):
+        # as in Lucene, ``foo -5`` is ``foo NOT 5``, also next to a range
+        # whose bound is a negative number
+        for query, prohibited in [
+            ("foo -5", "5"),
+            ("foo -5 bar:[-5 TO 5]", "5"),
+            ("bar:[-5 TO 5] foo -5", "5"),
+            ("(foo -5) OR y:{-2 TO -1]", "5"),
+            ("x:[1 TO 5] -3", "3"),
+        ]:
+            with self.subTest(query=query):
+                parsed = parser.parse(query)
+                self.assertEqual(str(parsed), query)
+                items = list(self._walk(parsed))
+                prohibits = [item for item in items if isinstance(item, Prohibit)]
+                self.assertEqual(prohibits, [Prohibit(Word(prohibited))])
+                # the bounds of the ranges are words, with their minus sign
+                for range_ in [item for item in items if isinstance(item, Range)]:
+                    self.assertIs(type(range_.low), Word)
+                    self.assertIs(type(range_.high), Word)
+
+    @classmethod
+    def _walk(cls, item):
+        yield item
+        for child in item.children:
+            yield from cls._walk(child)
+
     def test_minus_outside_range_is_unchanged(self):
         parsed = parser.parse("-5")
         self.assertEqual(parsed, Prohibit(Word("5")))
