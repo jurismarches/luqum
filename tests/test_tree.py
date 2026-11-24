@@ -437,6 +437,15 @@ class TestPrint(TestCase):
         self.assertEqual(str(item), "\tfoo\n^2")
         self.assertEqual(item.__str__(head_tail=True), "\r\tfoo\n^2  ")
 
+    def test_numbers_without_exponent(self):
+        # a normalized Decimal("10") is displayed as 1E+1, which is not valid in a query
+        self.assertEqual(str(Boost(Word("foo"), force=10)), "foo^10")
+        self.assertEqual(str(Boost(Word("foo"), force="1000.0")), "foo^1000")
+        self.assertEqual(str(Boost(Word("foo"), force="0.0000001")), "foo^0.0000001")
+        self.assertEqual(str(Fuzzy(Word("foo"), degree=20)), "foo~20")
+        self.assertEqual(str(Fuzzy(Word("foo"), degree="0.0000001")), "foo~0.0000001")
+        self.assertEqual(str(Proximity(Phrase('"foo bar"'), degree=10)), '"foo bar"~10')
+
     def test_none_item(self):
         self.assertEqual(str(NONE_ITEM), "")
         self.assertEqual(str(AndOperation(NONE_ITEM, NONE_ITEM)), "AND")
