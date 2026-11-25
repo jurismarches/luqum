@@ -278,6 +278,16 @@ class TestParser(TestCase):
         self.assertEqual(str(parsed), str(tree))
         self.assertEqual(parsed, tree)
 
+    def test_boost_and_approx_round_trip(self):
+        for query in [
+            'foo^10', 'foo^2.5', 'foo^100', 'foo^0.0000001', '(foo AND bar)^20', 'foo~10',
+            'foo~0.0000001', '"foo bar"~10^30',
+        ]:
+            with self.subTest(query=query):
+                parsed = parser.parse(query)
+                self.assertEqual(str(parsed), query)
+                self.assertEqual(parser.parse(str(parsed)), parsed)
+
     def test_groups(self):
         tree = (
            OrOperation(

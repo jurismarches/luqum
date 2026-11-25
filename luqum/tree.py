@@ -311,6 +311,14 @@ class Regex(Term):
                "Regex value must contain the slashes")
 
 
+def _plain_number(value):
+    """Write a number without exponent, as the query syntax does not support it
+
+    (a normalized :py:class:`decimal.Decimal` of 10 is displayed as ``1E+1``)
+    """
+    return format(Decimal(value), "f")
+
+
 class BaseApprox(Item):
     """Base for approximations, that is fuzziness and proximity
     """
@@ -329,7 +337,7 @@ class BaseApprox(Item):
     def __str__(self, head_tail=False):
         value = "%s~%s" % (
             self.term.__str__(head_tail=True),
-            self.degree if not self._implicit_degree else "",
+            _plain_number(self.degree) if not self._implicit_degree else "",
         )
         return self._head_tail(value, head_tail)
 
@@ -380,7 +388,7 @@ class Boost(Item):
         return "%s(%s, %s)" % (self.__class__.__name__, self.expr.__repr__(), self.force)
 
     def __str__(self, head_tail=False):
-        force = "" if self.implicit_force else self.force
+        force = "" if self.implicit_force else _plain_number(self.force)
         value = "%s^%s" % (self.expr.__str__(head_tail=True), force)
         return self._head_tail(value, head_tail)
 
